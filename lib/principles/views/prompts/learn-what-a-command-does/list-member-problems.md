@@ -56,8 +56,8 @@ it, else run in the project it names once, and says when there are no maps, or m
 stdout would hide. A changed member stays listed until an audit takes it in: a notice, not a gate that blocks commits.
 For a post-commit hook, run: %{executable} list-member-problems --short || true
 A heartbeat can compare each line's commit with the last one it reported.
-`--short --session-start SOURCE`, for the session-start hook, prints instead the meta-principle's reminder, but on
-`resume`, then each principle's count of changed audited members with a command listing them.
+`--short --session-start SOURCE`, for the session-start hook, prints instead a line for each principle with changed
+audited members, its count and, to run before the user's task, this command for that principle.
 
 `--commits-after COMMIT --hook-event EVENT` is for a Claude Code hook that runs after a Bash call, so a long session
 learns of a member it changed at the commit that changed it, not only at its next start. The plugin's after-commit

@@ -13,9 +13,15 @@ The agent's mechanics are the means, never the lead: do not open with "An agent 
 
 ## Unreleased
 
+## [0.0.10] - 2026-11-21
+
 ### Changed
 
 - **Your agent raises open audit findings that wait on you in its first reply, instead of skimming past them.** The open-findings line `principles report-at-session-start` prints now names the oldest finding waiting on someone and what it needs, states git's `user.name` for the agent to judge whether that is you, and says to raise each in the first reply, since nothing else will. On this tool's own repository the line is 30% shorter than before.
+- **You see how long the oldest finding has waited on you, so a stale one stands out.** The open-findings line `principles report-at-session-start` prints says "open N days" beside the oldest finding it names, as it did before the line was rewritten, for 15 more bytes.
+- **Your agent deals with changed audited rules before starting your task, instead of leaving the notice for later.** Each line `principles report-at-session-start` prints for a principle whose audited members changed now says that its audit no longer covers them, and asks the agent to run `principles list-member-problems ID` before your task, to acknowledge the edit or audit again. The closing line that pointed at those commands is gone.
+- **The README opens with a 51-second video of what principles does.**
+- **The tagline now reads "Tighter harness, longer running agents: trust the principles, loosen the supervision."** in the README and the gem summary, and the gem description says what the README says of harness support: built for Claude Code, Codex partly supported, Pi after that.
 
 ### Removed
 

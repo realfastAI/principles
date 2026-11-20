@@ -6,9 +6,11 @@
 
 [![Plugin](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FrealfastAI%2Fprinciples%2Fmain%2F.claude-plugin%2Fplugin.json&query=%24.version&label=plugin&prefix=v&color=e3120b)](#install) [![License](https://img.shields.io/github/license/realfastAI/principles)](LICENSE) ![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/realfastAI/principles/main/badges/coverage.json) ![Specs](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/realfastAI/principles/main/badges/specs.json)
 
-**Tighter harness, longer leash: trust the principles, loosen the supervision.**
+**Tighter harness, longer running agents: trust the principles, loosen the supervision.**
 
 Built for Claude Code. Codex is partly supported already, with full support coming soon, and Pi after that. Your principles are portable across harnesses that share the same context management vectors: Codex has no monitors, but shares almost every other vector with Claude Code, including `AGENTS.md`, skills and hooks.
+
+https://github.com/user-attachments/assets/8bd9d6cb-893e-4422-86f0-ecad91af5aa9
 
 ## Who is this for?
 

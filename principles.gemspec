@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
   # Rakefile. Loaded from the checkout, as Bundler does, it is RELEASE, so Gemfile.lock does not change with
   # every commit.
   spec.version = Principles::BUILT_VERSION || Principles::RELEASE
-  spec.summary = "Tighter harness, longer leash: trust the principles, loosen the supervision"
+  spec.summary = "Tighter harness, longer running agents: trust the principles, loosen the supervision"
   spec.description = <<~TEXT
     A harness configuration framework that keeps every part of your Claude Code agent's harness in alignment.
     Name the principles your CLAUDE.md files, rules, skills, subagents and hooks encode, and map every place
@@ -16,7 +16,7 @@ Gem::Specification.new do |spec|
     move with it, and walks your agent through bringing them back into line, recording anything still to fix.
     It never edits your harness and calls no model: it keeps the books deterministically.
     Ruby 3.4, with no runtime gem dependencies.
-    Codex and Pi support coming soon.
+    Built for Claude Code. Codex is partly supported, with full support coming soon, and Pi after that.
   TEXT
   spec.license = "Apache-2.0"
   spec.authors = ["Sidu Ponnappa"]

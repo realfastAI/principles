@@ -32,8 +32,7 @@ module Principles
       def session_start_lines(source)
         printing = invocation.without_project
         problems, (report,) = checked(nil, printing)
-        lines = Views::ProblemLines.new(printing)
-                                   .session_start_lines(changed: problems.assessed_changes, skill: skill?)
+        lines = Views::ProblemLines.new(printing).session_start_lines(changed: problems.assessed_changes)
         lines + not_checked_lines(problems, report, printing, source)
       end
 
@@ -47,11 +46,6 @@ module Principles
         no_baseline_lines(problems, report, printing) + waiting(nil).map(&:to_s) +
           Views::FirstAuditLine.new(printing).lines(problems.awaiting_first_audit.length, source)
       end
-
-      # Whether this session has the principles skill, which only the plugin installs, for the lines naming where
-      # to start.
-      #: () -> bool
-      def skill? = @tool.runs_from.principles_skill_in_this_session?
 
       # list-member-problems' JSON result, or with --short its lines for a trigger, or with --hook-event the
       # after-commit hook's JSON, which MembersACommitChanged prints.
@@ -82,7 +76,7 @@ module Principles
                                    never_assessed: problems.never_assessed, names_a_command:)
         return lines unless session_start
 
-        view.at_session_start(lines, changed: problems.assessed_changes, skill: skill?)
+        view.at_session_start(lines, changed: problems.assessed_changes)
       end
 
       # list-member-problems' JSON result for map id, or every map, without the files it wrote.

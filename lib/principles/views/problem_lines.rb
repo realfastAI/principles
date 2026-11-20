@@ -44,41 +44,31 @@ module Principles
       end
 
       # short's lines for a session-start hook: on stdout, one line for each principle with a changed member an
-      # audit or acknowledgement assessed, counting them, with the command that lists them, from changed, in place of
-      # the rows and never-assessed counts, which an always-loaded carrier cannot afford, then where to start, as
-      # session_start_lines says; stderr and the status kept. Its command leaves
-      # out --project, as the hook's own commands do, since a session runs in its project.
-      #: (Lines, changed: Hash[String, Integer], skill: bool) -> Lines
-      def at_session_start(short, changed:, skill:)
-        stdout = session_start_lines(changed:, skill:)
-        Lines.new(stdout: stdout.map { "#{it}\n" }.join, stderr: short.stderr, status: short.status)
+      # audit or acknowledgement assessed, as session_start_lines says, from changed, in place of the rows and
+      # never-assessed counts, which an always-loaded carrier cannot afford; stderr and the status kept.
+      #: (Lines, changed: Hash[String, Integer]) -> Lines
+      def at_session_start(short, changed:)
+        Lines.new(stdout: session_start_lines(changed:).map { "#{it}\n" }.join, stderr: short.stderr,
+                  status: short.status)
       end
 
-      # at_session_start's stdout, a line each: each principle's count of changed audited members with the command
-      # that lists them, then, when any is, where to start: the principles skill when skill says this session has
-      # it, as the plugin installs it, else those commands.
-      #: (changed: Hash[String, Integer], skill: bool) -> Array[String]
-      def session_start_lines(changed:, skill:)
-        counts = changed.map { |id, count| changed_line(id, count) }
-        [*counts, *(where_to_start(skill) unless counts.empty?)]
+      # at_session_start's stdout, a line for each principle with changed audited members: how many, why that
+      # matters, to act before the user's task, and the command whose output offers acknowledging them or auditing
+      # again. Its command leaves out --project, as the hook's own commands do, since a session runs in its project.
+      #: (changed: Hash[String, Integer]) -> Array[String]
+      def session_start_lines(changed:)
+        changed.map { |id, count| changed_line(id, count) }
       end
 
       private
 
-      # Where the agent starts with the changed members the count lines name: the principles skill, or without it the
-      # commands those lines print.
-      #: (bool) -> String
-      def where_to_start(skill)
-        return Prompts.text("start-a-session/start-with-the-principles-skill") if skill
-
-        Prompts.text("start-a-session/run-each-command-above")
-      end
-
-      # The session-start line counting principle id's changed audited members, with the command that lists them.
+      # The session-start line on principle id's count of changed audited members.
       #: (String, Integer) -> String
       def changed_line(id, count)
-        "#{count} audited member#{"s" unless count == 1} of #{VisibleText.new(id)} changed: " \
-          "#{@invocation.without_project.in_project("list-member-problems", id, options: ["--short"])}"
+        Prompts.text("start-a-session/act-on-the-changed-members",
+                     members: "#{count} audited member#{"s" unless count == 1} of #{VisibleText.new(id)}",
+                     them: count == 1 ? "it" : "them",
+                     command: @invocation.without_project.in_project("list-member-problems", id))
       end
 
       # The line counting principle id's members no audit has assessed, which a reader tells from a member's row by
