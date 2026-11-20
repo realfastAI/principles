@@ -86,6 +86,10 @@ module Principles
         GuidanceSearchPaths.read(@guidance_search_paths)
       end
 
+      # The user name git commits as here, or nil when none is set, which the session-start line states as a fact.
+      #: () -> String?
+      def git_user_name = @repository.user_name
+
       # The project's history, one for the whole command, so every read names the HEAD it first read.
       #: () -> ProjectHistory
       def history

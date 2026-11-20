@@ -19,15 +19,19 @@ module Principles
         freeze
       end
 
-      # How many are open, how many of them are deferred with no waits_on, and the one first raised earliest as it
-      # has waited until now, or nil when none is open. How long it waited runs from first_raised_at, never from when
-      # its waits_on was asked, which a later audit may have given it.
+      # How many are open, how many of them are deferred with no waits_on and how many with one, so how many someone
+      # should raise, the first raised earliest of those with one, and the one first raised earliest of all as it has
+      # waited until now, or nil when none is open. How long it waited runs from first_raised_at, never from when its
+      # waits_on was asked, which a later audit may have given it.
       #: (Time) -> Hash[String, untyped]?
       def waiting_at(now)
         oldest = @findings.min_by(&:first_raised_time) or return nil
 
-        { "count" => @findings.length, "waiting_on_no_one_named" => @findings.count(&:waiting_on_no_one_named?),
-          **oldest.waited_at(now) }
+        named = @findings.select(&:waiting_on_someone_named?)
+        unnamed = @findings.count(&:waiting_on_no_one_named?)
+        { "count" => @findings.length, "waiting_on_no_one_named" => unnamed,
+          "waiting_on_someone_named" => named.length, "to_raise" => named.length + unnamed,
+          "oldest_waiting_on_someone" => named.min_by(&:first_raised_time)&.named_waiting, **oldest.waited_at(now) }
       end
     end
   end

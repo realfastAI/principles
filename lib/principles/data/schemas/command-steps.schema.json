@@ -72,7 +72,7 @@
           "usage": { "$ref": "#/$defs/prose" },
           "group": { "$ref": "#/$defs/slug" },
           "options": { "type": "array", "uniqueItems": true,
-                       "items": { "enum": ["description", "path", "section", "starting-at", "ending-at", "query", "role", "check", "file", "short", "session-start", "commits-after", "hook-event", "member", "when-files", "when-invoked", "always", "write-ups", "as", "instruction", "part", "also", "confirm", "lines"] } },
+                       "items": { "enum": ["description", "path", "section", "starting-at", "ending-at", "query", "role", "check", "file", "short", "session-start", "commits-after", "hook-event", "member", "when-files", "when-invoked", "always", "write-ups", "as", "instruction", "part", "also", "confirm", "lines", "open-findings"] } },
           "requires": { "type": "array", "uniqueItems": true, "items": { "enum": ["file"] } },
           "summary": { "$ref": "#/$defs/prose" },
           "help": { "type": "string", "pattern": "^[a-z]+(-[a-z]+)+/[a-z]+(-[a-z]+)+$" },

@@ -1,0 +1,16 @@
+{
+  "name": "principles",
+  "description": "Map the instruction files, skills, hooks and checks that carry one of a project's principles, and audit whether they still reinforce it. principles keeps the committed map and audit record; the agent judges and fixes.",
+  "author": {
+    "name": "realfast"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "instructions",
+    "audit",
+    "principles",
+    "self-audit",
+    "claude-md"
+  ],
+  "version": "0.0.9"
+}

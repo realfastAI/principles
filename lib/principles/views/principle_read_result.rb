@@ -1,6 +1,7 @@
 # typed: strict
 # frozen_string_literal: true
 
+require_relative "findings_result"
 require_relative "invocation"
 require_relative "printed_principle"
 require_relative "member_repairs"
@@ -41,6 +42,16 @@ module Principles
       #|  -> Hash[String, untyped]
       def listing(entries, waiting: [], one_to_audit: true)
         { "principles" => entries, "next_action" => listed_next_action(entries, waiting, one_to_audit).join("\n") }
+      end
+
+      # Each of list-principles' entries with its principle's open findings, a line each, for --open-findings. open
+      # maps each principle id to its findings' plain fields, as list-open-findings --lines takes them.
+      #: (Array[Hash[String, untyped]], Hash[String, Array[Hash[String, untyped]]]) -> Array[Hash[String, untyped]]
+      def with_open_findings(entries, open)
+        findings = FindingsResult.new(@invocation)
+        entries.map do |entry|
+          entry.merge("open_findings" => open.fetch(entry.fetch("id"), []).map { findings.summary(it) })
+        end
       end
 
       # list-principles' note on the meta-principle's map, kept in file, when it has no members, with the two ways on.

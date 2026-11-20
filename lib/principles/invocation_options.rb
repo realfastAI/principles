@@ -11,7 +11,7 @@ module Principles
     VALUE_OPTIONS = %w[project file description path section starting-at ending-at query role
                        check session-start commits-after hook-event as instruction part].freeze #: Array[String]
     # The options that take no value, as list-member-problems --short.
-    FLAG_OPTIONS = %w[short lines when-invoked always write-ups confirm].freeze #: Array[String]
+    FLAG_OPTIONS = %w[short lines when-invoked always write-ups confirm open-findings].freeze #: Array[String]
     # The options that may be given more than once, each value kept in order, as change-activation --when-files and
     # start-audit --member.
     LIST_OPTIONS = %w[when-files also member].freeze #: Array[String]

@@ -1,0 +1,12 @@
+{
+  "name": "realfastai",
+  "owner": {
+    "name": "realfast"
+  },
+  "plugins": [
+    {
+      "name": "principles",
+      "source": "./"
+    }
+  ]
+}

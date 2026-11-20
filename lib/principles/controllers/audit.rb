@@ -38,8 +38,9 @@ module Principles
       def session_start_open_findings(source)
         records = open_records(nil)
         waiting = Models::FindingsLeftOpen.of(records).waiting_at(Time.now.utc)
+        not_found = Models::FindingWriteUps.of(@project, records).not_found
         Views::OpenFindingsLine.new(invocation.without_project)
-                               .lines(waiting, Models::FindingWriteUps.of(@project, records).not_found, source:)
+                               .lines(waiting, not_found, source:, user_name: @project.git_user_name)
       end
 
       private
@@ -136,7 +137,8 @@ module Principles
         records = open_records(id)
         waiting = Models::FindingsLeftOpen.of(records).waiting_at(Time.now.utc)
         Views::OpenFindingsLine.new(invocation).short(waiting, Models::FindingWriteUps.of(@project, records).not_found,
-                                                      source: options["session_start"] || "startup")
+                                                      source: options["session_start"] || "startup",
+                                                      user_name: @project.git_user_name)
       end
 
       # The records whose open findings list-open-findings reads: id's, refused when a later copy wrote it in a

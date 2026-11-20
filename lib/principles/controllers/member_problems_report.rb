@@ -33,7 +33,7 @@ module Principles
         printing = invocation.without_project
         problems, (report,) = checked(nil, printing)
         lines = Views::ProblemLines.new(printing)
-                                   .session_start_lines(changed: problems.assessed_changes, source:, skill: skill?)
+                                   .session_start_lines(changed: problems.assessed_changes, skill: skill?)
         lines + not_checked_lines(problems, report, printing, source)
       end
 
@@ -82,7 +82,7 @@ module Principles
                                    never_assessed: problems.never_assessed, names_a_command:)
         return lines unless session_start
 
-        view.at_session_start(lines, changed: problems.assessed_changes, source: session_start, skill: skill?)
+        view.at_session_start(lines, changed: problems.assessed_changes, skill: skill?)
       end
 
       # list-member-problems' JSON result for map id, or every map, without the files it wrote.

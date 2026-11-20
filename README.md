@@ -1,12 +1,44 @@
-# Principles
+![Six pocket compasses on white paper, every needle pointing the same way but one small red needle that has swung off course](https://raw.githubusercontent.com/realfastAI/principles/main/images/banner.webp)
 
-[![Gem Version](https://badge.fury.io/rb/principles.svg?icon=si%3Arubygems&icon_color=%23fafafa)](https://badge.fury.io/rb/principles)
+# Harness Principles
 
-**Tighter harness, longer leash: agents you can leave running.**
+<p>Built with ❤️ at&nbsp;<a href="https://realfast.ai"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/realfastAI/principles/main/images/realfast-logo-white.svg"><img src="https://raw.githubusercontent.com/realfastAI/principles/main/images/realfast-logo-ink.svg" alt="realfast" height="15"></picture></a></p>
+
+[![Plugin](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FrealfastAI%2Fprinciples%2Fmain%2F.claude-plugin%2Fplugin.json&query=%24.version&label=plugin&prefix=v&color=e3120b)](#install) [![License](https://img.shields.io/github/license/realfastAI/principles)](LICENSE) ![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/realfastAI/principles/main/badges/coverage.json) ![Specs](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/realfastAI/principles/main/badges/specs.json)
+
+**Tighter harness, longer leash: trust the principles, loosen the supervision.**
+
+Built for Claude Code. Codex is partly supported already, with full support coming soon, and Pi after that. Your principles are portable across harnesses that share the same context management vectors: Codex has no monitors, but shares almost every other vector with Claude Code, including `AGENTS.md`, skills and hooks.
+
+## Who is this for?
+
+Principles is based on a dead simple idea - an easy to use CLI that helps an agent create and manage a map of all the snippets of text across the harness that work together to create its _operating principles_.
+
+You'll get the most from it when:
+
+- a team of people and their agents use the same harness and repo to do their work and need to establish shared SoPs.
+- your agents _need_ to run for long stretches, and need their operating principles reinforced consistently across CLAUDE.md/AGENTS.md, skills, hooks and all the rest of the context management vectors a harness provides.
+
+If your project has a single `CLAUDE.md` at its root, `principles` is overkill. You can read that one file and keep it consistent yourself. Come back when your rules start to spread.
+
+Here is one of *realfast*'s projects, where an agent answers which principles are in place, how many places carry each, and which findings are still open:
+
+![An agent in Claude Code answering "what principles are in place already?" with a table of six mapped principles, the number of files carrying each, and their open findings](https://raw.githubusercontent.com/realfastAI/principles/main/images/principles-in-use.webp)
 
 ## Install
 
-Install the gem yourself. In Claude Code, the `!` prefix runs a shell command in your session:
+In Claude Code, add this repository as a plugin marketplace, install the plugin, reload your plugins, and start:
+
+```
+/plugin marketplace add realfastAI/principles
+/plugin install principles@realfastai
+/reload-plugins
+/principles:principles
+```
+
+`/principles:principles` starts your agent mapping your project's principles. From there it follows what each result tells it, so you never need to learn the commands. The plugin also adds hooks that report which mapped places changed as each session starts and after each commit, and a `setup-ruby` skill your agent follows, asking you first, when no Ruby 3.4 is found.
+
+From a terminal, or for another harness, install the gem instead. In Claude Code, the `!` prefix runs a shell command in your session:
 
 ```
 ! gem install principles
@@ -101,6 +133,8 @@ The hook entries run `principles report-at-session-start` and `principles report
 ## Where it comes from
 
 The project grows out of two practices developed through use: **express intent**, keeping names and definitions current as understanding changes; and **collaboration through agents**, helping people align on shared work through the agents they each work with.
+
+`principles` is built at [*realfast*](https://realfast.ai), where it has kept the harnesses of our own projects consistent for the past couple of months.
 
 ## Issues
 

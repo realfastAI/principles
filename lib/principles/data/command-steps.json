@@ -60,12 +60,12 @@
       ]
     },
     {
-      "name": "list-principles", "usage": "list-principles", "group": "read", "options": [],
+      "name": "list-principles", "usage": "list-principles [--open-findings]", "group": "read", "options": ["open-findings"],
       "summary": "Every mapped principle and whether its members are current.",
       "help": "learn-what-a-command-does/list-principles",
       "steps": [
         { "id": "count-members-by-freshness", "actor": "cli",
-          "does": "Reads every map and the audit record of each, and counts its members as current, changed, unassessed, locator_lost or unavailable.",
+          "does": "Reads every map and the audit record of each, and counts its members as current, changed, unassessed, locator_lost or unavailable. With --open-findings, adds each principle's open findings, one line each, saying whom it waits on, or that it is accepted, and how many days it has been open.",
           "refuses_like": ["read-map", "read-audit"] }
       ]
     },
@@ -109,7 +109,7 @@
       "help": "learn-what-a-command-does/list-open-findings",
       "steps": [
         { "id": "read-open-findings", "actor": "cli",
-          "does": "Reads the last audit record of principle ID, or of every principle, and lists each deferred or accepted finding with its action, its members, its recorded_at pointer and when the audit was made. Says that an earlier audit's open findings are only in git. With --lines, prints each open finding on a line with its principle, id and waits_on. With --short, prints one line saying how many are open, how long the oldest has waited and what it waits on, and nothing when none is open; --session-start clear or compact words it for a context just cleared or compacted, and resume shortens it to the facts, since a resumed conversation holds the whole line already.",
+          "does": "Reads the last audit record of principle ID, or of every principle, and lists each deferred or accepted finding with its action, its members, its recorded_at pointer and when the audit was made. Says that an earlier audit's open findings are only in git. With --lines, prints each open finding on a line with its principle, id and waits_on. With --short, prints one line saying how many deferred findings wait on someone named or no one, whom the oldest waits on and git's user.name, and to raise each that waits on the user in the first reply, and nothing when none is open; --session-start clear or compact asks for the next reply, and resume shortens it to the facts, since a resumed conversation holds the whole line already.",
           "refuses_like": ["read-map", "read-audit"] },
         { "id": "follow-up-each-finding", "actor": "agent",
           "does": "Read each finding where its recorded_at points, and decide each one at its principle's next full audit.",
@@ -132,7 +132,7 @@
       "help": "learn-what-a-command-does/report-at-session-start",
       "steps": [
         { "id": "report-at-session-start", "actor": "cli",
-          "does": "Reads the SessionStart hook's JSON on stdin and always exits 0, since the host adds a SessionStart hook's output to the context only then. Prints nothing in a project with no maps. Otherwise prints, each line marked principles:, the line saying every line loaded at session start costs every session, but on resume, then one line for each principle whose members an audit assessed changed since, with its count and the list-member-problems --short command that lists them, then the principles skill as where to start, then, in git, what gives each principle's members with no baseline one, then each principle whose audit record a later release wrote, whose audits wait on an upgrade, then, while any principle awaits its first full audit, one line counting them that asks for one background subagent to follow show-first-audit-brief, or to offer the audit at the next pause if none can be started, and at resume and compact only the count, asking for no second subagent, then, while any audit finding is left open, the one line list-open-findings --short prints, worded for the session's start. When list-member-problems refuses, prints instead its code and the command that shows its repair; input it cannot read is read as a startup." }
+          "does": "Reads the SessionStart hook's JSON on stdin and always exits 0, since the host adds a SessionStart hook's output to the context only then. Prints nothing in a project with no maps. Otherwise prints, each line marked principles:, one line for each principle whose members an audit assessed changed since, with its count and the list-member-problems --short command that lists them, then the principles skill as where to start, then, in git, what gives each principle's members with no baseline one, then each principle whose audit record a later release wrote, whose audits wait on an upgrade, then, while any principle awaits its first full audit, one line counting them that asks for one background subagent to follow show-first-audit-brief, or to offer the audit at the next pause if none can be started, and at resume and compact only the count, asking for no second subagent, then, while any audit finding is left open, the one line list-open-findings --short prints, worded for the session's start. When list-member-problems refuses, prints instead its code and the command that shows its repair; input it cannot read is read as a startup." }
       ]
     },
     {

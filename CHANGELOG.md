@@ -13,6 +13,32 @@ The agent's mechanics are the means, never the lead: do not open with "An agent 
 
 ## Unreleased
 
+### Changed
+
+- **Your agent raises open audit findings that wait on you in its first reply, instead of skimming past them.** The open-findings line `principles report-at-session-start` prints now names the oldest finding waiting on someone and what it needs, states git's `user.name` for the agent to judge whether that is you, and says to raise each in the first reply, since nothing else will. On this tool's own repository the line is 30% shorter than before.
+
+### Removed
+
+- **Each session starts 110 bytes lighter.** `principles report-at-session-start` no longer restates the meta-principle line; it prints only lines naming a fact and a command.
+
+## [0.0.9] - 2026-11-21
+
+### Added
+
+- **One command answers "what principles are in place, and what is each still waiting on?"** Run `principles list-principles --open-findings`: each principle's row adds its open findings, one line each, saying whom it waits on and how long it has been open, so an agent no longer joins `list-principles` with `list-open-findings` in a script. Without the flag, `list-principles` prints as before, about a fifth smaller than with it.
+
+- **Install `principles` in Claude Code from its public repository.** Run `/plugin marketplace add realfastAI/principles`, then `/plugin install principles@realfastai`. The plugin's hooks report which mapped places changed as each session starts and after each commit, and its `setup-ruby` skill installs Ruby 3.4, asking you first, when none is found. The gem stays the install for a terminal or another harness.
+
+### Changed
+
+- **The public repository's README now shows its images.** For publishers, every file under `images/` is published byte for byte at the same path in the public repository, and never added to the gem, so both READMEs share one copy. The leak check still reads an SVG as text, and leaves a binary raster image unread, since its compressed bytes can spell a refused word by chance.
+
+- **A release can no longer stop half-done on an unclean public checkout.** For publishers, `bundle exec rake release`, the dry run included, now refuses before the gate and before tagging when the public repository's checkout has uncommitted or untracked files. It names each file and says to commit or remove them there.
+
+- **The gem you install is built from the public repository's commit, so it matches the source you can read there.** Each release commits its public copy first, builds the gem from that commit, dated by it so a rebuild is byte-identical, and only then pushes; for publishers, `bundle exec rake release` checks before any step that the gem builds and installs from that copy, and a stopped release finishes by running it again, uploading nothing RubyGems already serves.
+
+- **Licence scanners now recognise `LICENSE` as the Apache License 2.0.** It is the text exactly as Apache publishes it; the copyright line stays in `NOTICE`.
+
 ## [0.0.8] - 2026-11-20
 
 ### Added

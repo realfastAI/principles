@@ -39,6 +39,13 @@ module Principles
         ok && output.strip == "true"
       end
 
+      # The user name git commits as here, or nil when none is set.
+      #: () -> String?
+      def user_name
+        name, ok = git(["config", "user.name"])
+        ok && !name.strip.empty? ? name.strip : nil
+      end
+
       # The full sha of the last commit that changed path, or nil outside git or when no commit has.
       #: (String) -> String?
       def last_commit(path)

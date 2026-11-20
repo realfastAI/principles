@@ -43,26 +43,24 @@ module Principles
                   status: assessed_change || !never_assessed.empty? ? CHANGED : 0)
       end
 
-      # short's lines for a session-start hook: on stdout, first the context universal, unless source is
-      # resume, whose conversation holds it already, then one line for each principle with a changed member an
+      # short's lines for a session-start hook: on stdout, one line for each principle with a changed member an
       # audit or acknowledgement assessed, counting them, with the command that lists them, from changed, in place of
       # the rows and never-assessed counts, which an always-loaded carrier cannot afford, then where to start, as
       # session_start_lines says; stderr and the status kept. Its command leaves
       # out --project, as the hook's own commands do, since a session runs in its project.
-      #: (Lines, changed: Hash[String, Integer], source: String, skill: bool) -> Lines
-      def at_session_start(short, changed:, source:, skill:)
-        stdout = session_start_lines(changed:, source:, skill:)
+      #: (Lines, changed: Hash[String, Integer], skill: bool) -> Lines
+      def at_session_start(short, changed:, skill:)
+        stdout = session_start_lines(changed:, skill:)
         Lines.new(stdout: stdout.map { "#{it}\n" }.join, stderr: short.stderr, status: short.status)
       end
 
-      # at_session_start's stdout, a line each: the context universal, but on resume, then each principle's count
-      # of changed audited members with the command that lists them, then, when any is, where to start: the principles
-      # skill when skill says this session has it, as the plugin installs it, else those commands.
-      #: (changed: Hash[String, Integer], source: String, skill: bool) -> Array[String]
-      def session_start_lines(changed:, source:, skill:)
+      # at_session_start's stdout, a line each: each principle's count of changed audited members with the command
+      # that lists them, then, when any is, where to start: the principles skill when skill says this session has
+      # it, as the plugin installs it, else those commands.
+      #: (changed: Hash[String, Integer], skill: bool) -> Array[String]
+      def session_start_lines(changed:, skill:)
         counts = changed.map { |id, count| changed_line(id, count) }
-        [*(Prompts.text("start-a-session/every-loaded-line-costs-every-session") unless source == "resume"),
-         *counts, *(where_to_start(skill) unless counts.empty?)]
+        [*counts, *(where_to_start(skill) unless counts.empty?)]
       end
 
       private

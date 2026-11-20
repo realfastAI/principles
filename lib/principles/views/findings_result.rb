@@ -39,14 +39,25 @@ module Principles
         Lines.new(stdout: findings.empty? ? "#{NONE_OPEN}\n" : text, stderr: "", status: 0)
       end
 
+      # One finding as list-principles --open-findings lists it in its principle's row: its id, whom it waits on and
+      # the whole days it has been open, as --lines words them.
+      #: (Hash[String, untyped]) -> String
+      def summary(finding)
+        "#{one_line(finding.fetch("finding_id"))} #{waited_on(finding)}; #{days_open(finding)}"
+      end
+
       private
 
       #: (Hash[String, untyped]) -> String
       def line(finding)
-        waits = waited_on(finding)
+        "#{finding.fetch("principle")}\t#{one_line(finding.fetch("finding_id"))}\t#{waited_on(finding)}\t" \
+          "#{days_open(finding)}"
+      end
+
+      #: (Hash[String, untyped]) -> String
+      def days_open(finding)
         days = finding.fetch("days_open")
-        "#{finding.fetch("principle")}\t#{one_line(finding.fetch("finding_id"))}\t#{waits}\topen #{days} " \
-          "day#{"s" unless days == 1}"
+        "open #{days} day#{"s" unless days == 1}"
       end
 
       # Whom finding waits on, or that it is accepted, and so by design waits on no one.

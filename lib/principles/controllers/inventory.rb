@@ -14,10 +14,10 @@ module Principles
     # last audit. None changes anything on disk. Survey runs the survey of candidate files.
     class Inventory < Command
       #: (String, String?, Hash[String, untyped]) -> untyped
-      def call(command, id, _options)
+      def call(command, id, options)
         naming_the_executable do
           case command
-          when "list-principles" then listing.merge("wrote" => [])
+          when "list-principles" then listing(open_findings: options["open_findings"]).merge("wrote" => [])
           when "show-principle" then members(required_id(id)).merge("wrote" => [])
           else unknown(command)
           end
@@ -99,12 +99,22 @@ module Principles
       end
 
       # Its next_action offers an audit while one principle's audits do not wait on an upgrade; a map listed with its
-      # refusal counts, since repairing it leaves it to audit.
-      #: () -> untyped
-      def listing
+      # refusal counts, since repairing it leaves it to audit. With open_findings, each row lists its open findings.
+      #: (open_findings: bool?) -> untyped
+      def listing(open_findings:)
         ids = @principles.ids
         waiting = ids.filter_map { waiting_on_an_upgrade(it) }
-        read_result.listing(rows(ids), waiting: waiting, one_to_audit: waiting.size < ids.size)
+        listed = open_findings ? read_result.with_open_findings(rows(ids), open_by_principle(ids)) : rows(ids)
+        read_result.listing(listed, waiting: waiting, one_to_audit: waiting.size < ids.size)
+      end
+
+      # Each principle's open findings, from every record this copy can read, as list-open-findings reads them,
+      # aged until now, by principle id.
+      #: (Array[String]) -> Hash[String, Array[Hash[String, untyped]]]
+      def open_by_principle(ids)
+        now = Time.now.utc
+        @audit_records.readable_of(ids).flat_map(&:left_open).map { it.waited_at(now) }
+                      .group_by { it.fetch("principle") }
       end
 
       # One map's row; a map this tool cannot read is listed with its refusal, so the others still show, and one

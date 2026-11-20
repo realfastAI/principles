@@ -166,6 +166,15 @@ module Principles
       #: () -> bool
       def waiting_on_no_one_named? = action == "deferred" && without_waits_on?
 
+      # Whether it is deferred with a waits_on, so the session-start line counts it among those waiting on someone
+      # named, for the agent to judge whom.
+      #: () -> bool
+      def waiting_on_someone_named? = action == "deferred" && !without_waits_on?
+
+      # The finding as the session-start line names the oldest waiting on someone: its principle, id and waits_on.
+      #: () -> Hash[String, untyped]
+      def named_waiting = { "principle" => @principle_id, "finding_id" => id, "waits_on" => @finding.waits_on }
+
       # The one line it says it waits on, or nil when it says it waits on nothing.
       #: () -> String?
       def waits_on = @finding.waits_on

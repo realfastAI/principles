@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
   # Rakefile. Loaded from the checkout, as Bundler does, it is RELEASE, so Gemfile.lock does not change with
   # every commit.
   spec.version = Principles::BUILT_VERSION || Principles::RELEASE
-  spec.summary = "Tighter harness, longer leash: agents you can leave running"
+  spec.summary = "Tighter harness, longer leash: trust the principles, loosen the supervision"
   spec.description = <<~TEXT
     A harness configuration framework that keeps every part of your Claude Code agent's harness in alignment.
     Name the principles your CLAUDE.md files, rules, skills, subagents and hooks encode, and map every place
