@@ -1,5 +1,3 @@
-![Six pocket compasses on white paper, every needle pointing the same way but one small red needle that has swung off course](https://raw.githubusercontent.com/realfastAI/principles/main/images/banner.webp)
-
 # Harness Principles
 
 <p>Built with ❤️ at&nbsp;<a href="https://realfast.ai"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/realfastAI/principles/main/images/realfast-logo-white.svg"><img src="https://raw.githubusercontent.com/realfastAI/principles/main/images/realfast-logo-ink.svg" alt="realfast" height="15"></picture></a></p>
