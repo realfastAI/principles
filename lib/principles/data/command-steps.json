@@ -1,0 +1,422 @@
+{
+  "groups": [
+    { "id": "read", "heading": "Read; these change nothing on disk",
+      "writes": "Writes nothing." },
+    { "id": "write-map", "heading": "Write the member map, `.principles/maps/ID.json`, which the project commits",
+      "writes": "Writes `.principles/maps/ID.json`; commit it as it changes. Never a member's file." },
+    { "id": "remove-map", "heading": "Remove an obsolete map; retain its member files and audit history",
+      "writes": "Removes only `.principles/maps/ID.json`, listed under `removed`; `wrote` is empty. Commit the removal if the map was tracked. Retains member files and audit entries." },
+    { "id": "write-guidance-search-paths", "heading": "Write the recorded guidance search paths, which the project commits",
+      "writes": "Writes `.principles/guidance-search-paths.json`; commit it as it changes. Never a map, audit or guidance file." },
+    { "id": "write-audit-record", "heading": "Audit; these write only the audit record, `.principles/audits/ID.json`, which the project commits",
+      "writes": "Writes `.principles/audits/ID.json`, listed under `wrote` when it does; commit it. Never the map or a member's file." }
+  ],
+  "refusal_groups": {
+    "any-command": ["file_too_large", "invalid_invocation", "invalid_shape", "filesystem_error", "unknown_command", "missing_id", "invalid_command_steps"],
+    "read-map": ["principles_folder_not_moved", "both_principles_folders", "symlinked_directory", "unknown_principle", "unparseable_map", "invalid_map", "newer_format", "duplicate_member"],
+    "read-audit": ["principles_folder_not_moved", "both_principles_folders", "symlinked_directory", "unparseable_audit", "invalid_audit_record"],
+    "rewrite-audit": ["newer_audit_record"],
+    "locate-text": ["outside_project", "not_a_file", "unreadable_file", "renamed_in_case", "invalid_encoding", "section_needs_markdown", "query_needs_frontmatter", "query_with_other_locators", "unsupported_query", "unsupported_frontmatter", "duplicate_frontmatter_key", "field_not_found", "section_not_found",
+                    "ambiguous_heading", "passage_not_found", "ambiguous_passage", "passage_end_not_found",
+                    "broken_members"]
+  },
+  "commands": [
+    {
+      "name": "list-candidate-files", "usage": "list-candidate-files [--commits-after REV] [--also GLOB]...", "group": "read", "options": ["commits-after", "also"],
+      "summary": "Ask what in this project looks like a principle.",
+      "help": "learn-what-a-command-does/list-candidate-files",
+      "steps": [
+        { "id": "list-instruction-files", "actor": "cli",
+          "does": "Lists the instruction files agent hosts load by convention, naming git-ignored ones unread rather than listing them, each folder git ignores counted once, leaving out folders that hold their own git repository, and names any under a fixtures, examples or samples folder and, in git, any git does not track. With --commits-after, lists the files the commits after it changed first, marked, Markdown outside those places included, and refuses outside git and a revision git cannot resolve to a commit. Repeated --also root-relative globs include explicitly selected guidance, including skill references and named non-Markdown files; additional_search_paths reports each match count within traversal boundaries. No location is saved.",
+            "refuses": ["range_needs_git", "unknown_revision", "invalid_guidance_search_path"] },
+        { "id": "choose-one-principle", "actor": "agent",
+          "does": "Show the user a table of the principles several listed files reinforce, asking nothing before it, then, when maps exist, compare each rule with the descriptions in mapped_principles before choosing whether to extend an existing map or create a distinct one. Decide whether each file named in possibly_test_data is guidance or a sample. After the table, ask where else the repository keeps guidance; --also includes it in a read-only survey without recording it.",
+          "prompt": "find-a-principle-to-map/choose-one-principle",
+          "cannot_check": "whether a rule is a facet of an existing principle or distinct, or whether a file is guidance or test data; ask the project's owner when you cannot tell.",
+          "next": [
+            { "to": "extend-existing-principle", "when": "the rule is a facet of an existing principle" },
+            { "to": "map-distinct-principle", "when": "the rule is a distinct principle" }
+          ] },
+        { "id": "extend-existing-principle", "actor": "agent",
+          "does": "Choose the existing principle and the additional place that carries it, with its role.",
+          "answer_with": "add-member" },
+        { "id": "map-distinct-principle", "actor": "agent",
+          "does": "Choose a lower-kebab-case id and describe what the distinct principle is and why it matters.",
+          "answer_with": "create-principle" }
+      ]
+    },
+    {
+      "name": "show-candidate-outlines", "usage": "show-candidate-outlines PATH...", "group": "read", "options": [],
+      "summary": "Read the outlines the survey left out, by literal file path.",
+      "help": "learn-what-a-command-does/show-candidate-outlines",
+      "steps": [
+        { "id": "read-requested-outlines", "actor": "cli",
+          "does": "Lists only the requested literal project files, once each, in path order. Each readable Markdown file receives the survey's outline, including explicitly requested test data and skill references; non-Markdown files show path and size alone. Ignored files and links to ignored text stay unread. Each failed path retains its refusal beside successful entries. The whole rendered result uses OutlineBudget and names shortened or omitted outlines.",
+          "refuses_like": ["locate-text"] },
+        { "id": "continue-the-survey", "actor": "agent",
+          "does": "Judge which requested outlines matter to the survey. Repair failed paths; request fewer paths to recover omitted outlines, or read only needed line ranges when one file remains too large.",
+          "prompt": "read-requested-outlines/continue-the-survey",
+          "cannot_check": "whether a file or rule matters to the task; the agent judges relevance." }
+      ]
+    },
+    {
+      "name": "list-principles", "usage": "list-principles", "group": "read", "options": [],
+      "summary": "Every mapped principle and whether its members are current.",
+      "help": "learn-what-a-command-does/list-principles",
+      "steps": [
+        { "id": "count-members-by-freshness", "actor": "cli",
+          "does": "Reads every map and the audit record of each, and counts its members as current, changed, unassessed, locator_lost or unavailable.",
+          "refuses_like": ["read-map", "read-audit"] }
+      ]
+    },
+    {
+      "name": "list-member-problems", "usage": "list-member-problems [ID] [--short | --commits-after COMMIT --hook-event EVENT]", "group": "read", "options": ["short", "session-start", "commits-after", "hook-event"],
+      "summary": "Members whose reference is broken, or whose own text changed since their baseline.",
+      "help": "learn-what-a-command-does/list-member-problems",
+      "steps": [
+        { "id": "compare-members-with-their-baselines", "actor": "cli",
+          "does": "Finds each member of map ID, or of every map, and compares its own text with the last audit's hash for it, or else with its text at the commit that mapped it where it is. Refuses while any member cannot be found or read, or a map cannot be read, so a gate can stop on the exit status; otherwise lists each changed member with what it was compared with, and counts every state. With --short, prints one tab-separated line per changed member, then one per principle counting its members no audit has assessed, and exits 3 when it prints any line.",
+          "refuses": ["broken_members"], "refuses_like": ["read-map", "read-audit"] },
+        { "id": "repair-or-audit", "actor": "agent",
+          "does": "For a refusal, say whether each listed member moved or is gone, and repair it. For a changed member, audit its principle when the change was meant to alter the principle.",
+          "cannot_check": "whether a change alters what a member means; this tool compares text, not meaning.",
+          "answer_with": "move-member" }
+      ]
+    },
+    {
+      "name": "show-principle", "usage": "show-principle ID", "group": "read", "options": [],
+      "summary": "Each member, where it is and whether it changed.",
+      "help": "learn-what-a-command-does/show-principle",
+      "steps": [
+        { "id": "compare-members-with-last-audit", "actor": "cli",
+          "does": "Compares each member's text with the audit record: current, changed, unassessed, locator_lost when its passage no longer matches, or unavailable. Adds last_audit: its status, time and commit, and whether the map changed since.",
+          "refuses_like": ["read-map", "read-audit"] }
+      ]
+    },
+    {
+      "name": "show-audit", "usage": "show-audit ID", "group": "read", "options": [],
+      "summary": "The record of a principle's last audit.",
+      "help": "learn-what-a-command-does/show-audit",
+      "steps": [
+        { "id": "show-record", "actor": "cli",
+          "does": "Prints the audit record: its status, base commit, each member's hash and each finding's members and disposition.",
+          "refuses": ["unknown_principle", "unknown_audit"], "refuses_like": ["read-audit"] }
+      ]
+    },
+    {
+      "name": "list-open-findings", "usage": "list-open-findings [ID] [--lines | --short [--session-start SOURCE]]", "group": "read", "options": ["short", "session-start", "lines"],
+      "summary": "The findings the last audit of each principle deferred or accepted, and where each is written up.",
+      "help": "learn-what-a-command-does/list-open-findings",
+      "steps": [
+        { "id": "read-open-findings", "actor": "cli",
+          "does": "Reads the last audit record of principle ID, or of every principle, and lists each deferred or accepted finding with its action, its members, its recorded_at pointer and when the audit was made. Says that an earlier audit's open findings are only in git. With --lines, prints each open finding on a line with its principle, id and waits_on. With --short, prints one line saying how many are open, how long the oldest has waited and what it waits on, and nothing when none is open; --session-start clear or compact words it for a context just cleared or compacted, and resume shortens it to the facts, since a resumed conversation holds the whole line already.",
+          "refuses_like": ["read-map", "read-audit"] },
+        { "id": "follow-up-each-finding", "actor": "agent",
+          "does": "Read each finding where its recorded_at points, and decide each one at its principle's next full audit.",
+          "cannot_check": "whether a deferred or accepted finding still holds; this tool keeps only its members and action.",
+          "answer_with": "start-audit" }
+      ]
+    },
+    {
+      "name": "report-after-commit", "usage": "report-after-commit", "group": "read", "options": [],
+      "summary": "The mapped members a commit just changed, for a hook after each shell call to put beside the call's result.",
+      "help": "learn-what-a-command-does/report-after-commit",
+      "steps": [
+        { "id": "report-after-commit", "actor": "cli",
+          "does": "Reads the hook's JSON on stdin after a shell call and always exits 0. When the call committed in a mapped repository, its own directory's or one its command changed into with cd or ran git -C in, prints the hook's JSON naming the members those commits changed, for the first such repository; otherwise prints nothing, at the cost of a few git calls." }
+      ]
+    },
+    {
+      "name": "report-at-session-start", "usage": "report-at-session-start", "group": "read", "options": [],
+      "summary": "What the agent should act on as a session starts, for a SessionStart hook to add to its context.",
+      "help": "learn-what-a-command-does/report-at-session-start",
+      "steps": [
+        { "id": "report-at-session-start", "actor": "cli",
+          "does": "Reads the SessionStart hook's JSON on stdin and always exits 0, since the host adds a SessionStart hook's output to the context only then. Prints nothing in a project with no maps. Otherwise prints, each line marked principles:, the line saying every line loaded at session start costs every session, but on resume, then one line for each principle whose members an audit assessed changed since, with its count and the list-member-problems --short command that lists them, then the principles skill as where to start, then, in git, what gives each principle's members with no baseline one, then each principle whose audit record a later release wrote, whose audits wait on an upgrade, then, while any principle awaits its first full audit, one line counting them that asks for one background subagent to follow show-first-audit-brief, or to offer the audit at the next pause if none can be started, and at resume and compact only the count, asking for no second subagent, then, while any audit finding is left open, the one line list-open-findings --short prints, worded for the session's start. When list-member-problems refuses, prints instead its code and the command that shows its repair; input it cannot read is read as a startup." }
+      ]
+    },
+    {
+      "name": "show-answer-check", "usage": "show-answer-check [REQUEST_ID] --file FILE|- [--as template]", "group": "read", "options": ["file", "as"], "requires": ["file"],
+      "summary": "Check an answer without submitting it.",
+      "help": "learn-what-a-command-does/show-answer-check",
+      "steps": [
+        { "id": "check-without-writing", "actor": "cli",
+          "does": "Runs every check submit-answer would and prints the same refusal, or names the files submitting would write. Writes nothing.",
+          "refuses": ["unparseable_json", "unreadable_file", "request_mismatch", "unknown_request", "stale_request", "stale_map", "undeclared_move", "moves_need_git", "map_entries_need_git", "invalid_removed_members", "empty_correction_map",
+                      "incomplete_coverage", "invalid_delivery", "observation_repeats_last_audit", "invalid_check_result", "invalid_answer", "unknown_member", "duplicate_finding",
+                      "incomplete_dispositions", "invalid_disposition", "claimed_change_missing", "unassessed_changes", "git_history_unavailable",
+                      "no_correction_to_fill"],
+          "refuses_like": ["read-map", "read-audit", "locate-text", "rewrite-audit"] },
+        { "id": "submit-the-checked-answer", "actor": "agent",
+          "does": "Fix what a refusal names and check again, or submit the answer unchanged.",
+          "answer_with": "submit-answer" }
+      ]
+    },
+    {
+      "name": "show-open-correction", "usage": "show-open-correction ID", "group": "read", "options": [],
+      "summary": "Print the answer to fill for the correction a full audit's assessment opened, whenever you need it.",
+      "help": "learn-what-a-command-does/show-open-correction",
+      "steps": [
+        { "id": "print-open-correction", "actor": "cli",
+          "does": "Writes nothing. Prints the correction's answer alone, which submit-answer names rather than prints, from the open audit record that keeps it, in git and outside it. Refuses while principle ID has no open correction to print: with no audit open, it names the full audit to start; with one open that an earlier release wrote, it says to submit the assessment again, which prints its correction and keeps it.",
+          "refuses": ["unknown_principle", "no_open_correction"], "refuses_like": ["read-audit"] }
+      ]
+    },
+    {
+      "name": "show-first-audit-brief", "usage": "show-first-audit-brief [ID]", "group": "read", "options": [],
+      "summary": "Print the instructions for one background subagent to run a principle's first full audit.",
+      "help": "learn-what-a-command-does/show-first-audit-brief",
+      "steps": [
+        { "id": "print-first-audit-brief", "actor": "cli",
+          "does": "Writes nothing. With no ID, lists under awaiting_first_audit the principles list-member-problems names as awaiting a first full audit, and each one's brief command on its own line. With ID, prints the brief a background subagent follows to run its first full audit: stop if a principles command would ask the user's permission, read the request in parts, fill, check and submit its answer, commit nothing and edit no member file, and return at most about 600 bytes. Refuses principle ID once a full audit of it has completed, naming the command that lists those still awaiting one.",
+          "refuses": ["unknown_principle", "first_audit_completed"], "refuses_like": ["read-audit"] },
+        { "id": "run-the-brief-in-a-subagent", "actor": "agent",
+          "does": "Start one background subagent to follow the brief, and carry on with the user's task; relay what it returns at your next pause, and commit the audit record it wrote by its path, or tell the user it is ready to commit.",
+          "cannot_check": "whether the subagent ran without asking the user's permission, or whether its return is accurate; check the record with git status --short on its path.",
+          "answer_with": "start-audit" }
+      ]
+    },
+    {
+      "name": "show-meta-principle-passage", "usage": "show-meta-principle-passage", "group": "read", "options": [],
+      "summary": "Set principles up: propose the passage that keeps the others held between audits, and the add-member that maps it.",
+      "help": "learn-what-a-command-does/show-meta-principle-passage",
+      "steps": [
+        { "id": "propose-meta-principle-passage", "actor": "cli",
+          "does": "Writes nothing. Shows the sticking-to-your-principles map that the printed add-member creates, its description and an activation for all work, or, where that map is already there, shows it and names its members already in an entry file; says which of CLAUDE.md and AGENTS.md exist and whether one links the other, and proposes the passage each would take, with its size.",
+          "refuses_like": ["read-map"] },
+        { "id": "place-the-passage", "actor": "agent",
+          "does": "With no member mapped, show the user the passage, agree where it goes, write it there, and map it as the principle's member, or map another file or setting that keeps the principles held, such as a timer. With a member mapped, agree with the user which step each member lacks, and add any that is missing.",
+          "cannot_check": "where the passage belongs, or whether a passage or member already in the project does its job; agree that with the user.",
+          "answer_with": "add-member" }
+      ]
+    },
+    {
+      "name": "show-hook-setup", "usage": "show-hook-setup", "group": "read", "options": [],
+      "summary": "Show the hook entries that run the session-start and after-commit reports without the principles plugin.",
+      "help": "learn-what-a-command-does/show-hook-setup",
+      "steps": [
+        { "id": "show-hook-entries", "actor": "cli",
+          "does": "Writes nothing. Prints, for Claude Code then Codex, the file a project's own hooks go in and the entries that run report-at-session-start at each session's start and report-after-commit after each shell call, each guarded to say principles failed to start instead of failing the hook, and how to remove them." },
+        { "id": "write-the-hook-entries", "actor": "agent",
+          "does": "Show the user the entries for this session's host and the file they go in, and write them there only once the user agrees; remove them when the principles plugin is enabled.",
+          "cannot_check": "whether the user agrees, or whether the host runs the entries; start a new session to see the report." }
+      ]
+    },
+    {
+      "name": "create-principle", "usage": "create-principle ID --description TEXT", "group": "write-map", "options": ["description"],
+      "summary": "Map a new principle and say what it is.",
+      "help": "learn-what-a-command-does/create-principle",
+      "steps": [
+        { "id": "write-new-map", "actor": "cli",
+          "does": "Checks that ID is lower-kebab-case, not yet mapped and not sticking-to-your-principles, which setup starts. Verifies that its map is absent at committed HEAD, requiring any prior removal to be committed, then writes a map with the description and no members.",
+          "refuses": ["invalid_id", "principle_exists", "meta_principle_id", "invalid_answer", "map_removal_not_committed", "git_history_unavailable"] },
+        { "id": "choose-members", "actor": "agent",
+          "does": "Choose the files, sections or passages that reinforce the principle, and the part each plays, using list-candidate-files to survey the guidance first if no survey has been done.",
+          "cannot_check": "whether the members you choose are the right ones.",
+          "answer_with": "add-member" }
+      ]
+    },
+    {
+      "name": "remove-principle", "usage": "remove-principle ID [--confirm]", "group": "remove-map", "options": ["confirm"],
+      "summary": "Remove an obsolete map while keeping its member files and audit history.",
+      "help": "learn-what-a-command-does/remove-principle",
+      "steps": [
+        { "id": "remove-map-with-audit-protection", "actor": "cli",
+          "does": "Removes only the named map. Refuses any current audit entry unless --confirm explicitly deactivates its map in routine reports, preserving the entry and unresolved findings. An unknown entry check still refuses.",
+          "refuses_like": ["read-map"], "refuses": ["principle_has_audit_record", "store_entry_unreadable", "store_remove_failed", "symlinked_store_file", "not_a_file"] },
+        { "id": "inspect-remaining-maps", "actor": "agent",
+          "does": "Commit the map removal if it was tracked, then inspect the remaining principles.",
+          "answer_with": "list-principles" }
+      ]
+    },
+    {
+      "name": "change-description", "usage": "change-description ID --description TEXT", "group": "write-map", "options": ["description"],
+      "summary": "Reword a mapped principle.",
+      "help": "learn-what-a-command-does/change-description",
+      "steps": [
+        { "id": "write-description", "actor": "cli", "does": "Replaces the map's description.",
+          "refuses": ["invalid_answer"], "refuses_like": ["read-map"] }
+      ]
+    },
+    {
+      "name": "change-activation", "usage": "change-activation ID (--when-files GLOB [--when-files GLOB ...] | --when-invoked | --always)", "group": "write-map", "options": ["when-files", "when-invoked", "always"],
+      "summary": "Record when a principle's work is in hand.",
+      "help": "learn-what-a-command-does/change-activation",
+      "steps": [
+        { "id": "write-activation", "actor": "cli",
+          "does": "Checks that exactly one form is given and no glob is empty, then replaces the map's activation.",
+          "refuses": ["invalid_activation", "invalid_answer"], "refuses_like": ["read-map"] }
+      ]
+    },
+    {
+      "name": "add-member", "usage": "add-member ID PATH [--section HEADING] [--starting-at TEXT [--ending-at TEXT]] [--query QUERY] --role ROLE [--check COMMAND]", "group": "write-map", "options": ["section", "starting-at", "ending-at", "query", "role", "check"],
+      "summary": "Add a file, a Markdown section or a passage.",
+      "help": "learn-what-a-command-does/add-member",
+      "steps": [
+        { "id": "locate-new-member", "actor": "cli",
+          "does": "Loads the map, or starts sticking-to-your-principles only after verifying its map path is absent at committed HEAD, requiring any prior removal to be committed. Then finds the member's text, so a locator that matches nothing is refused now rather than at the audit.",
+          "refuses": ["invalid_answer", "ending_without_start", "ambiguous_passage_end", "map_removal_not_committed", "git_history_unavailable"], "refuses_like": ["read-map", "locate-text"] },
+        { "id": "write-member", "actor": "cli",
+          "does": "Refuses a member already in the map, then adds it with its role; the first member of sticking-to-your-principles creates its map.",
+          "refuses": ["member_exists"] },
+        { "id": "add-next-or-audit", "actor": "agent",
+          "does": "Add the next member the same way. Once the map lists every member, commit it: in git, that commit is the members' baseline until their first full audit, which judges them and may come later; outside git, the first full audit gives them one.",
+          "answer_with": "start-audit", "answer_usage": "start-audit ID",
+          "answer_when": "When you choose to start the first full audit" }
+      ]
+    },
+    {
+      "name": "move-member", "usage": "move-member ID MEMBER [--path PATH] [--section HEADING] [--starting-at TEXT [--ending-at TEXT]] [--query QUERY]", "group": "write-map", "options": ["path", "section", "starting-at", "ending-at", "query"],
+      "summary": "Point a member at a new place in its file, or in another file: the one its file was renamed to, or one its text moved into.",
+      "help": "learn-what-a-command-does/move-member",
+      "steps": [
+        { "id": "find-member", "actor": "cli", "does": "Finds MEMBER in the map.",
+          "refuses": ["unknown_member", "invalid_answer"], "refuses_like": ["read-map"] },
+        { "id": "locate-new-place", "actor": "cli",
+          "does": "Finds the text at the new locator, in PATH when --path names the file the member's file was renamed to or its text moved into, or else in its own file. The locator replaces the old one whole, and the member keeps its role and the key its audit is filed under.",
+          "refuses": ["invalid_answer", "ending_without_start", "ambiguous_passage_end", "member_exists"], "refuses_like": ["locate-text"] }
+      ]
+    },
+    {
+      "name": "change-member-role", "usage": "change-member-role ID MEMBER --role ROLE", "group": "write-map", "options": ["role"],
+      "summary": "Reword a member's role.",
+      "help": "learn-what-a-command-does/change-member-role",
+      "steps": [
+        { "id": "write-role", "actor": "cli", "does": "Finds MEMBER in the map and replaces its role.",
+          "refuses": ["unknown_member", "invalid_answer"], "refuses_like": ["read-map"] }
+      ]
+    },
+    {
+      "name": "change-member-check", "usage": "change-member-check ID MEMBER --check COMMAND", "group": "write-map", "options": ["check"],
+      "summary": "Name the command that enforces a member, which each audit asks you to run.",
+      "help": "learn-what-a-command-does/change-member-check",
+      "steps": [
+        { "id": "write-check", "actor": "cli", "does": "Finds MEMBER in the map and stores COMMAND as its check. This tool never runs it.",
+          "refuses": ["unknown_member", "invalid_answer"], "refuses_like": ["read-map"] }
+      ]
+    },
+    {
+      "name": "remove-member-check", "usage": "remove-member-check ID MEMBER", "group": "write-map", "options": [],
+      "summary": "Stop naming a check for a member.",
+      "help": "learn-what-a-command-does/remove-member-check",
+      "steps": [
+        { "id": "drop-check", "actor": "cli", "does": "Finds MEMBER in the map and removes its check, refusing a member that has none.",
+          "refuses": ["unknown_member", "no_check", "invalid_answer"], "refuses_like": ["read-map"] }
+      ]
+    },
+    {
+      "name": "remove-member", "usage": "remove-member ID MEMBER", "group": "write-map", "options": [],
+      "summary": "Take a member out of the map.",
+      "help": "learn-what-a-command-does/remove-member",
+      "steps": [
+        { "id": "drop-member", "actor": "cli", "does": "Finds MEMBER in the map and removes it.",
+          "refuses": ["unknown_member", "invalid_answer"], "refuses_like": ["read-map"] }
+      ]
+    },
+    {
+      "name": "start-audit", "usage": "start-audit ID [ID ...] [--member MEMBER ... | --write-ups] [--as template [--part members/ID] | --instruction FIELD | --part PART]", "group": "write-audit-record", "options": ["member", "write-ups", "as", "instruction", "part"],
+      "summary": "Ask for an assessment of every member and the set.",
+      "help": "learn-what-a-command-does/start-audit",
+      "steps": [
+        { "id": "snapshot-members", "actor": "cli",
+          "does": "Refuses an empty map or, in git, an uncommitted map or member file; bases the audit on HEAD. Fill --as template's output with your own judgement, under $TMPDIR; its left_as_printed_rule says how a field left as printed is read.",
+          "refuses": ["map_has_no_members", "uncommitted_files", "unknown_instruction", "unknown_part"], "refuses_like": ["read-map", "locate-text", "rewrite-audit"],
+          "next": [{ "to": "assess-every-member", "when": "you passed neither --member nor --write-ups" },
+                   { "to": "start-acknowledgement", "when": "you passed --member" },
+                   { "to": "start-repointing", "when": "you passed --write-ups" }] },
+        { "id": "assess-every-member", "actor": "agent",
+          "does": "Assess each member not carried, and any carried one whose sighting is too old to rely on, the set as a whole and one recent decision under it, a finding per problem. Run each check, carried_checks_to_run's too, per shared_check_instructions and check_instructions. Decide each prior finding and listed member to check against the activation.",
+          "prompt": "assess-every-member/assess-each-member-and-the-set",
+          "checks": "every member is assessed or carried forward once, a marker only where the request carries the member, and each piece of evidence resolves to project text that has not changed since the request.",
+          "cannot_check": "whether your assessment is true, a member reached your context, or your findings are the right ones.",
+          "answer_with": "submit-answer" },
+        { "id": "start-acknowledgement", "actor": "cli",
+          "does": "With --member, starts a one-member audit, or with --as template its answer alone: in git, for a member the last completed audit assessed that changed since, names its baseline commit and the change to read. Writes nothing.",
+          "refuses": ["cannot_acknowledge"] },
+        { "id": "judge-the-change", "actor": "agent",
+          "does": "Say whether the change keeps the member's principle, with a one-line reason and a quote from then and now.",
+          "prompt": "acknowledge-a-change/say-whether-the-change-keeps-the-meaning",
+          "checks": "the meaning is said to be kept, the reason is one line, and both quotes are the member's.",
+          "cannot_check": "whether the change keeps the meaning, or whether you read it.",
+          "answer_with": "submit-answer" },
+        { "id": "start-repointing", "actor": "cli",
+          "does": "With --write-ups, lists instead each finding the last completed audit left open, its recorded_at and what list-open-findings says of it, and asks where you found each moved write-up, which it cannot check. Writes nothing.",
+          "refuses": ["cannot_repoint"] }
+      ]
+    },
+    {
+      "name": "submit-answer", "usage": "submit-answer [REQUEST_ID] --file FILE|-", "group": "write-audit-record", "options": ["file"], "requires": ["file"],
+      "summary": "Give the answer a request asked for.",
+      "help": "learn-what-a-command-does/submit-answer",
+      "steps": [
+        { "id": "match-request", "actor": "cli",
+          "does": "Reads FILE, or stdin for -, and takes its request_id, an id this tool prints, as the request; REQUEST_ID, when given, must match.",
+          "refuses": ["unparseable_json", "unreadable_file", "request_mismatch", "unknown_request"], "refuses_like": ["rewrite-audit"],
+          "next": [{ "to": "acknowledge-the-change", "when": "the request was a one-member audit" },
+                   { "to": "record-the-repoints", "when": "the request was a repoint of write-ups" },
+                   { "to": "recheck-members", "when": "the request was an assessment or a correction" }] },
+        { "id": "acknowledge-the-change", "actor": "cli",
+          "does": "For a one-member audit, checks the answer's kept meaning, one-line reason, quotes then and now and any check result, then moves the member's hash and check result in the audit record beside the acknowledgement.",
+          "refuses": ["stale_request", "cannot_acknowledge", "quote_not_found"] },
+        { "id": "commit-the-acknowledgement", "actor": "agent",
+          "does": "Commit the audit record, then check that list-member-problems --short no longer reports the member.",
+          "cannot_check": "that you committed, or that the change keeps the meaning.",
+          "answer_with": "list-member-problems" },
+        { "id": "record-the-repoints", "actor": "cli",
+          "does": "Points each finding at its new recorded_at, once found, in the last completed record, keeping the old one, when and why; names other principles' lost write-ups; refuses once that record changed, unless it writes nothing.",
+          "refuses": ["cannot_repoint", "audit_completed_since_request", "unknown_finding", "duplicate_finding", "invalid_answer", "uncommitted_files"], "refuses_like": ["locate-text"] },
+        { "id": "commit-the-repoint", "actor": "agent",
+          "does": "Commit the audit record, then check that list-open-findings --short no longer names those write-ups.",
+          "cannot_check": "that you committed, or that the new places hold the write-ups.",
+          "answer_with": "list-open-findings" },
+        { "id": "recheck-members", "actor": "cli",
+          "does": "Re-reads the map and every member's text, and the record outside git.",
+          "refuses_like": ["read-map", "read-audit", "locate-text"],
+          "next": [{ "to": "check-assessment", "when": "the request was an assessment" },
+                   { "to": "check-dispositions", "when": "the request was a correction" }] },
+        { "id": "check-assessment", "actor": "cli",
+          "does": "Refuses changed request inputs or, with a Git base, a committed current-ID map gap on captured HEAD's first-parent line; unverifiable continuity refuses. Checks complete member, loading and prior-finding decisions and resolvable evidence. Prints a correction request for findings, writing an open record only outside git.",
+          "refuses": ["stale_request", "git_history_unavailable", "audit_completed_since_request", "incomplete_prior_findings", "invalid_decision", "raised_in_not_found", "raised_in_unreadable", "raised_in_lacks_finding", "raised_in_time_differs", "first_raised_not_earlier", "incomplete_loading_decisions", "invalid_loading_decision", "incomplete_coverage", "invalid_delivery", "observation_repeats_last_audit", "invalid_check_result", "invalid_answer", "unknown_member", "duplicate_finding"],
+          "refuses_like": ["locate-text"],
+          "next": [{ "to": "complete-audit", "when": "there are no findings" },
+                   { "to": "dispose-of-each-finding", "when": "there are findings" }] },
+        { "id": "dispose-of-each-finding", "actor": "agent",
+          "does": "Fix each finding and reassess what you changed, or record why it waits: deferred, accepted or disagreed.",
+          "prompt": "dispose-of-each-finding/fix-or-record-each-finding",
+          "checks": "each finding has one disposition, and each fixed finding changed the members it names.",
+          "cannot_check": "whether a fix is right or a deferral justified.",
+          "answer_with": "submit-answer" },
+        { "id": "check-dispositions", "actor": "cli",
+          "does": "Checks the original request, basis and hashes and, with a Git base, uninterrupted current-ID map presence on captured HEAD's first-parent line. Refuses unverifiable continuity or undeclared map changes. Checks one disposition per finding, that only fixed members changed since the base, and each recorded_at resolves.",
+          "refuses": ["stale_map", "undeclared_move", "moves_need_git", "map_entries_need_git", "invalid_removed_members", "empty_correction_map", "stale_request", "git_history_unavailable", "audit_completed_since_request", "incomplete_dispositions", "invalid_disposition", "invalid_answer", "claimed_change_missing", "unassessed_changes"],
+          "refuses_like": ["locate-text"] },
+        { "id": "complete-audit", "actor": "cli",
+          "does": "Writes the record unless it already says the same, and prints the open and resolved findings and the files to commit, in git only those differing from HEAD, with the commits since the base touching each changed member.",
+          "prompt": "report-the-completed-audit/what-completion-means" },
+        { "id": "report-the-outcome", "actor": "agent",
+          "does": "Commit the record with your fixes, and report the outcome, open findings included, to the project's owner.",
+          "cannot_check": "that the owner was told, or that you committed." }
+      ]
+    },
+    {
+      "name": "add-guidance-search-path", "usage": "add-guidance-search-path GLOB", "group": "write-guidance-search-paths", "options": [],
+      "summary": "Record an additional guidance search path after the principles table has been shown.",
+      "help": "learn-what-a-command-does/add-guidance-search-path",
+      "steps": [
+        { "id": "record-guidance-search-path", "actor": "cli",
+          "does": "Validate a root-relative glob and record it once in the project's guidance search paths.",
+          "refuses": ["invalid_guidance_search_path", "unparseable_guidance_search_paths", "invalid_guidance_search_paths", "newer_guidance_search_paths", "guidance_search_paths_io_error", "symlinked_directory", "symlinked_guidance_search_paths"] }
+      ]
+    },
+    {
+      "name": "remove-guidance-search-path", "usage": "remove-guidance-search-path GLOB", "group": "write-guidance-search-paths", "options": [],
+      "summary": "Stop recording one additional guidance search path.",
+      "help": "learn-what-a-command-does/remove-guidance-search-path",
+      "steps": [
+        { "id": "remove-recorded-location", "actor": "cli",
+          "does": "Validate the glob and remove that recorded location, retaining an empty configuration after the last removal.",
+          "refuses": ["invalid_guidance_search_path", "unknown_guidance_search_path", "unparseable_guidance_search_paths", "invalid_guidance_search_paths", "newer_guidance_search_paths", "guidance_search_paths_io_error", "symlinked_directory", "symlinked_guidance_search_paths"] }
+      ]
+    }
+  ]
+}

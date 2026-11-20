@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "repointing-answer.schema.json",
+  "title": "Repointing answer",
+  "description": "What an agent answers a repoint of a principle's open findings' write-ups with: the request's id and basis, then for each finding a new recorded_at, or null to leave it, and a one-line reason. Fields this tool does not read are refused. Models::Repoint locates each new pointer.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["request_id", "basis", "repoints"],
+  "properties": {
+    "request_id": { "type": "string" },
+    "basis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["revision"],
+      "properties": {
+        "revision": { "type": ["string", "null"] }
+      }
+    },
+    "repoints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["finding_id", "recorded_at", "reason"],
+        "properties": {
+          "finding_id": { "type": "string", "minLength": 1 },
+          "recorded_at": {
+            "type": ["object", "null"],
+            "required": ["path"],
+            "additionalProperties": false,
+            "properties": {
+              "path": { "type": "string" },
+              "heading": { "type": "string" },
+              "starting_at": { "type": "string" },
+              "ending_at": { "type": "string" },
+              "query": { "type": "string" }
+            }
+          },
+          "reason": { "type": "string" }
+        }
+      }
+    }
+  }
+}

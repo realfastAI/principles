@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "command-steps.schema.json",
+  "title": "Command steps",
+  "description": "The steps each command runs, marked this tool's (cli) or the agent's, with the refusals each cli step can raise and where each step leads. Each command's --help and the workflow diagram are drawn from it.",
+  "type": "object",
+  "required": ["groups", "refusal_groups", "commands"],
+  "additionalProperties": false,
+  "$defs": {
+    "slug": { "type": "string", "pattern": "^[a-z]+(-[a-z]+)*$" },
+    "code": { "type": "string", "pattern": "^[a-z]+(_[a-z]+)*$" },
+    "prose": { "type": "string", "minLength": 1 },
+    "step": {
+      "type": "object",
+      "required": ["id", "actor", "does"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/slug" },
+        "actor": { "enum": ["cli", "agent"] },
+        "does": { "$ref": "#/$defs/prose" },
+        "refuses": { "type": "array", "items": { "$ref": "#/$defs/code" }, "minItems": 1, "uniqueItems": true },
+        "refuses_like": { "type": "array", "items": { "$ref": "#/$defs/slug" }, "minItems": 1, "uniqueItems": true },
+        "prompt": { "type": "string", "pattern": "^[a-z]+(-[a-z]+)+/[a-z]+(-[a-z]+)+$" },
+        "checks": { "$ref": "#/$defs/prose" },
+        "cannot_check": { "$ref": "#/$defs/prose" },
+        "answer_with": { "$ref": "#/$defs/slug" },
+        "answer_when": { "$ref": "#/$defs/prose" },
+        "answer_usage": { "$ref": "#/$defs/prose" },
+        "next": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "required": ["to", "when"],
+            "additionalProperties": false,
+            "properties": { "to": { "$ref": "#/$defs/slug" }, "when": { "$ref": "#/$defs/prose" } }
+          }
+        }
+      },
+      "if": { "properties": { "actor": { "const": "agent" } } },
+      "then": { "not": { "anyOf": [{ "required": ["refuses"] }, { "required": ["refuses_like"] }] } }
+    }
+  },
+  "properties": {
+    "groups": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "heading", "writes"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "$ref": "#/$defs/slug" }, "heading": { "$ref": "#/$defs/prose" }, "writes": { "$ref": "#/$defs/prose" }
+        }
+      }
+    },
+    "refusal_groups": {
+      "type": "object",
+      "required": ["any-command"],
+      "propertyNames": { "$ref": "#/$defs/slug" },
+      "additionalProperties": { "type": "array", "items": { "$ref": "#/$defs/code" }, "minItems": 1, "uniqueItems": true }
+    },
+    "commands": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "usage", "group", "options", "summary", "help", "steps"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "$ref": "#/$defs/slug" },
+          "usage": { "$ref": "#/$defs/prose" },
+          "group": { "$ref": "#/$defs/slug" },
+          "options": { "type": "array", "uniqueItems": true,
+                       "items": { "enum": ["description", "path", "section", "starting-at", "ending-at", "query", "role", "check", "file", "short", "session-start", "commits-after", "hook-event", "member", "when-files", "when-invoked", "always", "write-ups", "as", "instruction", "part", "also", "confirm", "lines"] } },
+          "requires": { "type": "array", "uniqueItems": true, "items": { "enum": ["file"] } },
+          "summary": { "$ref": "#/$defs/prose" },
+          "help": { "type": "string", "pattern": "^[a-z]+(-[a-z]+)+/[a-z]+(-[a-z]+)+$" },
+          "steps": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/step" } }
+        }
+      }
+    }
+  }
+}

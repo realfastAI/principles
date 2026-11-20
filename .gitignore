@@ -1,0 +1,16 @@
+.claude/
+.codex/
+.agents/
+.principles/
+.coord/
+CLAUDE.md
+AGENTS.md
+/tickets/
+/prompts/
+/plugin/
+/scripts/
+/spec/
+/tmp/
+.bundle/
+*.gem
+.DS_Store

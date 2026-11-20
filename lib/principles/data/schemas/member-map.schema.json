@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "member-map.schema.json",
+  "title": "Member map",
+  "description": "A principle's committed map, .principles/maps/ID.json: what the principle is, and each member that carries it. Fields this schema does not name are allowed, so an older version can read a map a newer one wrote.",
+  "type": "object",
+  "required": ["description", "members"],
+  "properties": {
+    "format": { "type": "integer", "description": "The oldest map format that can read this map without losing what it says. Missing means 1. This tool writes it only when a member uses a field from a later format, and refuses a map whose format is newer than it knows." },
+    "description": { "type": "string", "minLength": 1 },
+    "activation": {
+      "type": "object",
+      "description": "When the principle's work is in hand, as the agent declared it with change-activation: when files matching one of its globs are read or changed, when its work is invoked, or always. change-activation writes files only with when files; a hand-edited map is not yet checked for that.",
+      "required": ["when"],
+      "additionalProperties": false,
+      "properties": {
+        "when": { "enum": ["files", "invoked", "always"] },
+        "files": { "type": "array", "items": { "type": "string", "pattern": "\\S" } }
+      }
+    },
+    "members": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "role"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "section": { "type": "string", "minLength": 1 },
+          "starting_at": { "type": "string", "minLength": 1 },
+          "query": { "type": "string", "minLength": 1 },
+          "ending_at": { "type": "string", "minLength": 1 },
+          "role": { "type": "string", "minLength": 1 },
+          "key": { "type": "string", "minLength": 1, "description": "What the member is known by across moves, which its audit record files its hash under. Absent, it is the member's id. move-member stores the old id here on a member's first move, and add-member gives a member a key of its own when its id is the key of a member that moved away." },
+          "check": { "type": "string", "minLength": 1, "description": "The command that enforces this member, which an audit asks the agent to run and report. This tool never runs it." }
+        }
+      }
+    }
+  }
+}

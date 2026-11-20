@@ -1,0 +1,82 @@
+{
+  "finding": {
+    "copy_to": "response_template.findings",
+    "copy_from": "Append one filled examples.finding object to this array. Do not submit this wrapper or notes.",
+    "examples": {
+      "finding": {
+        "id": "F1",
+        "member_ids": [
+          "a member id from the map"
+        ],
+        "problem": "What is wrong",
+        "consequence": "What goes wrong for an agent because of it",
+        "proposed_action": "The concrete change",
+        "evidence": [
+          {
+            "path": "a project file",
+            "heading": "optional exact heading"
+          },
+          {
+            "path": "a project file",
+            "starting_at": "text that occurs once",
+            "ending_at": "optional closing text"
+          },
+          {
+            "path": "a project file with frontmatter",
+            "query": "$.description"
+          }
+        ]
+      }
+    },
+    "notes": "Evidence entries illustrate locator choices, not mandatory sample files: replace the example array with the actual located references needed for this finding. Fill every judgement and use mapped member IDs. Submitting findings starts a separate correction stage; it does not complete the audit."
+  },
+  "member_delivery": {
+    "copy_to": "response_template.member_assessments entry matching member_id",
+    "copy_from": "Merge only examples.observed or examples.not_observed into that existing entry, then fill its fields. Do not submit this wrapper or notes.",
+    "examples": {
+      "not_observed": {
+        "delivery": "not_observed"
+      },
+      "observed": {
+        "delivery": "observed",
+        "observation": "What you saw the member do, where you saw it, and what you did not see",
+        "observed_at": null
+      }
+    },
+    "notes": "Reading source alone is not observed delivery. With not_observed, omit observation and observed_at; remove any substantive sighting fields from a previous choice. For a sighting now, leave observed_at null or omit it. For an earlier sighting, replace null with its UTC time in audited_at's form. When the sighting is a dated record you read during this audit, such as a note or log of the mechanism acting, give the record's date, not the time you read it"
+  },
+  "recent_decision": {
+    "copy_to": "response_template.recent_decision",
+    "copy_from": "Replace the whole object with only examples.assessed or examples.unavailable, then fill its fields. Do not merge alternatives or submit this wrapper.",
+    "examples": {
+      "assessed": {
+        "assessment": "How the decision held up against the members' own words; when only a commit message records it, name the commit by its sha and subject here",
+        "evidence": [
+          {
+            "path": "a project file that records the decision; when only a commit message records it, the file that commit changed to carry it out",
+            "heading": "optional exact heading"
+          }
+        ]
+      },
+      "unavailable": {
+        "unavailable_reason": "Why no recent decision under this principle can be checked"
+      }
+    }
+  },
+  "reassessment": "Give a reassessment only for a fixed finding; omit it for deferred, accepted or disagreed.",
+  "check_result": {
+    "copy_to": "response_template.member_assessments entry matching member_id, inside check_result",
+    "copy_from": "Merge only examples.ran or examples.not_run into that existing object, then fill command and outcome. Leave unused fields exactly as that member's template printed them. For a new or changed run, write its review_basis; for an unchanged run, keep its own review_basis placeholder to retain the earlier line, or write a new basis. Do not submit this wrapper or limits.",
+    "examples": {
+      "ran": {
+        "command": "the member's check, exactly as context.members lists it",
+        "exit_status": 0
+      },
+      "not_run": {
+        "command": "the member's check, exactly as context.members lists it",
+        "not_run_reason": "Instead of exit_status, when you could not run it here: why, such as a missing tool or a sandbox"
+      }
+    },
+    "limits": "Give a checked member's check_result in its own entry in member_assessments, where the template starts it, and none for a member without a check. A member that names a check asks for it to run at each full audit, however long it takes; if it is too slow to run at every audit, say so as a finding rather than skip it. Do not count on a permission prompt to show the command to anyone first. unchanged means an earlier audit ran this same command, not that it is safe: the audit record is committed too, and can be changed beside the check. Run the command in the project before you report its exit status: nothing runs it automatically, and nothing confirms that a reported run happened, that it ran on the files as they are now, or that the status is the one it returned. A failing check is a fact for your assessment; whether the member delivers stays your judgement."
+  }
+}

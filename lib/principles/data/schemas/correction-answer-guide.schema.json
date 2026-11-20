@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "correction-answer-guide.schema.json",
+  "title": "Correction answer guide",
+  "description": "Example shapes the correction request shows, one disposition for each action, beside the template, which leaves each action null for the agent to choose.",
+  "type": "object",
+  "required": ["disposition"],
+  "additionalProperties": false,
+  "properties": {
+    "disposition": {
+      "type": "object",
+      "required": ["fixed", "deferred", "accepted", "disagreed"],
+      "additionalProperties": false,
+      "properties": {
+        "fixed": {
+          "type": "object",
+          "required": ["action", "reason", "changed_members", "removed_members", "evidence", "reassessment", "recorded_at"],
+          "additionalProperties": false,
+          "properties": {
+            "action": { "const": "fixed" },
+            "reason": { "type": "string", "minLength": 1 },
+            "changed_members": { "type": "array", "items": { "type": "string" } },
+            "removed_members": { "type": "array", "items": { "type": "string" } },
+            "evidence": { "type": "array", "items": { "type": "object" } },
+            "reassessment": { "type": "string", "minLength": 1 },
+            "recorded_at": { "type": ["object", "null"] }
+          }
+        },
+        "deferred": {
+          "type": "object",
+          "required": ["action", "reason", "changed_members", "evidence", "recorded_at", "waits_on"],
+          "additionalProperties": false,
+          "properties": {
+            "action": { "const": "deferred" },
+            "reason": { "type": "string", "minLength": 1 },
+            "changed_members": { "type": "array", "items": { "type": "string" } },
+            "evidence": { "type": "array", "items": { "type": "object" } },
+            "recorded_at": { "type": ["object", "null"] },
+            "waits_on": { "type": "string", "minLength": 1 }
+          }
+        },
+        "accepted": {
+          "type": "object",
+          "required": ["action", "reason", "changed_members", "evidence", "recorded_at"],
+          "additionalProperties": false,
+          "properties": {
+            "action": { "const": "accepted" },
+            "reason": { "type": "string", "minLength": 1 },
+            "changed_members": { "type": "array", "items": { "type": "string" } },
+            "evidence": { "type": "array", "items": { "type": "object" } },
+            "recorded_at": { "type": ["object", "null"] }
+          }
+        },
+        "disagreed": {
+          "type": "object",
+          "required": ["action", "reason", "changed_members", "evidence", "recorded_at"],
+          "additionalProperties": false,
+          "properties": {
+            "action": { "const": "disagreed" },
+            "reason": { "type": "string", "minLength": 1 },
+            "changed_members": { "type": "array", "items": { "type": "string" } },
+            "evidence": { "type": "array", "items": { "type": "object" } },
+            "recorded_at": { "type": ["object", "null"] }
+          }
+        }
+      }
+    }
+  }
+}

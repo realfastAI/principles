@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "acknowledgement-answer.schema.json",
+  "title": "Acknowledgement answer",
+  "description": "What an agent answers a one-member audit with: the request id and basis, and under members one entry keyed by the member id, as an answer for several members holds it, saying whether the change keeps the member's meaning, a one-line reason, and a line quoted from the member's text before the change and one from after it, or \"\" for a side with no line the other lacks; a quote left out, as is the basis's base_commit, which the request id already pins, is read as the request's first_changed_lines printed it. Fields this tool does not read are refused. Models::Acknowledgement checks the quotes and the reason.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "request_id",
+    "basis",
+    "members"
+  ],
+  "properties": {
+    "request_id": {
+      "type": "string"
+    },
+    "basis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "member_ids"
+      ],
+      "properties": {
+        "base_commit": {
+          "type": "string"
+        },
+        "member_ids": {
+          "description": "The one member the answer acknowledges, as a list, as an answer for several members names them.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "x-unread-field-advice": {
+        "member_id": "it is now basis.member_ids, a list of its one member id, as start-audit --as template prints it"
+      }
+    },
+    "members": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "One member's judgement, read as a one-member answer's fields beside its request_id and basis are read (acknowledgement-answer.schema.json).",
+        "required": [
+          "meaning_kept",
+          "reason"
+        ],
+        "properties": {
+          "meaning_kept": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "old_line": {
+            "type": "string"
+          },
+          "new_line": {
+            "type": "string"
+          },
+          "check_result": {
+            "type": "object",
+            "additionalProperties": false,
+            "x-unread-field-advice": {
+              "not_run_reason": "a check that cannot be run here needs a full audit: start one instead"
+            },
+            "description": "The result of the member's check, which the answer reports when the member has one: the command as the map names it, or left out to read as the request printed it, and its exit_status, which must be 0, since a check that fails or cannot be run is a full audit's to judge, with review_basis when a new line says what its review rested on; for this tool's own list-member-problems --short, which exits 3 while it lists the member, 3 with the member ids it lists under listed_members, each one this answer acknowledges. Models::ReportedCheck checks it.",
+            "properties": {
+              "command": {
+                "type": "string"
+              },
+              "exit_status": {
+                "type": [
+                  "integer",
+                  "string"
+                ]
+              },
+              "review_basis": {
+                "type": "string"
+              },
+              "listed_members": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-unread-field-advice": {
+    "meaning_kept": "belongs under members, keyed by the member id basis.member_ids names, as start-audit --as template prints it",
+    "reason": "belongs under members, keyed by the member id basis.member_ids names, as start-audit --as template prints it",
+    "old_line": "belongs under members, keyed by the member id basis.member_ids names, as start-audit --as template prints it",
+    "new_line": "belongs under members, keyed by the member id basis.member_ids names, as start-audit --as template prints it",
+    "check_result": "belongs under members, keyed by the member id basis.member_ids names, as start-audit --as template prints it"
+  }
+}

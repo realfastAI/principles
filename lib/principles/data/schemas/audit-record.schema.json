@@ -1,0 +1,298 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "audit-record.schema.json",
+  "title": "Audit record",
+  "description": "A principle's committed audit record, .principles/audits/ID.json: what the last audit began from, each member's hash when it was assessed, and each finding's outcome. Fields this schema does not name are allowed, so an older version can read a record a newer one wrote.",
+  "type": "object",
+  "required": ["principle_id", "status", "map_version", "base_commit", "audited_at", "members", "findings"],
+  "properties": {
+    "format": { "type": "integer", "description": "The record format, raised when a field is added that an older copy would drop on a rewrite. A record without it is older than format 1, and any copy may rewrite it." },
+    "format_first_release": { "type": "string", "minLength": 1, "description": "The first release that wrote this format, which a copy that does not know it names as the update to make." },
+    "principle_id": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["open", "completed"] },
+    "map_version": { "type": "string", "minLength": 1 },
+    "base_commit": { "type": ["string", "null"] },
+    "audited_at": { "type": "string", "minLength": 1 },
+    "members": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["sha256"],
+        "properties": {
+          "sha256": { "type": "string", "minLength": 1 },
+          "key": { "type": "string", "minLength": 1, "description": "The member's key in the map, when it differs from the id this entry is filed under, because the member has moved." },
+          "assessment": {
+            "description": "The member's assessment as a full audit's agent gave it, which the next full audit may carry forward while the member and what it was judged on are unchanged.",
+            "type": "object",
+            "required": ["assessment", "delivery", "evidence", "evidence_sha256", "assessed_at", "entry_sha256", "loads_sha256"],
+            "properties": {
+              "assessment": { "type": "string", "minLength": 1 },
+              "delivery": { "type": "string", "minLength": 1 },
+              "observation": { "type": "string" },
+              "observed_at": { "type": "string", "minLength": 1, "description": "On an observed delivery, when the sighting its observation describes was: the time the agent gave, or else when the assessment was made. Carrying it forward keeps this; a record written before it was kept has none." },
+              "evidence": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["path"],
+                  "properties": {
+                    "path": { "type": "string", "minLength": 1 },
+                    "heading": { "type": "string" },
+                    "starting_at": { "type": "string" },
+                    "ending_at": { "type": "string" },
+                    "query": { "type": "string" }
+                  }
+                }
+              },
+              "evidence_sha256": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "The hash of each evidence item's text when it was assessed, in the same order." },
+              "assessed_at": { "type": "string", "minLength": 1, "description": "When the assessment was made; carrying it forward keeps this." },
+              "entry_sha256": { "type": "string", "minLength": 1, "description": "A digest of the member's map entry when it was assessed: its path, locator, role and check." },
+              "loads_sha256": { "type": "string", "minLength": 1, "description": "A digest of when the member loaded when it was assessed, without file sizes." }
+            }
+          },
+          "changed_during_last_audit": { "const": true, "description": "The member changed during this audit, as a fix in its correction changes it, so no assessment read the text recorded here and none is kept." },
+          "check_result": {
+            "description": "The result the agent reported for the member's check, as of base_commit. This tool never ran it.",
+            "type": "object",
+            "required": ["command"],
+            "properties": {
+              "command": { "type": "string", "minLength": 1 },
+              "exit_status": { "type": "integer" },
+              "not_run_reason": { "type": "string", "minLength": 1 },
+              "review_basis": { "type": "string", "minLength": 1 },
+              "review_basis_since": { "type": "string", "minLength": 1, "description": "When an earlier audit first kept this review_basis, carried while the check and the line are unchanged. Absent means this record's audited_at; only principles writes it." }
+            }
+          },
+          "loading_accepted": {
+            "description": "The agent's accepted decision that the member loads as it does under the principle's activation, with its reason and the loads it accepted.",
+            "type": "object",
+            "required": ["reason", "loads"],
+            "properties": {
+              "reason": { "type": "string", "minLength": 1 },
+              "loads": {
+                "type": "object",
+                "description": "When each host loads the member's file and how big it is, as show-principle derived it at the assessment. Each field is named, so show-audit prints it back.",
+                "properties": {
+                  "claude_code": {
+                    "type": "object",
+                    "properties": {
+                      "when": {
+                        "type": "string"
+                      },
+                      "file_bytes": {
+                        "type": "integer"
+                      },
+                      "estimated_tokens": {
+                        "type": "integer"
+                      },
+                      "member_bytes": {
+                        "type": "integer"
+                      },
+                      "member_tokens": {
+                        "type": "integer"
+                      },
+                      "context": {
+                        "type": "string"
+                      },
+                      "skill_part": {
+                        "type": "string"
+                      },
+                      "invoked_by": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "object",
+                        "properties": {
+                          "files": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "paths_field": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "when": {
+                            "type": "string"
+                          },
+                          "file_bytes": {
+                            "type": "integer"
+                          },
+                          "estimated_tokens": {
+                            "type": "integer"
+                          },
+                          "member_bytes": {
+                            "type": "integer"
+                          },
+                          "member_tokens": {
+                            "type": "integer"
+                          },
+                          "not_derived": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "files": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "paths_field": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "not_derived": {
+                        "type": "string"
+                      },
+                      "frontmatter_refused": {
+                        "type": "string"
+                      },
+                      "named_in_hooks": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "settings": {
+                              "type": "string"
+                            },
+                            "event": {
+                              "type": "string"
+                            },
+                            "matcher": {
+                              "type": "string"
+                            },
+                            "command": {
+                              "type": "string"
+                            },
+                            "args": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "acknowledgements": {
+            "description": "Changes a one-member audit judged to keep the member's meaning since the last full audit, oldest first.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["from_sha256", "to_sha256", "commit", "reason", "acknowledged_at"],
+              "properties": {
+                "from_sha256": { "type": "string", "minLength": 1 },
+                "to_sha256": { "type": "string", "minLength": 1 },
+                "commit": { "type": "string", "minLength": 1 },
+                "reason": { "type": "string", "minLength": 1 },
+                "acknowledged_at": { "type": "string", "minLength": 1 },
+                "deferred_findings": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+                "accepted_findings": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+                "check_result": {
+                  "description": "The run of the member's check the acknowledgement's answer reported, which passed.",
+                  "type": "object",
+                  "required": ["command", "exit_status"],
+                  "properties": {
+                    "command": { "type": "string", "minLength": 1 },
+                    "exit_status": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "judged_against": { "type": "string", "minLength": 1, "description": "A digest of the principle's description and the question this tool asked, which every assessment in the record answered." },
+    "principles_package": {
+      "description": "On the sticking-to-your-principles record only: the version of principles its audit ran under, and a digest of the passage that version proposes for setup, as printed, by key: entry_file_passage, or, in a record an earlier release wrote, one key for each passage form it proposed, which its next full audit compares with the version running then.",
+      "type": "object",
+      "required": ["version", "passage_sha256"],
+      "properties": {
+        "version": { "type": "string", "minLength": 1 },
+        "passage_sha256": { "type": "object", "additionalProperties": { "type": "string", "pattern": "^[0-9a-f]{64}$" } }
+      }
+    },
+    "base_members": { "type": "object", "additionalProperties": { "type": "string", "minLength": 1 } },
+    "correction": {
+      "description": "On an open record only: the correction its assessment's findings opened, its request_id and basis, which show-open-correction prints in the answer to fill. A record an earlier release wrote open keeps none.",
+      "type": "object",
+      "required": ["request_id", "basis"],
+      "properties": {
+        "request_id": { "type": "string", "minLength": 1 },
+        "basis": { "type": "object" }
+      }
+    },
+    "last_completed": { "type": "object", "required": ["principle_id", "status", "audited_at", "members", "findings"] },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "member_ids"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "member_ids": { "type": "array", "items": { "type": "string" } },
+          "problem": { "type": "string", "description": "The finding's problem as the assessment stated it, at audit time." },
+          "evidence": {
+            "type": "array",
+            "description": "The evidence the assessment raised the finding with, as the answer located it. Absent from a finding recorded before it was kept.",
+            "items": {
+              "type": "object",
+              "required": ["path"],
+              "additionalProperties": false,
+              "properties": {
+                "path": { "type": "string" },
+                "heading": { "type": "string" },
+                "starting_at": { "type": "string" },
+                "ending_at": { "type": "string" },
+                "query": { "type": "string" }
+              }
+            }
+          },
+          "first_raised_at": { "type": "string", "minLength": 1, "description": "When an earlier audit first raised this finding, kept or raised again since. Absent means this record's audited_at." },
+          "raised_in": { "type": "string", "minLength": 1, "description": "The commit whose record a full audit cited for an earlier first_raised_at, checked to leave this finding open then." },
+          "action": { "type": "string", "minLength": 1 },
+          "reason": { "type": "string", "minLength": 1, "description": "On a finding not fixed, why its answer chose its action, as the correction's disposition or a still_holds decision changing the action gave it, kept by each later audit that keeps the finding. Absent from a fixed finding and from one recorded before it was kept." },
+          "waits_on": { "type": "string", "minLength": 1, "description": "On a deferred finding, the one line its answer gave saying whom it waits on and to decide what." },
+          "waits_on_since": { "type": "string", "minLength": 1, "description": "When an earlier audit asked waits_on, carried since. Absent means this record's audited_at; only principles writes it." },
+          "recorded_at": {
+            "type": "object",
+            "required": ["path"],
+            "properties": {
+              "path": { "type": "string", "minLength": 1 },
+              "heading": { "type": "string" },
+              "starting_at": { "type": "string" },
+              "ending_at": { "type": "string" },
+              "query": { "type": "string" }
+            }
+          },
+          "repointed": {
+            "type": "array",
+            "description": "Each repoint of recorded_at since the full audit that kept this finding: where it pointed, where it points, when and why. Only principles writes it.",
+            "items": {
+              "type": "object",
+              "required": ["from", "to", "at", "reason"],
+              "properties": {
+                "from": { "type": ["object", "null"] },
+                "to": { "type": "object" },
+                "at": { "type": "string", "minLength": 1 },
+                "reason": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

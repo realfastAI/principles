@@ -1,0 +1,35 @@
+{
+  "disposition": {
+    "fixed": {
+      "action": "fixed",
+      "reason": "What you changed, in one line",
+      "changed_members": ["the id of each member the fix changed"],
+      "removed_members": ["the id of each member the fix removed from the map"],
+      "evidence": [{ "path": "a project file", "starting_at": "text that occurs once in the fixed passage" }],
+      "reassessment": "How the changed member reads now, and any check you ran on it",
+      "recorded_at": null
+    },
+    "deferred": {
+      "action": "deferred",
+      "reason": "Why, and what remains",
+      "changed_members": [],
+      "evidence": [],
+      "recorded_at": { "path": "where the project keeps the write-up, or set recorded_at null if none", "starting_at": "the line that states the problem" },
+      "waits_on": "Whom it waits on, to decide what, in one line, or null"
+    },
+    "accepted": {
+      "action": "accepted",
+      "reason": "Why the project keeps it as it is",
+      "changed_members": [],
+      "evidence": [],
+      "recorded_at": null
+    },
+    "disagreed": {
+      "action": "disagreed",
+      "reason": "Why the finding does not hold",
+      "changed_members": [],
+      "evidence": [],
+      "recorded_at": null
+    }
+  }
+}

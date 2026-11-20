@@ -1,0 +1,376 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "assessment-answer.schema.json",
+  "title": "Assessment answer",
+  "description": "What an agent answers an audit's assessment request with: the request's id and basis, an assessment of each member and of the set, a recent decision, and any findings. Fields this tool does not read are refused, to catch a misspelt field. The rules across fields, such as which members exist, stay in Models::AssessmentAnswer.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "request_id",
+    "basis",
+    "member_assessments",
+    "collective_assessment",
+    "recent_decision"
+  ],
+  "properties": {
+    "request_id": {
+      "type": "string"
+    },
+    "basis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "base_commit",
+        "last_completed_revision"
+      ],
+      "properties": {
+        "base_commit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "\\A[0-9a-f]{40}([0-9a-f]{24})?\\z",
+          "description": "A full commit sha, as start-audit gave it, or null outside git. This tool refuses anything else before running git."
+        },
+        "last_completed_revision": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The revision of the principle's last completed audit record when start-audit printed the request, or null when there was none. The request id binds it."
+        }
+      }
+    },
+    "member_assessments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "member_id"
+        ],
+        "description": "A fresh assessment, with assessment, delivery and evidence, or the marker carried_forward: true for a member the request carries forward. Models::MemberAssessments refuses an entry that is neither.",
+        "properties": {
+          "member_id": {
+            "type": "string"
+          },
+          "carried_forward": {
+            "const": true
+          },
+          "assessment": {
+            "type": "string"
+          },
+          "delivery": {
+            "type": "string",
+            "description": "observed or not_observed; Models::AssessmentAnswer refuses any other with invalid_delivery."
+          },
+          "observation": {
+            "type": "string"
+          },
+          "observed_at": {
+            "type": ["string", "null"],
+            "minLength": 1,
+            "description": "On an observed delivery only, when the agent saw what observation describes, if that was before this audit; omitted or null, it is this audit's time, so the agent never types a clock time. Models::MemberSighting refuses it on not_observed, one not a time to the second as audited_at is, such as 2026-11-01T09:30:00Z, whose UTC offset, such as +05:30, it reads as the same instant in UTC, and one after the answer, and refuses an observation repeated word for word from the last full audit as observation_repeats_last_audit unless it is that audit's date or null."
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "path"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "heading": {
+                  "type": "string"
+                },
+                "starting_at": {
+                  "type": "string"
+                },
+                "ending_at": {
+                  "type": "string"
+                },
+                "query": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "check_result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "command"
+            ],
+            "description": "A member check's result as the agent reports it: the command, exactly as the map names it, its exit_status or, when it could not be run, not_run_reason, and review_basis, one line saying what the review before the run rested on, which an exit_status for a check the stored record did not run needs. Models::AssessmentAnswer refuses any other combination with invalid_check_result.",
+            "properties": {
+              "command": {
+                "type": "string"
+              },
+              "exit_status": {
+                "type": ["integer", "string"],
+                "description": "The run's exit status. A string is the template's placeholder, left unfilled, which Models::ReportedCheck reads as not given."
+              },
+              "not_run_reason": {
+                "type": ["string", "null"],
+                "description": "Why the check could not be run. Null, as a template to edit prints it, is none."
+              },
+              "review_basis": {
+                "type": ["string", "null"],
+                "description": "What the review before the run rested on. Null drops an unchanged check's kept line."
+              }
+            }
+          }
+        }
+      }
+    },
+    "left_as_printed_rule": {
+      "type": "string",
+      "description": "The note start-audit --as template prints at its head saying how a field left as printed is read, which an answer may send back and Models::AssessmentAnswer ignores, whatever it holds."
+    },
+    "carried_checks_to_run": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "The carried members whose check start-audit --as template still asks to run, which an answer may send back and Models::AssessmentAnswer ignores."
+    },
+    "shared_check_instructions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["member_ids", "instruction"],
+        "properties": {
+          "member_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "instruction": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "How to run and report the checks of each standing once, with the members it is for, which start-audit --as template prints at its head, and an answer may send back and Models::AssessmentAnswer ignores."
+    },
+    "check_instructions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Each checked member's own lines beside shared_check_instructions, by member id, which start-audit --as template prints at its head, and an answer may send back and Models::AssessmentAnswer ignores."
+    },
+    "collective_assessment": {
+      "type": "string"
+    },
+    "recent_decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "unavailable_reason": {
+          "type": "string"
+        },
+        "assessment": {
+          "type": "string"
+        },
+        "evidence": {
+          "type": ["array", "string"],
+          "description": "Pointers to where the decision is recorded. A string is the template's placeholder, left as printed, which Models::RecentDecision reads as not given.",
+          "items": {
+            "type": "object",
+            "required": [
+              "path"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "heading": {
+                "type": "string"
+              },
+              "starting_at": {
+                "type": "string"
+              },
+              "ending_at": {
+                "type": "string"
+              },
+              "query": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "loading_decisions": {
+      "description": "One decision for each member the request lists in loads_to_check_against_activation. Which decision each needs, and its reason, is checked by Models::LoadsToCheck.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["member_id", "decision"],
+        "properties": {
+          "member_id": { "type": "string" },
+          "decision": { "type": ["string", "null"] },
+          "reason": { "type": "string" },
+          "as": { "type": "string" }
+        }
+      }
+    },
+    "prior_finding_decisions": {
+      "description": "One decision for each finding the request lists in prior_findings. Which decision each needs, and its reason, is checked by Models::PriorFindings.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["finding_id", "decision"],
+        "properties": {
+          "finding_id": { "type": "string" },
+          "decision": { "type": ["string", "null"] },
+          "reason": { "type": "string" },
+          "as": { "type": "string" },
+          "problem": { "type": "string" },
+          "action": { "type": "string" },
+          "first_raised_at": {
+            "type": "string",
+            "description": "On a still_holds decision, an earlier time the finding was first raised: the audited_at of the record that raised_in holds, which Models::FirstRaisedClaim checks."
+          },
+          "raised_in": {
+            "type": "string",
+            "pattern": "^([0-9a-f]{40}([0-9a-f]{24})?|With first_raised_at: its record's commit, full sha; else leave)$",
+            "x-unmatched-advice": "is not this template's placeholder nor a full commit sha, as an answer filled from another template leaves it: start from this request's response_template",
+            "description": "The full sha of the commit whose audit record, at .principles/audits/ID.json or the earlier .memeplex/audits/ID.json, left this finding open at first_raised_at. The one other value is the template's placeholder, word for word, which Models::PriorFindingDecision reads as not given, so only a sha reaches git."
+          },
+          "waits_on": {
+            "type": ["string", "null"],
+            "description": "On a still_holds decision that leaves the finding deferred, a new one line saying whom it waits on and to decide what; null drops the one it carried. Leaving it out keeps it."
+          },
+          "recorded_at": {
+            "x-type-refusal-advice": {
+              "keys": [
+                "heading",
+                "starting_at"
+              ],
+              "says": "plus starting_at (or heading) when the file holds more than this finding"
+            },
+            "type": ["object", "null", "string"],
+            "description": "On a still_holds decision, a new pointer to the write-up, or null for none. A string is the template's placeholder, left as printed.",
+            "required": ["path"],
+            "additionalProperties": false,
+            "properties": {
+              "path": { "type": "string" },
+              "heading": { "type": "string" },
+              "starting_at": { "type": "string" },
+              "ending_at": { "type": "string" },
+              "query": { "type": "string" }
+            }
+          },
+          "evidence": {
+            "type": ["array", "string"],
+            "description": "On a resolved decision, pointers to where the fix shows. A string is the template's placeholder, left as printed, which Models::PriorFindingDecision reads as not given.",
+            "items": {
+              "type": "object",
+              "required": ["path"],
+              "additionalProperties": false,
+              "properties": {
+                "path": { "type": "string" },
+                "heading": { "type": "string" },
+                "starting_at": { "type": "string" },
+                "ending_at": { "type": "string" },
+                "query": { "type": "string" }
+              }
+            }
+          },
+          "problem_evidence": {
+            "description": "On a still_holds decision, pointers to where the problem is: for a finding marked evidence_not_kept, its evidence, which the record keeps; for one whose record keeps evidence, each the new place of the kept item named by replaces, its position in the finding's evidence, which must no longer be found. Models::StillHoldsRestatement refuses any other. A string is the template's placeholder, left as printed.",
+            "type": ["array", "string"],
+            "items": {
+              "type": "object",
+              "required": ["path"],
+              "additionalProperties": false,
+              "properties": {
+                "path": { "type": "string" },
+                "heading": { "type": "string" },
+                "starting_at": { "type": "string" },
+                "ending_at": { "type": "string" },
+                "query": { "type": "string" },
+                "replaces": { "type": ["integer", "string"], "description": "The position of the kept item it replaces. A string is the template's placeholder, which Models::EvidenceReplacements refuses as naming no item." }
+              }
+            }
+          }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "x-unread-field-advice": {
+          "recorded_at": "give it in this finding's disposition, in the correction answer this assessment leads to"
+        },
+        "required": [
+          "id",
+          "member_ids",
+          "problem",
+          "consequence",
+          "proposed_action",
+          "evidence"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "member_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "problem": {
+            "type": "string"
+          },
+          "consequence": {
+            "type": "string"
+          },
+          "proposed_action": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "path"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "heading": {
+                  "type": "string"
+                },
+                "starting_at": {
+                  "type": "string"
+                },
+                "ending_at": {
+                  "type": "string"
+                },
+                "query": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

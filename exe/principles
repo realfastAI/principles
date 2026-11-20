@@ -1,0 +1,30 @@
+#!/usr/bin/env ruby
+# typed: strict
+# frozen_string_literal: true
+
+# A Ruby this tool cannot run on is refused, or handed to one it can, before lib/ loads.
+require_relative "../lib/principles/supported_ruby"
+Principles::SupportedRuby.new(RUBY_VERSION, ENV.to_h).run_here_or_on_another(__FILE__, ARGV)
+
+# A hook runs report-after-commit after every shell call, and most calls commit nothing, so that case is told from
+# git's files alone, loading nothing else of this tool but the read of stdin. Its input is read as the command reads
+# it, by Data::HookInput, which stops waiting on a stdin left open and sending nothing, and Models::AfterCommitInput.read;
+# any failure here leaves the run to the command, which reports it in one line and exits 0. Like the rest of this
+# file, it is written so an older Ruby can still parse it and reach the refusal above.
+if ARGV == ["report-after-commit"]
+  require "stringio"
+  require_relative "../lib/principles/data/hook_input"
+  hook_input = Principles::Data::HookInput.new($stdin).text
+  begin
+    require_relative "../lib/principles/models/head_moves"
+    call = Principles::Models::AfterCommitInput.read(hook_input, ENV.to_h, clock: Time.now.to_i, home: Dir.home,
+                                                                           pwd: Dir.pwd)
+    exit 0 if call.event.nil? || Principles::Models::HeadMoves.new(call).to_a.empty?
+  rescue StandardError
+    nil
+  end
+  $stdin = StringIO.new(hook_input)
+end
+
+require_relative "../lib/principles"
+exit Principles::CLI.run(ARGV)

@@ -1,0 +1,263 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "correction-answer.schema.json",
+  "title": "Correction answer",
+  "description": "What an agent answers an audit's correction request with: the request's id and basis, one disposition per finding, any members its fixes moved, and in each fix any members whose role or check it changed. Fields this tool does not read are refused, to catch a misspelt field. The rules across fields, such as one disposition per finding, stay in Models::CorrectionAnswer and Models::DeclaredMapChanges.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "request_id",
+    "basis",
+    "dispositions"
+  ],
+  "properties": {
+    "request_id": {
+      "type": "string"
+    },
+    "basis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "base_commit",
+        "map_version",
+        "last_completed_revision",
+        "findings",
+        "assessment_report_sha256"
+      ],
+      "properties": {
+        "last_completed_revision": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "A digest of the last completed audit record when the correction request was printed, or null when there was none. Copy it as the template gives it."
+        },
+        "base_commit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "\\A[0-9a-f]{40}([0-9a-f]{24})?\\z",
+          "description": "A full commit sha, as start-audit gave it, or null outside git. This tool refuses anything else before running git."
+        },
+        "map_version": {
+          "type": "string"
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "member_ids"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "member_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "problem": {
+                "type": "string",
+                "description": "The finding's problem as the assessment stated it, carried so the completed record keeps it."
+              },
+              "evidence": {
+                "type": "array",
+                "description": "The evidence the assessment raised the finding with, carried so the completed record keeps it. Absent from a basis printed before it was kept.",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "path"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "path": {
+                      "type": "string"
+                    },
+                    "heading": {
+                      "type": "string"
+                    },
+                    "starting_at": {
+                      "type": "string"
+                    },
+                    "ending_at": {
+                      "type": "string"
+                    },
+                    "query": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "recent_decision_paths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "The paths the assessment's recent decision cites as evidence, which the record does not keep, carried so the completed audit asks to commit those that differ from HEAD. Copy it as the template gives it."
+        },
+        "assessment_report_sha256": {
+          "type": "string",
+          "pattern": "\\A[0-9a-f]{64}\\z",
+          "description": "A digest of the assessment the open audit record keeps, which the correction reads back from that record, so it is refused once the record changed or was discarded. Copy it as the template gives it."
+        },
+        "prior_findings": {
+          "type": "object",
+          "description": "The assessment's decisions on prior findings, carried so the completed record keeps the ones that still hold.",
+          "required": [
+            "kept",
+            "closed",
+            "inherited"
+          ],
+          "properties": {
+            "kept": {
+              "type": "array"
+            },
+            "closed": {
+              "type": "array"
+            },
+            "inherited": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "dispositions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "finding_id",
+          "action",
+          "reason"
+        ],
+        "description": "changed_members, evidence and reassessment are a fix's; Models::Disposition refuses a fixed disposition missing one, and any other may omit them.",
+        "properties": {
+          "finding_id": {
+            "type": "string"
+          },
+          "action": {
+            "type": ["string", "null"],
+            "description": "fixed, deferred, accepted or disagreed, which the agent chooses: the template leaves it null, and Models::CorrectionAnswer refuses null or any other value with invalid_disposition."
+          },
+          "reason": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "path"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "heading": {
+                  "type": "string"
+                },
+                "starting_at": {
+                  "type": "string"
+                },
+                "ending_at": {
+                  "type": "string"
+                },
+                "query": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "recorded_at": {
+            "x-type-refusal-advice": {
+              "keys": [
+                "heading",
+                "starting_at"
+              ],
+              "says": "plus starting_at (or heading) when the file holds more than this finding"
+            },
+            "type": [
+              "object",
+              "null"
+            ],
+            "required": [
+              "path"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "heading": {
+                "type": "string"
+              },
+              "starting_at": {
+                "type": "string"
+              },
+              "ending_at": {
+                "type": "string"
+              },
+              "query": {
+                "type": "string"
+              }
+            }
+          },
+          "changed_members": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "changed_map_entries": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "removed_members": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reassessment": {
+            "type": "string"
+          },
+          "waits_on": {
+            "type": ["string", "null"],
+            "description": "On a deferral, one line saying whom it waits on and to decide what; null on any disposition. Models::CorrectionAnswer refuses a value on another action, or one not one line."
+          }
+        }
+      }
+    },
+    "moved_members": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from",
+          "to"
+        ],
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "member-map-history.schema.json",
+  "title": "Linked member map history",
+  "description": "The additional shape of a format-3 map's exact immediate predecessor, checked beside the common member-map schema. Earlier formats keep predecessor as unknown metadata.",
+  "type": "object",
+  "required": ["format", "predecessor"],
+  "properties": {
+    "format": { "const": 3 },
+    "predecessor": {
+      "type": "object",
+      "required": ["principle_id", "commit"],
+      "additionalProperties": false,
+      "properties": {
+        "principle_id": { "type": "string", "pattern": "\\A[a-z0-9]+(?:-[a-z0-9]+)*\\z" },
+        "commit": { "type": "string", "pattern": "\\A[0-9a-f]{40}([0-9a-f]{24})?\\z" }
+      }
+    }
+  }
+}

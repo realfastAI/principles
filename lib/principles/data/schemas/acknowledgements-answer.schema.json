@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "acknowledgements-answer.schema.json",
+  "title": "Acknowledgements answer",
+  "description": "What an agent answers a request to acknowledge several members of one principle, or the members several principles map, holding: the request's id, its basis naming each member, and under members one entry per member, keyed by its id, holding what a one-member answer holds beside its head. Fields this tool does not read are refused. Models::Acknowledgements refuses an answer whose members differ from its basis, and each entry is checked as Models::Acknowledgement checks a one-member answer.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "request_id",
+    "basis",
+    "members"
+  ],
+  "properties": {
+    "request_id": {
+      "type": "string"
+    },
+    "basis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "member_ids"
+      ],
+      "properties": {
+        "principle_ids": {
+          "type": "array",
+          "description": "The principles that each acknowledge the members they map, when the request names several.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "member_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "members": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "One member's judgement, read as a one-member answer's fields beside its request_id and basis are read (acknowledgement-answer.schema.json).",
+        "required": [
+          "meaning_kept",
+          "reason"
+        ],
+        "properties": {
+          "meaning_kept": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "old_line": {
+            "type": "string"
+          },
+          "new_line": {
+            "type": "string"
+          },
+          "check_result": {
+            "type": "object",
+            "additionalProperties": false,
+            "x-unread-field-advice": {
+              "not_run_reason": "a check that cannot be run here needs a full audit: start one instead"
+            },
+            "description": "The result of the member's check, which the answer reports when the member has one: the command as the map names it, or left out to read as the request printed it, and its exit_status, which must be 0, since a check that fails or cannot be run is a full audit's to judge, with review_basis when a new line says what its review rested on; for this tool's own list-member-problems --short, which exits 3 while it lists the member, 3 with the member ids it lists under listed_members, each one this answer acknowledges. Models::ReportedCheck checks it.",
+            "properties": {
+              "command": {
+                "type": "string"
+              },
+              "exit_status": {
+                "type": [
+                  "integer",
+                  "string"
+                ]
+              },
+              "review_basis": {
+                "type": "string"
+              },
+              "listed_members": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

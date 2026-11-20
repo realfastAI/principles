@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "guidance-search-paths.schema.json",
+  "title": "Recorded guidance search paths",
+  "description": "Additional root-relative guidance globs recorded after the principles table, in the project's one .principles/guidance-search-paths.json file.",
+  "type": "object",
+  "required": ["format", "globs"],
+  "additionalProperties": false,
+  "properties": {
+    "format": { "type": "integer", "enum": [1] },
+    "globs": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+  }
+}
