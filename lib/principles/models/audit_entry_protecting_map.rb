@@ -4,6 +4,7 @@
 require_relative "../error"
 
 module Principles
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # A current audit entry protects its map from unconfirmed removal, whether the entry is readable or not.
     class AuditEntryProtectingMap

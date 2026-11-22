@@ -4,7 +4,7 @@
 require_relative "line_diff"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # A long member's changed lines as a request shows them: each run of changed lines with up to context unchanged
     # lines around it, as git shows a hunk, runs whose context would meet joined into one region, and each later

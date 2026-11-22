@@ -4,7 +4,7 @@
 require_relative "recorded_entry"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # The member hashes an audit record holds, read from a record a later copy wrote that this copy's schema refuses,
     # for list-member-problems to compare its members with, read-only. Only those fields are read, each entry
@@ -19,7 +19,7 @@ module Principles
         freeze
       end
 
-      # Each member's hash by the key it was recorded under, as RecordedMembers#hashes_by_key gives a readable one.
+      # Each member's hash by the key it was recorded under, as RecordedMembers#hashes gives a readable one.
       #: Hash[String, String]
       attr_reader :by_key
 

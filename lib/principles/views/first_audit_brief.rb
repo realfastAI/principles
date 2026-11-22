@@ -3,6 +3,7 @@
 
 require_relative "invocation"
 require_relative "prompts"
+require_relative "shell_word"
 
 module Principles
   # What this tool prints, from plain values a controller hands it. views/CLAUDE.md owns the boundary.
@@ -25,7 +26,7 @@ module Principles
       def result(id)
         { "principle" => id,
           "brief" => Prompts.text("run-a-first-audit-in-the-background/follow-the-brief",
-                                  id: id,
+                                  id: id, answer_file: ShellWord.new(@invocation.answer_file(id)).to_s,
                                   index: @invocation.in_project("start-audit", id, options: ["--part", "index"]),
                                   template: @invocation.in_project("start-audit", id, options: ["--as", "template"])),
           "wrote" => [] }

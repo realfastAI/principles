@@ -1,2 +1,3 @@
 Deferred with recorded_at null: %{finding_ids}. That is allowed when there is nowhere to point; the record then
-keeps no write-up, so list-open-findings prints none. If one is written up, point its recorded_at there and check again.
+keeps no pointer, so list-open-findings prints no write-up. If one is written up in a project file, point its
+recorded_at there and check again; if it is written up outside the project, such as in an issue, give its link in its reason.

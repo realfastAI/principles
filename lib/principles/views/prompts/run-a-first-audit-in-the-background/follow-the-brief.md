@@ -6,7 +6,7 @@ at a pause, since principles would ask.
 2. Read the request in parts, which costs about the bytes of the whole request and its member files. Type
 part_command and then the part as printed, never in a shell variable. Its parts: %{index}
 
-3. Keep every answer file at $TMPDIR/principles-%{id}-answer.json, never in the project. Redirect the template
+3. Keep every answer file at %{answer_file}, never in the project. Redirect the template
 below there and edit it, running each member check the request names and no script over this output.
 Check it with show-answer-check, then submit-answer, each with --file and that path; answer a
 correction the same way. On a stale_request refusal, start once more. Its template: %{template}

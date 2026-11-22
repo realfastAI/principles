@@ -8,6 +8,7 @@ require_relative "refusal_before_shape"
 require_relative "request_id"
 
 module Principles
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # An answer an agent sent for a phase's request, read from its source, whose head, the fields every answer hands
     # back as its request printed them, is checked on arrival: they say whether it still answers that request.

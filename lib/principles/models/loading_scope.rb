@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 module Principles
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # Literal loading-scope qualifiers for mapping feedback, distinct from persisted LoadingFacts.
     class LoadingScope

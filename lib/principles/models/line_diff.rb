@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # Where two versions of a member's lines differ: each run of lines one side changed, in order, as a line diff finds
     # them by their longest common subsequence. The lines both sides share from the start and from the end are never

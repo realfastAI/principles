@@ -97,7 +97,7 @@ module Principles
       #: (String) -> RecordedHashes
       def hashes_to_compare(id)
         audit = find(id) or return RecordedHashes::NONE
-        RecordedHashes.new(audit.members.hashes_by_key, waiting: RecordFormat.new(audit.to_h).newer?)
+        audit.members.hashes(waiting: RecordFormat.new(audit.to_h).newer?)
       rescue RecordFormat::NewerFormatError
         RecordedHashes.new(member_hashes_as_written(id).by_key, waiting: true)
       end

@@ -7,7 +7,7 @@ require_relative "located_text"
 require_relative "line_span"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # The lines a full audit's members span now, each with its file, against which each evidence item of another
     # principle's open finding is said to share lines or not. These are lines, not a verdict on whether

@@ -59,6 +59,7 @@ The location flags narrow the member; omit them for a whole file. Give both to t
 - `--section HEADING`: a Markdown heading's exact text without its # marks. The section runs to the next
   heading of the same or a higher level.
 - `--starting-at TEXT`: one literal opening; without `--ending-at TEXT`, the passage ends at its line's end.
+  In Markdown, `added.continues_to_line` is the last line of a paragraph or list item that runs on past it.
   A new literal ending must occur once after the complete opening in the selected region; overlapping matches count.
   `ambiguous_passage_end` refuses before writing, with exact `eligible_ending_count`, up to five `ending_candidates`
   (1-based line/character column), and `ending_candidates_omitted`. Quote more specific closing text.

@@ -8,7 +8,7 @@ require_relative "outline_section"
 require_relative "text_within"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # One candidate file's outline, as the survey reads it in place of the file: its Markdown headings in order, and
     # under each its top-level list items. One user scripted a heading grep over 45 files to survey them,

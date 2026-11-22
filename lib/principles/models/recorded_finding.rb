@@ -82,20 +82,60 @@ module Principles
       #: () -> bool
       def fixed? = action == "fixed"
 
-      # This finding pointed at recorded_at, the move from where it pointed appended to its repointed with when and
-      # why, or itself when it already points there, so an identical retry writes nothing.
-      #: (WriteUpPointer, at: String, reason: String) -> RecordedFinding
-      def moved_to(pointer, at:, reason:)
+      # Each change made to it since the full audit that kept it, as field, from, to, at and reason, for the next full
+      # audit to see before its record drops them; a repoint's move, which records written by earlier releases keep
+      # under repointed, is a change to recorded_at. Nil when none was made.
+      #: () -> Array[Hash[String, untyped]]?
+      def changes_since_audit
+        moves = (@fields["repointed"] || []).map { |moved| { "field" => "recorded_at", **moved } }
+        changes = [*moves, *@fields["changed_since_audit"]]
+        changes unless changes.empty?
+      end
+
+      # This finding pointed at pointer, or written up nowhere for nil, the change kept beside it with when and why;
+      # or itself when it already points there, so an identical retry writes nothing.
+      #: (WriteUpPointer?, at: String, reason: String) -> RecordedFinding
+      def pointed_at(pointer, at:, reason:)
         return self if recorded_at == pointer
 
-        moved = { "from" => @fields["recorded_at"], "to" => pointer.to_h, "at" => at, "reason" => reason }
-        RecordedFinding.new(@fields.merge("recorded_at" => pointer.to_h,
-                                          "repointed" => [*@fields["repointed"], moved]))
+        change = { "field" => "recorded_at", "from" => @fields["recorded_at"], "to" => pointer&.to_h, "at" => at,
+                   "reason" => reason }
+        with(@fields.except("recorded_at").merge(pointer ? { "recorded_at" => pointer.to_h } : {}), change)
+      end
+
+      # This finding left open as action, deferred or accepted, its reason the decision's, the change kept beside it,
+      # an accepted one waiting on no one; or itself when it already is, so an identical retry writes nothing.
+      #: (String, at: String, reason: String) -> RecordedFinding
+      def acting(new_action, at:, reason:)
+        return self if action == new_action
+
+        change = { "field" => "action", "from" => action, "to" => new_action, "at" => at, "reason" => reason }
+        acted = with(@fields.merge("action" => new_action, "reason" => reason), change)
+        new_action == "accepted" ? acted.waiting_on(nil, at:, reason:) : acted
+      end
+
+      # This finding waiting on line, dated at, or on no one for nil, the change kept beside it with why, or itself
+      # when it already waits on line, so an identical retry writes nothing.
+      #: (String?, at: String, reason: String) -> RecordedFinding
+      def waiting_on(line, at:, reason:)
+        return self if waits_on == line
+
+        change = { "field" => "waits_on", "from" => waits_on, "to" => line, "at" => at, "reason" => reason }
+        waiting = line ? { "waits_on" => line, "waits_on_since" => at } : {}
+        with(@fields.except("waits_on", "waits_on_since").merge(waiting), change)
       end
 
       # The finding as its record's file holds it.
       #: () -> Hash[String, untyped]
       def to_h = @fields
+
+      private
+
+      # The finding with fields, change appended to the changes kept beside it since its audit.
+      #: (Hash[String, untyped], Hash[String, untyped]) -> RecordedFinding
+      def with(fields, change)
+        RecordedFinding.new(fields.merge("changed_since_audit" => [*@fields["changed_since_audit"], change]))
+      end
     end
   end
 end

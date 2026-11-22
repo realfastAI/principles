@@ -23,12 +23,13 @@ module Principles
       # asked is what the request asks of its member: under :change its change since its baseline; under :context
       # what the request's context shows beside it, such as the record's findings on the member; and under
       # :placeholders the text the template prints in each field the agent writes. What the agent judges is under
-      # context, the question last, as in a full audit's request.
+      # context, the question first, so an agent reading the request's head finds what it is asked before the text.
       #: (request_id: String, principle_id: String, asked: Hash[Symbol, untyped]) -> Hash[String, untyped]
       def request(request_id:, principle_id:, asked:)
         { "status" => "agent_judgement_required", "request_id" => request_id, "phase" => "acknowledgement",
-          "context" => { "principle_id" => principle_id, **asked.fetch(:change).to_h, **asked.fetch(:context),
-                         "question" => Prompts.text("acknowledge-a-change/say-whether-the-change-keeps-the-meaning") },
+          "context" => { "principle_id" => principle_id,
+                         "question" => Prompts.text("acknowledge-a-change/say-whether-the-change-keeps-the-meaning"),
+                         **asked.fetch(:change).to_h, **asked.fetch(:context) },
           "response_template" => answer_to_fill(request_id:, asked:),
           "answer_with" => @invocation.submit_answer(request_id),
           "next_action" => to_fill([principle_id], [asked.fetch(:change).member_id], request_id:) }
@@ -47,13 +48,14 @@ module Principles
 
       # The request for several members' acknowledgements in one answer: each of members holds a member's
       # change, the context its own request shows beside it and the placeholders its template prints, as one member's
-      # request holds them, under context.members and the template's members in the order the agent named them.
+      # request holds them, under context.members and the template's members in the order the agent named them. The
+      # question leads the context, so an agent reading the request's head finds what it is asked before the members.
       #: (request_id: String, principle_id: String, members: Array[Hash[Symbol, untyped]]) -> Hash[String, untyped]
       def several_request(request_id:, principle_id:, members:)
         { "status" => "agent_judgement_required", "request_id" => request_id, "phase" => "acknowledgements",
           "context" => { "principle_id" => principle_id,
-                         "members" => shown(members),
-                         "question" => Prompts.text("acknowledge-a-change/say-whether-each-change-keeps-its-meaning") },
+                         "question" => Prompts.text("acknowledge-a-change/say-whether-each-change-keeps-its-meaning"),
+                         "members" => shown(members) },
           "response_template" => several_to_fill(request_id:, members:),
           "answer_with" => @invocation.submit_answer(request_id),
           "next_action" => to_fill([principle_id], members.map { it.fetch(:change).member_id }, request_id:) }
@@ -70,13 +72,14 @@ module Principles
       # The request for the members several principles map in one answer: under context.principles, each
       # principle's members as its own request for several shows them, and in the template one entry per member,
       # judged once for every principle that maps it. keeping_deferred names each principle whose members keep a
-      # deferred finding, which the request says only a full audit resolves.
+      # deferred finding, which the request says only a full audit resolves. The question leads the context, as in
+      # one principle's requests.
       #: (request_id: String, principles: Hash[String, Array[Hash[Symbol, untyped]]],
       #|  ?keeping_deferred: Array[String]) -> Hash[String, untyped]
       def across_request(request_id:, principles:, keeping_deferred: [])
         { "status" => "agent_judgement_required", "request_id" => request_id, "phase" => "acknowledgements",
-          "context" => { "principles" => shown_once(principles),
-                         **deferred_findings_kept(keeping_deferred), "question" => across_question },
+          "context" => { "question" => across_question, "principles" => shown_once(principles),
+                         **deferred_findings_kept(keeping_deferred) },
           "response_template" => across_to_fill(request_id:, principles:),
           "answer_with" => @invocation.submit_answer(request_id),
           "next_action" => to_fill(principles.keys.uniq.sort, across_member_ids(principles), request_id:) }

@@ -5,7 +5,7 @@ require_relative "../error"
 require_relative "json_path_query"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # The YAML frontmatter at the head of a Markdown file, read as lines and never parsed as YAML, since a
     # YAML parser over untrusted bytes is attack surface. A field is a top-level `key:` line and the indented,

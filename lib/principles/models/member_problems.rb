@@ -11,7 +11,7 @@ require_relative "member_state"
 require_relative "locate_refusal"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # One map's members, each as broken, changed, unchanged, unchanged since its mapping commit or with no
     # baseline, against what this tool last knew of its text: the last audit's hash for it, or else its text at
@@ -241,6 +241,10 @@ module Principles
 
         @baselines.none_because
       end
+
+      # The map's members, whose files an audit of it judges as committed.
+      #: PrincipleMembers
+      attr_reader :members
 
       # Each file holding a member found with no baseline, once.
       #: () -> Array[String]

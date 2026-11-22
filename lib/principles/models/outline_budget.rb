@@ -6,7 +6,7 @@ require_relative "candidate_outline"
 require_relative "entry_files"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # How much list-candidate-files may print: its listed files' outlines, cut a whole file's list items at a time
     # until the result fits. One user's run printed 66,145 B for 45 files, against a ceiling of about

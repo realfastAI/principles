@@ -41,9 +41,7 @@ module Principles
       def checked_request(request_id, head)
         audit = audit_now(request_id.principle_id)
         basis = Models::AssessmentBasis.new(head.fetch("basis"))
-        prior = audit.check_assessment_request(request_id, basis: basis, committed: committed(basis.base, audit.map),
-                                                           record: @audit_records.find(audit.id),
-                                                           loads: loads_to_check(audit))
+        prior = prior_unless_stale(request_id, audit, basis)
         principle_history(audit.id).confirm_current_id_since(basis.base)
         prior
       end
@@ -79,6 +77,24 @@ module Principles
       end
 
       private
+
+      # The prior findings the request request_id names listed, printed with basis, refused unless audit, the map and
+      # members as they are now, still gives that request; a refusal names how the map changed since basis's commit,
+      # when that explains it.
+      #: (Models::RequestId, Models::Audit, Models::AssessmentBasis) -> Models::PriorFindings
+      def prior_unless_stale(request_id, audit, basis)
+        audit.check_assessment_request(request_id, basis: basis, committed: committed(basis.base, audit.map),
+                                                   record: @audit_records.find(audit.id),
+                                                   loads: loads_to_check(audit)) { map_at(audit.id, basis.base) }
+      end
+
+      # The map of principle_id as commit holds it, nil outside git or where it cannot be read there.
+      #: (String, String?) -> Models::Principle?
+      def map_at(principle_id, commit)
+        commit && principle_history(principle_id).map_at(commit)
+      rescue Error
+        nil
+      end
 
       # The placeholders a full audit's template printed, as start-audit --as template prints it now.
       #: (Models::RequestId) -> Hash[String, untyped]?

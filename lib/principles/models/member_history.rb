@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # The commits that changed one member's own text since this tool last knew it, newest first. The walk goes
     # back from HEAD and stops at the first commit whose text for the member hashes to the baseline, so a fix

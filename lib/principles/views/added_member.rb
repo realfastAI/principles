@@ -34,7 +34,16 @@ module Principles
       #: () -> String
       def span
         "#{id} spans lines #{@added.fetch("first_line")} to #{@added.fetch("last_line")}; " \
-          "if that is not the passage you meant, move it with move-member. "
+          "if that is not the passage you meant, move it with move-member. #{runs_on}"
+      end
+
+      # What the agent judges when the paragraph or list item a one-line passage starts runs on past it; it ends with
+      # a space, or is empty.
+      #: () -> String
+      def runs_on
+        line = @added["continues_to_line"] or return ""
+        "Its paragraph or list item continues to line #{line}; if the member is all of it, move it with " \
+          "--ending-at quoting the words that end it. "
       end
     end
   end

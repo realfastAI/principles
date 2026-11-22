@@ -8,7 +8,7 @@ require_relative "last_completed_revision"
 require_relative "recorded_finding"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # What a correction request depends on, which it prints as its basis and the agent hands back with the answer:
     # the base commit, the map's version, each finding's members and problem, what the assessment reported beyond its

@@ -5,6 +5,7 @@ require_relative "../error"
 require_relative "meta_principle"
 
 module Principles
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # An absent principle id, whose repair creates an ordinary map or sets up the keeping principle.
     class UnknownPrinciple

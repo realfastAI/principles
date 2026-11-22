@@ -144,6 +144,10 @@ module Principles
         @files.relative(id)
       end
 
+      # Map id's file and each file holding one of its members, which a full audit judges as committed.
+      #: (String, PrincipleMembers) -> Array[String]
+      def audited_files(id, members) = [file(id), *members.paths]
+
       # The file map id was kept in under the folder's earlier name, relative to the project.
       #: (String) -> String
       def earlier_file(id)

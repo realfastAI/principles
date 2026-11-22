@@ -8,7 +8,7 @@ require_relative "../models/submitted_answer"
 require_relative "acknowledgement"
 require_relative "acknowledgements"
 require_relative "correction"
-require_relative "repoint"
+require_relative "open_finding_decisions"
 require_relative "assessment"
 
 module Principles
@@ -22,7 +22,7 @@ module Principles
       # The controller that answers for each phase a request id may name.
       PHASE_CONTROLLERS = {
         "assessment" => Assessment, "correction" => Correction, "acknowledgement" => Acknowledgement,
-        "acknowledgements" => Acknowledgements, "repointing" => Repoint
+        "acknowledgements" => Acknowledgements, "deciding" => OpenFindingDecisions
       }.freeze #: Hash[String, Class[AnswerPhase]]
 
       #: (String, String?, Hash[String, untyped]) -> untyped

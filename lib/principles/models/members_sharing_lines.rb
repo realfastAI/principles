@@ -9,7 +9,7 @@ require_relative "member_elsewhere"
 require_relative "members_elsewhere"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # The members whose text shares a line with one member located in its file, so one edit there shows on
     # each. The project locates the others; a member this tool cannot find now is left out, since show-principle

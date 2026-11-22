@@ -5,14 +5,14 @@ require_relative "../error"
 require_relative "json_digest"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # The id of a judgement request: the principle, the phase and a digest of everything the request
     # depends on, as ID.PHASE.DIGEST. This tool stores no request, so an answer is matched by recomputing
     # the digest from the project as it is now: a different digest means something the request depended
     # on has changed. The digest has no secret, so it catches mistakes, not forgery.
     class RequestId
-      PHASES = %w[assessment correction acknowledgement acknowledgements repointing].freeze
+      PHASES = %w[assessment correction acknowledgement acknowledgements deciding].freeze
       FORMAT = /\A(?<principle>[a-z0-9]+(?:-[a-z0-9]+)*)\.(?<phase>[a-z]+)\.(?<digest>[0-9a-f]{12})\z/
 
       #: String

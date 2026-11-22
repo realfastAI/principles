@@ -5,7 +5,7 @@ require_relative "../error"
 require_relative "audit_record"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # The revision of a principle's last completed audit record when a request was printed, or nil when there was
     # none. An assessment's basis and a correction's carry it, so either answer is refused once that record changed,

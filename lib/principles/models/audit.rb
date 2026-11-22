@@ -17,6 +17,7 @@ require_relative "prior_findings"
 require_relative "decided_prior_findings"
 require_relative "disposition"
 require_relative "stale_request"
+require_relative "map_change"
 
 module Principles
   # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
@@ -61,14 +62,18 @@ module Principles
       # now, and, in git, the members are as its base holds them (committed).
       # It returns the findings the last audit, whose record is given, left for this one to decide; loads is
       # what the audit lists to check now, so a change to what lists a member to check makes the request stale.
+      # The block gives the map at the base commit, nil when it cannot be read, asked only for a request that no
+      # longer matches, so the refusal names a change to the map when that map explains it.
       #: (RequestId, basis: AssessmentBasis, committed: Hash[String, String]?, record: AuditRecord?,
-      #|  loads: LoadsToCheck) -> PriorFindings
-      def check_assessment_request(request_id, basis:, committed:, record:, loads:)
+      #|  loads: LoadsToCheck) ?{ () -> Principle? } -> PriorFindings
+      def check_assessment_request(request_id, basis:, committed:, record:, loads:, &started_from)
         prior = prior_findings(record)
         now_id = assessment_id(basis, prior.digested, loads.listed)
         return prior if now_id == request_id && (basis.base.nil? || committed == @now)
 
-        raise StaleRequest.new(id, changed_since(committed), correction_open: record&.open? || false).refusal
+        raise StaleRequest.new(id, changed_since(committed), correction_open: record&.open? || false,
+                                                             map_change: map_change(request_id, basis, record, loads,
+                                                                                    started_from)).refusal
       end
 
       # The answer to this audit's assessment request, checked against each member, each member's check
@@ -216,6 +221,21 @@ module Principles
 
       #: () -> Error
       def stale_request = StaleRequest.new(id).refusal
+
+      # How the map differs from the one started_from gives, when the request was printed from that map with the
+      # members as they are now; nil when there is no such map, it is this one, it does not give request_id, or the
+      # change names nothing.
+      #: (RequestId, AssessmentBasis, AuditRecord?, LoadsToCheck, (^() -> Principle?)?) -> MapChange?
+      def map_change(request_id, basis, record, loads, started_from)
+        base = started_from&.call
+        return unless base && base.version != map_version
+
+        printed = Audit.new(map: base, now: @now)
+        return unless printed.assessment_id(basis, printed.prior_findings(record).digested, loads.listed) == request_id
+
+        change = MapChange.new(base, @map)
+        change unless change.empty?
+      end
     end
   end
 end

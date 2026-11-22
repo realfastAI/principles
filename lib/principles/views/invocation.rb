@@ -15,11 +15,13 @@ module Principles
       #: String
       attr_reader :project
 
-      # named says whether each command names the project; without_project leaves it out.
-      #: (executable: String, project: String, ?named: bool) -> void
-      def initialize(executable:, project:, named: true)
+      # named says whether each command names the project; without_project leaves it out. temp_directory is the
+      # temporary folder the running tool was given, where a printed next step saves an answer.
+      #: (executable: String, project: String, temp_directory: String, ?named: bool) -> void
+      def initialize(executable:, project:, temp_directory:, named: true)
         @executable = executable
         @project = project
+        @temp_directory = temp_directory
         @named = named
         freeze
       end
@@ -27,7 +29,9 @@ module Principles
       # The same invocation, its commands leaving out --project, for output that names the project once and whose
       # commands run from there, as list-member-problems --short's stderr does.
       #: () -> Invocation
-      def without_project = Invocation.new(executable: @executable, project: @project, named: false)
+      def without_project
+        Invocation.new(executable: @executable, project: @project, temp_directory: @temp_directory, named: false)
+      end
 
       # Whether each command names the project.
       #: () -> bool
@@ -54,6 +58,12 @@ module Principles
 
         in_project("submit-answer", request_id, options: ["--file", file])
       end
+
+      # The file to save the answer name names in, a request id or a principle id, by its full path in the temporary
+      # folder, so every shell that runs the printed commands names the same file: a sandboxed and an unsandboxed one
+      # read $TMPDIR as different folders.
+      #: (String) -> String
+      def answer_file(name) = "#{@temp_directory.chomp("/")}/principles-#{name}-answer.json"
 
       # The same command, its values given as one list, as a refusal's repair command holds them.
       #: (String, Array[String], ?options: Array[String], ?usage: String?) -> String

@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # The candidate files git ignores, which this tool names but never reads. A folder git ignores can hold many
     # copies of instruction files written there by specs or builds, and listing each buries a file ignored on

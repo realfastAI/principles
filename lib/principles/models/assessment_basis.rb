@@ -5,7 +5,7 @@ require_relative "audit_record"
 require_relative "last_completed_revision"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # What an assessment request prints as its basis, which the agent hands back with the answer: the commit the
     # audit is based on, nil outside git, and the revision of the last completed audit record when the request was

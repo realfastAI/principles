@@ -9,7 +9,7 @@ require_relative "located_text"
 require_relative "write_up_opening"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # The text of one project file, as the type that knows how to find a member in it. It holds text, not a
     # file, so the same rules apply to a file on disk and to the file at a commit. Each type finds the region
@@ -77,6 +77,11 @@ module Principles
         end
         found
       end
+
+      # The last line of the paragraph or list item that a passage named by its opening alone maps only the first
+      # line of; nil here, since only Markdown has such blocks, which MarkdownFile finds.
+      #: (Locator) -> Integer?
+      def continues_to(_locator) = nil
 
       # The lines of the region locator names, as the agent reads them.
       #: (Locator) -> Array[String]

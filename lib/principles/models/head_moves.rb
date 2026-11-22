@@ -5,6 +5,7 @@ require_relative "after_commit_input"
 require_relative "../data/head_reflog"
 
 module Principles
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # Which repositories' HEAD a shell call moved by committing, each named once, in the order the call's
     # directories name them, with the commit HEAD named before the move: what report-after-commit reports on. A

@@ -4,6 +4,7 @@
 require "json"
 
 module Principles
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # The JSON a SessionStart hook is given on stdin, as far as report-at-session-start reads it: the source the
     # session started from. Input that is not JSON, or names no source a host sends, reads as a startup, since a

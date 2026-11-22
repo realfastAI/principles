@@ -4,7 +4,7 @@
 require_relative "outline_section"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # One section of a candidate file's outline and the deeper sections under it, which a cut outline folds into it
     # once its headings are cut too.

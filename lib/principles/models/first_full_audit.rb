@@ -5,6 +5,7 @@ require_relative "../error"
 require_relative "audit_record"
 
 module Principles
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # A principle's first full audit, which one background subagent runs from show-first-audit-brief so the session
     # that starts it spends little of its context on it: its id, and its record, or nil with none.

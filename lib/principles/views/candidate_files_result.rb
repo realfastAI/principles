@@ -33,12 +33,15 @@ module Principles
         #: () -> Integer?
         def range_outlines_bytes = @inventory["range_outlines_bytes"]
 
+        # conventional says whether the survey looked in the places hosts load by convention, as it does
+        # unless --only narrowed it to its globs' matches.
         #: (inventory: Hash[String, untyped], untracked: Array[String]?,
-        #|  owner_asks: Hash[String, Array[String]]) -> void
-        def initialize(inventory:, untracked:, owner_asks:)
+        #|  owner_asks: Hash[String, Array[String]], ?conventional: bool) -> void
+        def initialize(inventory:, untracked:, owner_asks:, conventional: true)
           @inventory = inventory
           @untracked = untracked
           @owner_asks = owner_asks
+          @conventional = conventional
           freeze
         end
 
@@ -47,8 +50,10 @@ module Principles
         #: () -> Hash[String, untyped]
         def listed
           files = @inventory.fetch("files").map { |file| file.slice(*PRINTED_FILE_FIELDS) }
-          listed = @inventory.merge("files" => files,
-                                    "scope" => Prompts.text("find-a-principle-to-map/where-the-inventory-looks"))
+          scope = if @conventional then Prompts.text("find-a-principle-to-map/where-the-inventory-looks")
+                  else Prompts.text("find-a-principle-to-map/where-a-survey-with-only-looks")
+                  end
+          listed = @inventory.merge("files" => files, "scope" => scope)
           @untracked ? listed.merge("untracked" => @untracked) : listed
         end
       end

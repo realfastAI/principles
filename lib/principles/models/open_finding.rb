@@ -38,14 +38,15 @@ module Principles
           "audited_at" => @audited_at, "first_raised_at" => first_raised_at, **raised_in, **waiting, **kept_evidence }
       end
 
-      # The finding as the next full audit's request lists it, with when it was first raised, and what it waits on,
-      # since when, for the agent to confirm.
+      # The finding as the next full audit's request lists it, with when it was first raised, what it waits on,
+      # since when, for the agent to confirm, and each change made to it since its record.
       #: () -> Hash[String, untyped]
       def for_next_audit
         { "finding_id" => id, "member_ids" => @finding.member_ids, **problem,
           **present("recorded_at", recorded_at&.to_h),
           "action" => @finding.action,
-          "first_raised_at" => first_raised_at, **raised_in, **waiting }
+          "first_raised_at" => first_raised_at, **raised_in, **waiting,
+          **present("changed_since_audit", @finding.changes_since_audit) }
       end
 
       # The finding as the next full audit's request lists it, against the map's members now and each one's hash

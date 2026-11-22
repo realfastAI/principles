@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "repointing-answer.schema.json",
-  "title": "Repointing answer",
-  "description": "What an agent answers a repoint of a principle's open findings' write-ups with: the request's id and basis, then for each finding a new recorded_at, or null to leave it, and a one-line reason. Fields this tool does not read are refused. Models::Repoint locates each new pointer.",
+  "$id": "deciding-answer.schema.json",
+  "title": "Deciding answer",
+  "description": "What an agent answers start-audit ID --open-findings with: the request's id and basis, then a decision per open finding it names, giving only the fields that change and a one-line reason. A field left out keeps its value. Fields this tool does not read are refused. Models::FindingDecision checks each decision.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["request_id", "basis", "repoints"],
+  "required": ["request_id", "basis", "decisions"],
   "properties": {
     "request_id": { "type": "string" },
     "basis": {
@@ -16,14 +16,20 @@
         "revision": { "type": ["string", "null"] }
       }
     },
-    "repoints": {
+    "decision_fields": {
+      "type": "object",
+      "description": "The note start-audit ID --open-findings --as template prints at its head naming each field a decision may give and what it means, which an answer may send back and Models::OpenFindingsDecision ignores, whatever it holds."
+    },
+    "decisions": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["finding_id", "recorded_at", "reason"],
+        "required": ["finding_id"],
         "properties": {
           "finding_id": { "type": "string", "minLength": 1 },
+          "action": { "type": "string" },
+          "waits_on": { "type": ["string", "null"] },
           "recorded_at": {
             "type": ["object", "null"],
             "required": ["path"],

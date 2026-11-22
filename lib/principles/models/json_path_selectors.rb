@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # The selector * in a JSONPath query: every member value of an object, or every element of an array.
     class JsonPathWildcard

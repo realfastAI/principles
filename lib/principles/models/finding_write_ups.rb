@@ -12,7 +12,8 @@ module Principles
     # now.
     class FindingWriteUps
       # What to do about a recorded_at that no longer resolves, worded for a write-up rather than a member.
-      REPAIR = "Fix the write-up, or point recorded_at at it again with start-audit --write-ups, without a full audit."
+      REPAIR = "Fix the write-up, or point recorded_at at it again with start-audit --open-findings, without a full " \
+               "audit."
       # What the repair adds when git detects a rename for the write-up's missing file.
       RENAMED = " git_detected_rename is git's match for its file, to #{MissingFiles::RENAME_MATCH}".freeze #: String
 

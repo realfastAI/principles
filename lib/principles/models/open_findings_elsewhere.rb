@@ -6,7 +6,7 @@ require_relative "members_elsewhere"
 require_relative "open_finding"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # The findings other principles' records leave open on members sharing lines with a full audit's members, read
     # once per principle: each member's mapped_elsewhere names them by id, and the request lists each once, since a

@@ -40,7 +40,8 @@ module Principles
         after = options["commits_after"]
         mapped = @principles.descriptions
         commit = @history.commit_named(after) if after
-        found = @project.candidate_files(after: commit, also: options.fetch("also", []))
+        selected = { also: options.fetch("also", []), only: options.fetch("only", []) }
+        found = @project.candidate_files(after: commit, **selected)
                         .within_budget { |inventory| candidate_files_result(inventory, mapped).text.bytesize }
         candidate_files_result(found, mapped)
       end
@@ -49,7 +50,7 @@ module Principles
       #: (Models::CandidateInventory, Array[Hash[String, untyped]]) -> Views::JsonWithEntriesOnLines
       def candidate_files_result(found, mapped)
         listed = Views::CandidateFilesResult::Found.new(inventory: found.to_h, untracked: found.untracked,
-                                                        owner_asks: found.owner_asks)
+                                                        owner_asks: found.owner_asks, conventional: found.conventional?)
         question = Views::CandidateFilesResult.new(invocation).question(listed, existing_maps: @principles.ids,
                                                                                 map_file: @principles.file("ID"),
                                                                                 mapped_principles: mapped)

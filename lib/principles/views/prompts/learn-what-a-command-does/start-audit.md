@@ -1,5 +1,5 @@
-Asks you to assess every member of principle ID and the set as a whole. Run it after mapping and when `show-principle`
-reports a member changed, unassessed, locator_lost or unavailable. `--part PART`, repeatable, prints parts: a member's
+Asks you to assess every member of principle ID and the set. Run it after mapping and when `show-principle` reports a
+member changed, unassessed, locator_lost or unavailable. `--part PART` prints parts, sized in `part_bytes`: a member's
 with its `text` and `lines_in_text`, an instruction as printed or `response_template` bare (`part_empty` if empty),
 `--as template --part members/ID` slots; `--part index` lists `part_command`, their `bytes`, whether `this_audit`
 `judges` or `carries_forward` a member, `trimmed_instructions`, `answer_with` and `next_action`, per `read_in_parts`.
@@ -30,12 +30,12 @@ After a full audit, a member carries `carried_forward`, with its `assessed_at`, 
 
 ## Prior findings
 
-When the last completed audit deferred or accepted findings, `context.prior_findings` lists them, with `first_raised_at`
-and a deferral's `waits_on` and `waits_on_since`. An older one may claim an earlier one with `raised_in`, from the
-record's `git log --follow`. Each listed finding shows its `evidence`, in git each item with `changed_since_last_audit`
-and `found_now`, or `evidence_not_kept` and an `evidence_request` for `problem_evidence`, whose `replaces` re-points a
-lost item. Decide each in `prior_finding_decisions` as `still_holds`, `resolved`, `withdrawn` or `raised_again`, as
-`prior_findings_instruction` says; only `resolved` may give `evidence`. Results name `prior_findings_pointers_dropped`,
+When the last completed audit deferred or accepted findings, `context.prior_findings` lists them, with
+`first_raised_at`, its `waits_on` and `waits_on_since`, changes since as `changed_since_audit`; an older one may claim
+`raised_in`, found by `git log --follow`. Each listed finding shows its `evidence`, in git each item with
+`changed_since_last_audit` and `found_now`, or `evidence_not_kept` and an `evidence_request` for `problem_evidence`,
+whose `replaces` re-points a lost item. Decide each in `prior_finding_decisions` as `still_holds`, `resolved`,
+`withdrawn` or `raised_again`; only `resolved` may give `evidence`. Results name `prior_findings_pointers_dropped`,
 `prior_findings_waits_on_dropped`, `prior_findings_evidence_replaced`, `prior_findings_problems_restated`.
 
 ## Members to check against the activation

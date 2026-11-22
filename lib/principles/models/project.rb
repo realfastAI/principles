@@ -117,6 +117,11 @@ module Principles
       #: (Locator) -> LocatedText
       def locate_for_authoring(locator) = member_file(locator.path).locate_for_authoring(locator)
 
+      # The last line of the paragraph or list item a passage named by its opening alone maps only the first line
+      # of, as its file type finds it; nil when none runs on.
+      #: (Locator) -> Integer?
+      def continues_to(locator) = member_file(locator.path).continues_to(locator)
+
       # The lines locator finds now, as one text; refused as located_text refuses.
       #: (Locator) -> String
       def member_text(locator) = member_file(locator.path).lines_of(locator).join
@@ -220,10 +225,10 @@ module Principles
       def answer(file, stdin:, given:) = SentAnswer.read(@files, file, stdin:, given:)
 
       # What list-candidate-files found, as CandidateInventory reads it from the project, after a commit when given.
-      #: (?after: String?, ?also: Array[String]) -> CandidateInventory
-      def candidate_files(after: nil, also: [])
+      #: (?after: String?, ?also: Array[String], ?only: Array[String]) -> CandidateInventory
+      def candidate_files(after: nil, also: [], only: [])
         mapped = after ? principles.readable_paths : []
-        search_paths = SurveySearchPaths.new(recorded: guidance_search_paths.globs, also:)
+        search_paths = SurveySearchPaths.new(recorded: guidance_search_paths.globs, also:, only:)
         CandidateInventory.read(@files, history, search_paths:, after:, mapped:)
       end
 

@@ -6,6 +6,7 @@ require_relative "member"
 require_relative "located_text"
 
 module Principles
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # Members in complete sections meeting the new section at a literal line boundary, in other unaudited maps.
     class MembersInConsecutiveSections

@@ -9,7 +9,7 @@ require_relative "../views/open_findings_line"
 require_relative "acknowledgement"
 require_relative "acknowledgements"
 require_relative "full_audit_request"
-require_relative "repoint"
+require_relative "open_finding_decisions"
 
 module Principles
   # Each runs one command: reads models, applies their rules and prints through a view.
@@ -45,17 +45,27 @@ module Principles
 
       private
 
-      # The audit start-audit's options ask for: a one-member audit with --member, a repoint of the open
-      # findings' write-ups with --write-ups, else a full audit; a full or one-member audit's answer alone with
+      # The audit start-audit's options ask for: a one-member audit with --member, a decision on the open
+      # findings with --open-findings, else a full audit, refusing --write-ups; an audit's answer alone with
       # --as template.
       #: (String, Hash[String, untyped]) -> Hash[String, untyped]
       def started_audit(id, options)
+        refuse_write_ups(id) if options["write_ups"]
         naming_the_executable { @audit_records.refuse_newer(id, version: @tool.version) }
         ids = [id, *options.fetch("other_ids", [])]
         return acknowledge(ids, options.fetch("member"), to_fill: options["as"] == "template") if options["member"]
-        return handed(Repoint).start(id) if options["write_ups"]
+        return handed(OpenFindingDecisions).decide(id, to_fill: options["as"] == "template") if options["open_findings"]
 
         full_audit(id, options)
+      end
+
+      # Refuses --write-ups, which --open-findings replaced for one release, printing the request for principle id
+      # that replaces it (013 R12).
+      #: (String) -> bot
+      def refuse_write_ups(id)
+        raise Error.new("replaced_option",
+                        "--write-ups is replaced by --open-findings, which also changes a finding's wait and action",
+                        "Run instead: #{invocation.in_project("start-audit", id, usage: "--open-findings")}")
       end
 
       # A full audit's request, or with --as template its answer alone, or with --instruction one instruction field

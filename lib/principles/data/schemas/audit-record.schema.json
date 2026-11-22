@@ -277,6 +277,21 @@
               "query": { "type": "string" }
             }
           },
+          "changed_since_audit": {
+            "type": "array",
+            "description": "Each change a decision on this open finding made since the full audit that kept it: the field, its value before and after, when and why. Only principles writes it.",
+            "items": {
+              "type": "object",
+              "required": ["field", "from", "to", "at", "reason"],
+              "properties": {
+                "field": { "type": "string", "enum": ["waits_on", "action", "recorded_at"] },
+                "from": {},
+                "to": {},
+                "at": { "type": "string", "minLength": 1 },
+                "reason": { "type": "string", "minLength": 1 }
+              }
+            }
+          },
           "repointed": {
             "type": "array",
             "description": "Each repoint of recorded_at since the full audit that kept this finding: where it pointed, where it points, when and why. Only principles writes it.",

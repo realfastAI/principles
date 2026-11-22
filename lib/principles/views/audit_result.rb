@@ -11,6 +11,7 @@ require_relative "invocation"
 require_relative "prior_finding_decisions_result"
 require_relative "prompts"
 require_relative "report_hooks_offer"
+require_relative "shell_word"
 require_relative "trimmed_instructions_note"
 require_relative "../prose_list"
 
@@ -95,11 +96,10 @@ module Principles
 
       # start-audit: the assessment request, as a judgement to answer under its request id, its context naming the
       # instructions it prints only in part and the flag that prints one whole, so a trimmed field is not taken for
-      # the whole, without the command the agent just ran. Its head names the command listing its parts, so a long
-      # request is read in parts rather than paged by script.
-      #: (AssessmentRequest) -> Hash[String, untyped]
-      def assessment_request(request)
-        output = judgement("assessment", request, { "read_in_parts" => read_in_parts(request.principle_id) },
+      # the whole, without the command the agent just ran, after its head, which sizes each part as part_bytes.
+      #: (AssessmentRequest, part_bytes: Hash[String, Integer]) -> Hash[String, untyped]
+      def assessment_request(request, part_bytes:)
+        output = judgement("assessment", request, assessment_head(request.principle_id, part_bytes),
                            to_fill: { "response_template" => request.template })
         note = TrimmedInstructionsNote.new(request.trimmed_instruction_fields).to_h
         fill = AnswerInAFile.new(@invocation).assessment(request.principle_id, request_id: request.request_id)
@@ -182,6 +182,15 @@ module Principles
         result.merge(field => facts, "next_action" => [judge, result["next_action"]].compact.join("\n"))
       end
 
+      # What a full audit's request of principle_id prints before its context: the command listing its parts, so a
+      # long request is read in parts rather than paged by script, and part_bytes, each part's bytes by its name as a
+      # shell reads it, as the index prints them, so the agent sizes its reads without running a script for them.
+      #: (String, Hash[String, Integer]) -> Hash[String, untyped]
+      def assessment_head(principle_id, part_bytes)
+        { "read_in_parts" => read_in_parts(principle_id),
+          "part_bytes" => part_bytes.transform_keys { ShellWord.new(it).to_s } }
+      end
+
       # How to read principle_id's full-audit request in parts: the command listing them, and the flag printing one.
       #: (String) -> String
       def read_in_parts(principle_id)
@@ -192,7 +201,7 @@ module Principles
       # request as a judgement to answer in phase, under its id, which its template's head also gives, with any
       # opening fields after the phase and before the context, and to_fill, the answer to fill when this request
       # prints it, after the context.
-      #: (String, AssessmentRequest | CorrectionRequest, ?Hash[String, String], ?to_fill: Hash[String, untyped])
+      #: (String, AssessmentRequest | CorrectionRequest, ?Hash[String, untyped], ?to_fill: Hash[String, untyped])
       #|  -> Hash[String, untyped]
       def judgement(phase, request, opening = {}, to_fill: {})
         { "status" => "agent_judgement_required", "request_id" => request.request_id, "phase" => phase, **opening,

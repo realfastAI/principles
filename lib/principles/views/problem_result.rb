@@ -1,10 +1,12 @@
 # typed: strict
 # frozen_string_literal: true
 
+require_relative "../prose_list"
 require_relative "invocation"
 require_relative "members_with_no_baseline"
 require_relative "maps_needing_members_or_audit"
 require_relative "principles_with_no_completed_audit"
+require_relative "problem_facts"
 require_relative "record_waiting_on_an_upgrade"
 
 module Principles
@@ -28,29 +30,21 @@ module Principles
         freeze
       end
 
-      # report holds "members", the changed members, and "counts"; not_read names older files left unread;
-      # no_baseline_files names, by principle, the files to commit so its members with no baseline gain one.
-      # acknowledgeable names, by the principles that acknowledge them together, the changed members a one-member
-      # audit may judge.
-      # waiting names each principle whose record a later copy wrote, whose members are not checked.
-      #: (Hash[String, untyped], ?not_read: Array[String], ?no_baseline_files: Hash[String, Array[String]],
-      #|  ?acknowledgeable: Hash[Array[String], Array[String]], ?waiting: Array[RecordWaitingOnAnUpgrade])
-      #|  -> Hash[String, untyped]
-      def checked(report, not_read: [], no_baseline_files: {}, acknowledgeable: {}, waiting: [])
-        checked_naming_commands(report, not_read:, no_baseline_files:, acknowledgeable:, waiting:).first
+      # report holds "members", the changed members, and "counts"; facts what the result says beside it.
+      #: (Hash[String, untyped], ?ProblemFacts) -> Hash[String, untyped]
+      def checked(report, facts = ProblemFacts.new)
+        checked_naming_commands(report, facts).first
       end
 
       # The same result, and whether its next_action names a command, before which --short names the project once,
       # so no view reads the action's text to find one.
-      #: (Hash[String, untyped], ?not_read: Array[String], ?no_baseline_files: Hash[String, Array[String]],
-      #|  ?acknowledgeable: Hash[Array[String], Array[String]], ?waiting: Array[RecordWaitingOnAnUpgrade])
-      #|  -> [Hash[String, untyped], bool]
-      def checked_naming_commands(report, not_read: [], no_baseline_files: {}, acknowledgeable: {}, waiting: [])
-        unless not_read.empty?
-          report = report.merge("not_read" => not_read.map { |file| { "file" => file, "because" => OLDER_STATE } })
+      #: (Hash[String, untyped], ?ProblemFacts) -> [Hash[String, untyped], bool]
+      def checked_naming_commands(report, facts = ProblemFacts.new)
+        unless facts.not_read.empty?
+          report = report.merge("not_read" => facts.not_read.map { { "file" => it, "because" => OLDER_STATE } })
         end
-        report = report.merge("records_waiting_on_an_upgrade" => waiting.map(&:to_h)) unless waiting.empty?
-        action, commands = next_action(report, no_baseline_files:, acknowledgeable:, waiting:)
+        report = report.merge("records_waiting_on_an_upgrade" => facts.waiting.map(&:to_h)) unless facts.waiting.empty?
+        action, commands = next_action(report, facts)
         [report.merge("next_action" => action), commands]
       end
 
@@ -78,21 +72,38 @@ module Principles
 
       private
 
-      # What to do next for report, each kind of action on lines of its own, or NOTHING_CHANGED when none applies,
-      # and whether it names a command: every changed, unaudited and mapping action does, a no-baseline one as it
-      # says, and neither the mapping notice nor a waiting principle's update sentence does.
-      #: (Hash[String, untyped], no_baseline_files: Hash[String, Array[String]],
-      #|  acknowledgeable: Hash[Array[String], Array[String]], waiting: Array[RecordWaitingOnAnUpgrade])
-      #|  -> [String, bool]
-      def next_action(report, no_baseline_files:, acknowledgeable:, waiting:)
-        waits = waiting.map(&:principle)
-        mapping = MapsNeedingMembersOrAudit.new(@invocation, report: report, files_to_commit: no_baseline_files,
-                                                             waiting: waits)
-        commanding = [changed_action(report, acknowledgeable, waits), unaudited_action(report, waits)].compact
-        no_baseline = no_baseline_actions(report, no_baseline_files)
+      # What to do next for report, given facts, each kind of action on lines of its own, or NOTHING_CHANGED when
+      # none applies, and whether it names a command: every changed, unaudited and mapping action does, a no-baseline
+      # one as it says, and neither the mapping notice nor a waiting principle's update sentence does.
+      #: (Hash[String, untyped], ProblemFacts) -> [String, bool]
+      def next_action(report, facts)
+        mapping = MapsNeedingMembersOrAudit.new(@invocation, report: report, files_to_commit: facts.no_baseline_files,
+                                                             waiting: facts.waits)
+        commanding = commanding_actions(report, facts)
+        no_baseline = no_baseline_actions(report, facts.no_baseline_files)
         action = [*commanding, mapping.notice, *no_baseline.map(&:to_s), *mapping.actions,
-                  *waiting.map(&:to_s)].compact.join("\n")
+                  *facts.waiting.map(&:to_s)].compact.join("\n")
         [action.empty? ? NOTHING_CHANGED : action, names_a_command?(commanding, no_baseline, mapping)]
+      end
+
+      # The actions for report that name a command each, given facts: the audits of changed members, after the
+      # files to commit before them, then the audits of members no audit has assessed.
+      #: (Hash[String, untyped], ProblemFacts) -> Array[String]
+      def commanding_actions(report, facts)
+        [commit_first(report, facts), changed_action(report, facts.acknowledgeable, facts.waits),
+         unaudited_action(report, facts.waits)].compact
+      end
+
+      # The line asking to commit, before the audits of report's changed members, the files facts names an audit of
+      # their principles refusing, but for principles waiting on an upgrade, whose audits wait.
+      #: (Hash[String, untyped], ProblemFacts) -> String?
+      def commit_first(report, facts)
+        audited = report.fetch("members").map { it.fetch("principle") }
+        files = facts.audit_files.slice(*audited).except(*facts.waits).values.flatten.uniq
+        return if files.empty?
+
+        "Commit #{ProseList.new(files)} first: an audit judges committed text, and start-audit refuses a file " \
+          "that differs from the last commit."
       end
 
       # Whether any of the actions that may name a command does.

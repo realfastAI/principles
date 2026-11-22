@@ -40,30 +40,20 @@ module Principles
       end
 
       # Each member's id and the hash of its text at the commit, or nil when the commit lacks a member's file or the
-      # member's place in it.
+      # member's place in it, since an audit's base needs every member.
       #: (PrincipleMembers) -> Hash[String, String]?
       def hashes(members)
-        members.to_h do |member|
-          path = member.path
-          found = text(path)
-          return nil unless found
-
-          [member.id, MemberFile.for(path: path, text: found).locate(member.locator).sha256]
-        end
-      rescue Error
-        nil
+        members.to_h { |member| [member.id, hash_of(member) || (return nil)] }
       end
 
-      # Each member's key and the hash of its text at the commit, leaving out a member the commit cannot find.
-      #: (Array[Hash[String, untyped]]) -> Hash[String, String]
-      def hashes_by_key(members)
-        members.map { |fields| Member.new(fields) }.each_with_object({}) do |member, found|
-          path = member.path
-          committed = text(path) or next
-          found[member.key] = MemberFile.for(path: path, text: committed).locate(member.locator).sha256
-        rescue Error
-          next
-        end
+      # The hash of member's text at the commit, or nil when the commit lacks its file or its place in it, as a
+      # member's history walks commits where an earlier placement may no longer be found.
+      #: (Member) -> String?
+      def hash_of(member)
+        committed = text(member.path) or return nil
+        MemberFile.for(path: member.path, text: committed).locate(member.locator).sha256
+      rescue Error
+        nil
       end
     end
   end

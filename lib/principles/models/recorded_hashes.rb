@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # The member hashes a principle's audit record holds, by key, which its members now are compared with, and
     # whether a later copy wrote that record, so its audits wait on an upgrade and the comparison is read-only.

@@ -6,8 +6,7 @@ require_relative "member"
 require_relative "principle"
 
 module Principles
-  # The domain: maps, audits and command steps, with every rule a schema cannot express.
-  # models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # The members a correction says the agent moved after the audit began, from each old id to its new one. A
     # fix can rewrite the text a member's locator quotes; the agent then runs move-member and declares the

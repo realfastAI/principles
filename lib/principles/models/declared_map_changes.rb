@@ -7,8 +7,7 @@ require_relative "member_moves"
 require_relative "declared_member_removals"
 
 module Principles
-  # The domain: maps, audits and command steps, with every rule a schema cannot express.
-  # models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # The changes a correction declares it made to the map after the audit began: the members it moved,
     # and the members whose role or check a fix changed, which each fixed disposition lists in

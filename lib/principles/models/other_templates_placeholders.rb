@@ -15,6 +15,7 @@ require_relative "reported_check"
 require_relative "shape_problems_beside"
 
 module Principles
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # The text in an answer that ends as this tool's placeholders end, "Leave as printed ...", "else leave" or "else
     # kept", or is a placeholder some template of this release prints, but is none the request's own template

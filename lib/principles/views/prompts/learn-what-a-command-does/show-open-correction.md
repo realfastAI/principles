@@ -3,8 +3,8 @@ Prints the answer to fill for the correction a full audit's assessment with find
 again. It reads principle ID's open audit record and writes nothing.
 
 It prints the correction's answer alone: its `request_id` and `basis`, which you hand back unchanged, and one disposition for each finding to fill.
-Redirect it to a file outside the project, such as under `$TMPDIR`, fill only its `dispositions`, and
-submit it with `submit-answer --file FILE`. It prints the same answer in git and outside it, and still
+Redirect it to the file `submit-answer`'s `next_action` names by its full path, outside the project, fill only
+its `dispositions`, and submit it with `submit-answer --file` and that path. It prints the same answer in git and outside it, and still
 after you fix members, which leaves the correction current; `submit-answer` checks it as usual.
 
 It refuses with `no_open_correction` while none is open to print. With no audit open, or only a completed

@@ -8,6 +8,7 @@ require_relative "principle_members"
 require_relative "refusal_before_shape"
 
 module Principles
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # The members of a principle that name no check, whose assessments take no check_result. An answer is read for
     # one before its shape is checked, since the shape would ask for the command such a check_result lacks, sending

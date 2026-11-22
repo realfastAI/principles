@@ -5,7 +5,7 @@ require_relative "../error"
 require_relative "../prose_list"
 
 module Principles
-  # The domain of principles and their maps: each model owns its rules and loads and saves itself through data/.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # The instruction field start-audit --instruction names, read whole from the request a full audit asks. Only a
     # field the request prints an instruction under can be read: the others explain fields it does not hold.

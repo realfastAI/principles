@@ -14,7 +14,7 @@ module Principles
     FLAG_OPTIONS = %w[short lines when-invoked always write-ups confirm open-findings history].freeze #: Array[String]
     # The options that may be given more than once, each value kept in order, as change-activation --when-files and
     # start-audit --member and --part.
-    LIST_OPTIONS = %w[when-files also member part].freeze #: Array[String]
+    LIST_OPTIONS = %w[when-files also only member part].freeze #: Array[String]
     # The words that name an option taking the next word as its value.
     VALUE_WORDS = (VALUE_OPTIONS + LIST_OPTIONS).map { |name| "--#{name}" }.freeze #: Array[String]
     # Every word the parser reads as an option, which an option taking a value refuses as its value.

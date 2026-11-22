@@ -9,7 +9,7 @@ require_relative "project_history"
 require_relative "survey_search_paths"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # What list-candidate-files found: the inventory of candidate files as it lists them, and in git
     # which of them, or of the files their links lead to, git does not track. Each list that names a file is
@@ -32,9 +32,10 @@ module Principles
       def self.read(files, history, search_paths:, after: nil, mapped: [])
         changed = after ? history.changed_after(after) : []
         inventory = files.inventory(also: changed.grep(CandidateFiles::MARKDOWN) | (changed & mapped),
-                                    matching: search_paths.globs).merge(search_paths.recorded_listing)
+                                    matching: search_paths.globs, conventional: search_paths.conventional?)
+        inventory = inventory.merge(search_paths.recorded_listing)
         inventory = inventory.merge("uncommitted" => uncommitted_markdown(history)) if after
-        found(inventory, history, changed:) { |path| files.read_text(path) }
+        found(inventory, history, changed:, conventional: search_paths.conventional?) { |path| files.read_text(path) }
       end
 
       # An explicit file request uses the survey's entries and budget without its broad search.
@@ -52,15 +53,16 @@ module Principles
       # git does not track.
       # Each listed file's text, which its outline is read from, is what the block gives for its path.
       # changed names the files a range of commits changed, which list first, marked.
-      #: (Hash[String, untyped], ProjectHistory, ?changed: Array[String]) { (String) -> String } -> CandidateInventory
-      def self.found(inventory, history, changed: [], &text_of)
+      #: (Hash[String, untyped], ProjectHistory, ?changed: Array[String], ?conventional: bool) { (String) -> String }
+      #|  -> CandidateInventory
+      def self.found(inventory, history, changed: [], conventional: true, &text_of)
         texts = {} #: Hash[String, String]
         files = CandidateFiles.new(inventory.fetch("files"), selected: inventory.fetch("selected_files", []),
                                                              text_of: ->(path) { texts[path] ||= text_of.call(path) })
         hints = inventory.fetch("possibly_test_data")
         listed = listed(inventory, files.listing(hints, changed:))
         new(listed, untracked: history.untracked_excluding_ignored(listed.fetch("files").map { it.fetch("path") }),
-                    outlines: files.outlines(hints))
+                    outlines: files.outlines(hints), conventional:)
       end
 
       # The inventory as list-candidate-files lists it: the instruction files agent hosts load by convention, the other
@@ -86,17 +88,23 @@ module Principles
       attr_reader :untracked
 
       # outlines holds each outlined file's outline, by path, which within_budget cuts by.
-      #: (Hash[String, untyped], untracked: Array[String]?, ?outlines: Hash[String, CandidateOutline]) -> void
-      def initialize(listing, untracked:, outlines: {})
+      #: (Hash[String, untyped], untracked: Array[String]?, ?outlines: Hash[String, CandidateOutline],
+      #|  ?conventional: bool) -> void
+      def initialize(listing, untracked:, outlines: {}, conventional: true)
         @listing = listing
         @untracked = untracked
         @outlines = outlines
+        @conventional = conventional
         @lists = listing.merge("untracked" => untracked) #: Hash[String, untyped]
         freeze
       end
 
       #: () -> Hash[String, untyped]
       def to_h = @listing
+
+      # Whether the survey looked in the places hosts load by convention, as it does unless --only narrowed it.
+      #: () -> bool
+      def conventional? = @conventional
 
       # This inventory with its files' list items cut to OutlineBudget, the block giving the bytes each inventory tried
       # prints as.
@@ -118,7 +126,9 @@ module Principles
       private
 
       #: (Hash[String, untyped]) -> CandidateInventory
-      def with(listing) = CandidateInventory.new(listing, untracked: @untracked, outlines: @outlines)
+      def with(listing)
+        CandidateInventory.new(listing, untracked: @untracked, outlines: @outlines, conventional: @conventional)
+      end
 
       # The path one list entry names: a file's path, a folder, or the path itself.
       #: (untyped) -> String

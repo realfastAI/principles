@@ -22,12 +22,12 @@
   },
   "commands": [
     {
-      "name": "list-candidate-files", "usage": "list-candidate-files [--commits-after REV] [--also GLOB]...", "group": "read", "options": ["commits-after", "also"],
+      "name": "list-candidate-files", "usage": "list-candidate-files [--commits-after REV] [--also GLOB]... [--only GLOB]...", "group": "read", "options": ["commits-after", "also", "only"],
       "summary": "Ask what in this project looks like a principle.",
       "help": "learn-what-a-command-does/list-candidate-files",
       "steps": [
         { "id": "list-instruction-files", "actor": "cli",
-          "does": "Lists the instruction files agent hosts load by convention, naming git-ignored ones unread rather than listing them, each folder git ignores counted once, leaving out folders that hold their own git repository, and names any under a fixtures, examples or samples folder and, in git, any git does not track. With --commits-after, lists the files the commits after it changed first, marked, Markdown outside those places included, and refuses outside git and a revision git cannot resolve to a commit. Repeated --also root-relative globs include explicitly selected guidance, including skill references and named non-Markdown files; additional_search_paths reports each match count within traversal boundaries. No location is saved.",
+          "does": "Lists the instruction files agent hosts load by convention, naming git-ignored ones unread rather than listing them, each folder git ignores counted once, leaving out folders that hold their own git repository, and names any under a fixtures, examples or samples folder and, in git, any git does not track. With --commits-after, lists the files the commits after it changed first, marked, Markdown outside those places included, and refuses outside git and a revision git cannot resolve to a commit. Repeated --also root-relative globs include explicitly selected guidance, including skill references and named non-Markdown files; additional_search_paths reports each match count within traversal boundaries. Repeated --only globs list just their matches. No location is saved.",
             "refuses": ["range_needs_git", "unknown_revision", "invalid_guidance_search_path"] },
         { "id": "choose-one-principle", "actor": "agent",
           "does": "Show the user a table of the principles several listed files reinforce, asking nothing before it, then, when maps exist, compare each rule with the descriptions in mapped_principles before choosing whether to extend an existing map or create a distinct one. Decide whether each file named in possibly_test_data is guidance or a sample. After the table, ask where else the repository keeps guidance; --also includes it in a read-only survey without recording it.",
@@ -314,16 +314,16 @@
       ]
     },
     {
-      "name": "start-audit", "usage": "start-audit ID [ID ...] [--member MEMBER ... | --write-ups] [--as template [--part members/ID ...] | --instruction FIELD | --part PART ...]", "group": "write-audit-record", "options": ["member", "write-ups", "as", "instruction", "part"],
+      "name": "start-audit", "usage": "start-audit ID [ID ...] [--member MEMBER ... | --open-findings] [--as template [--part members/ID ...] | --instruction FIELD | --part PART ...]", "group": "write-audit-record", "options": ["member", "write-ups", "open-findings", "as", "instruction", "part"],
       "summary": "Ask for an assessment of every member and the set.",
       "help": "learn-what-a-command-does/start-audit",
       "steps": [
         { "id": "snapshot-members", "actor": "cli",
-          "does": "Refuses an empty map or, in git, an uncommitted map or member file; bases the audit on HEAD. Fill --as template's output with your own judgement, under $TMPDIR; its left_as_printed_rule says how a field left as printed is read.",
-          "refuses": ["map_has_no_members", "uncommitted_files", "unknown_instruction", "unknown_part"], "refuses_like": ["read-map", "locate-text", "rewrite-audit"],
-          "next": [{ "to": "assess-every-member", "when": "you passed neither --member nor --write-ups" },
+          "does": "Refuses an empty map or, in git, an uncommitted map or member file; bases the audit on HEAD. Fill --as template's output with your own judgement; its left_as_printed_rule says how a field left as printed is read.",
+          "refuses": ["map_has_no_members", "uncommitted_files", "unknown_instruction", "unknown_part", "replaced_option"], "refuses_like": ["read-map", "locate-text", "rewrite-audit"],
+          "next": [{ "to": "assess-every-member", "when": "you passed no --member or --open-findings" },
                    { "to": "start-acknowledgement", "when": "you passed --member" },
-                   { "to": "start-repointing", "when": "you passed --write-ups" }] },
+                   { "to": "start-deciding-open-findings", "when": "you passed --open-findings" }] },
         { "id": "assess-every-member", "actor": "agent",
           "does": "Assess each member not carried, and any carried one whose sighting is too old to rely on, the set as a whole and one recent decision under it, a finding per problem. Run each check, carried_checks_to_run's too, per shared_check_instructions and check_instructions. Decide each prior finding and listed member to check against the activation.",
           "prompt": "assess-every-member/assess-each-member-and-the-set",
@@ -339,9 +339,9 @@
           "checks": "the meaning is said to be kept, the reason is one line, and both quotes are the member's.",
           "cannot_check": "whether the change keeps the meaning, or whether you read it.",
           "answer_with": "submit-answer" },
-        { "id": "start-repointing", "actor": "cli",
-          "does": "With --write-ups, lists instead each finding the last completed audit left open, its recorded_at and what list-open-findings says of it, and asks where you found each moved write-up, which it cannot check. Writes nothing.",
-          "refuses": ["cannot_repoint"] }
+        { "id": "start-deciding-open-findings", "actor": "cli",
+          "does": "With --open-findings, lists each finding the last completed audit left open, as list-open-findings does, and asks what changed of any: its wait, action or write-up; --as template prints the answer alone.",
+          "refuses": ["cannot_decide_open_findings"] }
       ]
     },
     {
@@ -353,7 +353,7 @@
           "does": "Reads FILE, or stdin for -, and takes its request_id, an id this tool prints, as the request; REQUEST_ID, when given, must match.",
           "refuses": ["unparseable_json", "unreadable_file", "request_mismatch", "unknown_request"], "refuses_like": ["rewrite-audit"],
           "next": [{ "to": "acknowledge-the-change", "when": "the request was a one-member audit" },
-                   { "to": "record-the-repoints", "when": "the request was a repoint of write-ups" },
+                   { "to": "record-the-decisions", "when": "the request was a decision on open findings" },
                    { "to": "recheck-members", "when": "the request was an assessment or a correction" }] },
         { "id": "acknowledge-the-change", "actor": "cli",
           "does": "For a one-member audit, checks the answer's kept meaning, one-line reason, quotes then and now and any check result, then moves the member's hash and check result in the audit record beside the acknowledgement.",
@@ -362,12 +362,12 @@
           "does": "Commit the audit record, then check that list-member-problems --short no longer reports the member.",
           "cannot_check": "that you committed, or that the change keeps the meaning.",
           "answer_with": "list-member-problems" },
-        { "id": "record-the-repoints", "actor": "cli",
-          "does": "Points each finding at its new recorded_at, once found, in the last completed record, keeping the old one, when and why; names other principles' lost write-ups; refuses once that record changed, unless it writes nothing.",
-          "refuses": ["cannot_repoint", "audit_completed_since_request", "unknown_finding", "duplicate_finding", "invalid_answer", "uncommitted_files"], "refuses_like": ["locate-text"] },
-        { "id": "commit-the-repoint", "actor": "agent",
-          "does": "Commit the audit record, then check that list-open-findings --short no longer names those write-ups.",
-          "cannot_check": "that you committed, or that the new places hold the write-ups.",
+        { "id": "record-the-decisions", "actor": "cli",
+          "does": "Makes each change a decision gives in the last completed record, a write-up once found, keeping the old value, when and why; names lost write-ups elsewhere; refused once that record changed, unless it writes nothing.",
+          "refuses": ["cannot_decide_open_findings", "audit_completed_since_request", "unknown_finding", "duplicate_finding", "invalid_answer", "uncommitted_files"], "refuses_like": ["locate-text"] },
+        { "id": "commit-the-decisions", "actor": "agent",
+          "does": "Commit the audit record, then check each change as list-open-findings --lines states it.",
+          "cannot_check": "that you committed, or that each change is right.",
           "answer_with": "list-open-findings" },
         { "id": "recheck-members", "actor": "cli",
           "does": "Re-reads the map and every member's text, and the record outside git.",

@@ -45,18 +45,17 @@ write-up there, since git's match can pair unrelated files: check it. When `reco
 `starting_at` exactly once, within its heading's section when it names one, as a member's passage must. false can mean
 an unrelated file, or only a heading renamed there.
 
-To point `recorded_at` at a write-up that moved without a full audit, run `start-audit ID --write-ups`. Its request
-lists the principle's open findings, each as this command lists it. Answer `repoints`, one per finding, with the new
-`recorded_at`, or null to leave it, and a one-line `reason`. `submit-answer` checks that each new pointer is found, then
-changes only those pointers in the audit record, keeping beside each finding `repointed`: where it pointed before, where
-it points now, when and why. Its result lists the finding ids it `repointed` and those left `unchanged`, and under
-`other_write_ups_not_found` each other principle's finding whose write-up cannot be found, with the request that
-repoints each principle's. Commit the record. The finding stays open for the next full audit to decide. During a full
-audit, give the new `recorded_at` in that finding's `still_holds` decision instead. Do not edit the record by hand,
-since nothing would check the new pointer. It is refused with `cannot_repoint` while an audit is left open outside git,
-and before any audit completed; with `unknown_finding` for a finding that is not open, `duplicate_finding` for one named
-twice, `invalid_answer` for a new `recorded_at` without a `reason`, and `uncommitted_files` while its file differs from
-the last commit. `--member` with it is refused.
+To change what an open finding waits on, its action or its write-up without a full audit, run `start-audit ID
+--open-findings`, which lists the principle's open findings as this command does; its `decisions` template names each by
+`finding_id` alone, printed bare by `--as template` under `decision_fields`, which names each field a decision may give
+and what it means, and which the answer may send back unread; `--write-ups`, which it replaces, is refused with
+`replaced_option`. Give only what changes, each with a one-line `reason`; an `action` closing a finding is a full
+audit's. `submit-answer` keeps each change beside its finding, and lists the ids it `changed` under
+`open_findings_decided`, and under `other_write_ups_not_found` each other principle's finding whose write-up cannot be
+found. Commit the record; the next full audit decides the finding. It is refused with `cannot_decide_open_findings`
+while an audit is left open outside git, and before any audit completed; with `unknown_finding` for a finding that is
+not open, `duplicate_finding` for one named twice, `invalid_answer` for a change without a `reason`, and
+`uncommitted_files` while its file differs from the last commit.
 
 `--lines` is for deciding whom to tell, as the session-start line asks: it prints each open finding on a line, its
 principle, id, `waits on:` its `waits_on`, `waits on no one named`, or `accepted` for one that waits on no one by

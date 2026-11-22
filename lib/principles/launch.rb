@@ -1,6 +1,7 @@
 # typed: strict
 # frozen_string_literal: true
 
+require "tmpdir"
 require_relative "version"
 require_relative "data/running_version"
 require_relative "data/principles_on_path"
@@ -8,8 +9,8 @@ require_relative "controllers/running_tool"
 
 module Principles
   # This process as its entry point launched it: the executable that entry point names itself by, the file it was
-  # launched as, PATH and the folder it started in, read here so that no layer reads them. It gives every controller
-  # the same RunningTool.
+  # launched as, PATH, the folder it started in and its temporary folder, read here so that no layer reads them. It
+  # gives every controller the same RunningTool.
   class Launch
     #: (String) -> void
     def initialize(executable)
@@ -24,7 +25,8 @@ module Principles
       Controllers::RunningTool.new(executable: @executable, version: -> { running_version },
                                    other_on_path: ->(asking) { on_path.other(asking) },
                                    launched_on_path: -> { on_path.own_first? },
-                                   cwd: started_in)
+                                   folders: Controllers::RunningTool::Folders.new(cwd: started_in,
+                                                                                  temp_directory: Dir.tmpdir))
     end
 
     private

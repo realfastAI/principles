@@ -5,7 +5,7 @@ require_relative "line_span"
 require_relative "member"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # A member of another principle's map whose text shares a line with one located member: its principle, id,
     # role there and lines, and how its lines stand to the located member's: the same lines, all of them, within

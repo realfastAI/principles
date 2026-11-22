@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "json"
+require_relative "parser_message"
 
 module Principles
   # Every file and process this tool reads or writes. data/CLAUDE.md owns the boundary.
@@ -36,10 +37,13 @@ module Principles
         freeze
       end
 
-      # The parsed value, made only of plain hashes and arrays; raises JSON::ParserError on a duplicate key.
+      # The parsed value, made only of plain hashes and arrays; raises JSON::ParserError on a duplicate key, and on
+      # text it cannot parse with the parser's message, the rest of the input it quotes cut to an excerpt.
       #: () -> untyped
       def parsed
         plain(JSON.parse(@text, object_class: UniqueKeys))
+      rescue JSON::ParserError => e
+        raise JSON::ParserError, ParserMessage.new(@text, e.message).to_s
       end
 
       private

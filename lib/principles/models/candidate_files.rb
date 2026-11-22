@@ -4,7 +4,7 @@
 require_relative "candidate_outline"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # The instruction files list-candidate-files offers, shortened without judging what is guidance. A
     # skill's templates, references and examples once filled most of a 10KB inventory (alpha 011

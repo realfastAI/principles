@@ -7,7 +7,7 @@ require_relative "member_file"
 require_relative "line_span"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # A file-selected region's text and full-file character origin, for literal passage matching.
     class MemberRegion

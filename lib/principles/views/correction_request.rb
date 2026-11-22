@@ -5,6 +5,7 @@ require_relative "answer_head"
 require_relative "answer_in_a_file"
 require_relative "invocation"
 require_relative "prompts"
+require_relative "shell_word"
 
 module Principles
   # What this tool prints, from plain values a controller hands it. views/CLAUDE.md owns the boundary.
@@ -67,15 +68,17 @@ module Principles
         view.request(view.correction_request(self))
       end
 
-      # How to save and fill the correction's answer after submitting the checked assessment, naming the command that
-      # prints it alone rather than printing it here; keep its submit last.
+      # How to save and fill the correction's answer after submitting the checked assessment, to the file named in full
+      # that its submit names too, naming the command that prints it alone rather than printing it here; keep its
+      # submit last.
       #: (Hash[String, untyped], Invocation, String) -> Hash[String, untyped]
       def with_correction_to_fill(acceptable, invocation, answer_file)
         assessment_id = acceptable.fetch("request_id")
+        file = invocation.answer_file(request_id)
         save = "Once this answer is submitted with the last line's command, save the correction's answer it leads " \
-               "to in a file outside the project, such as under $TMPDIR, from this command's output: " \
-               "#{alone(assessment_id, answer_file, invocation)}\nFill only its dispositions, and submit it: " \
-               "#{invocation.submit_answer(request_id)}"
+               "to in a file outside the project, at this full path, the same from every shell, from this command's " \
+               "output: #{alone(assessment_id, answer_file, invocation)} > #{ShellWord.new(file)}\nFill only its " \
+               "dispositions, and submit it: #{invocation.submit_answer(request_id, file:)}"
         acceptable.merge("correction_recovery" => recovery(invocation),
                          "next_action" => "#{save}\n#{acceptable.fetch("next_action")}")
       end

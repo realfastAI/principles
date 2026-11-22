@@ -5,7 +5,7 @@ require_relative "../data/guidance_search_paths_file"
 require_relative "guidance_search_path"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # The additional guidance globs this project records, with one owner for normalized additions and removals.
     class GuidanceSearchPaths
@@ -41,6 +41,10 @@ module Principles
 
       #: (GuidanceSearchPaths) -> bool
       def same_as?(other) = @globs == other.globs
+
+      # The glob this list records that other did not, which a survey of just its matches reads; nil when none is.
+      #: (GuidanceSearchPaths) -> String?
+      def added_since(other) = (@globs - other.globs).first
 
       #: () -> String
       def save

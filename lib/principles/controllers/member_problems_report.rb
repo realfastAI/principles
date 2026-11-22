@@ -118,12 +118,13 @@ module Principles
         report = problems.checked do |map_id, member, baseline, now, mapping|
           @project.principle_history(map_id, mapping: mapping).member_history(member, baseline: baseline, now: now)
         end
-        Views::ProblemResult.new(printing)
-                            .checked_naming_commands(report, not_read: @project.unread_older_files,
-                                                             no_baseline_files: problems.files_to_commit(@principles),
-                                                             acknowledgeable: problems.acknowledgeable_together(
-                                                               except: waiting.map(&:principle)
-                                                             ), waiting:)
+        facts = Views::ProblemFacts.new(not_read: @project.unread_older_files,
+                                        no_baseline_files: problems.files_to_commit(@principles),
+                                        audit_files: problems.audit_files_to_commit(@principles),
+                                        acknowledgeable: problems.acknowledgeable_together(
+                                          except: waiting.map(&:principle)
+                                        ), waiting:)
+        Views::ProblemResult.new(printing).checked_naming_commands(report, facts)
       end
     end
   end

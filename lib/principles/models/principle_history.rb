@@ -61,7 +61,7 @@ module Principles
       #: (Array[String]) -> Hash[String, Hash[String, String]]
       def mapped_baselines(keys)
         runs(keys).each_with_object({}) do |(key, run), found|
-          baseline = MemberMappingRun.new(key, run).baseline(@history)
+          baseline = MemberMappingRun.new(run).baseline(@history)
           found[key] = baseline if baseline
         end
       end
@@ -157,7 +157,7 @@ module Principles
         fields_at = [members_at(commit)&.fetch(key, nil), now_at].compact
         fields_at.uniq { |fields| Member.new(fields).reference }.map do |fields|
           Placement.new(commit: commit, reference: Member.new(fields).reference,
-                        sha256: @history.at(commit).hashes_by_key([fields]).values.first)
+                        sha256: @history.at(commit).hash_of(Member.new(fields)))
         end
       end
 
@@ -176,7 +176,7 @@ module Principles
       def hash_at(key, now_at, revision)
         fields = members_at(revision)&.fetch(key, nil) or return nil
         then_project = @history.at(revision)
-        then_project.hashes_by_key([fields])[key] || then_project.hashes_by_key([now_at])[key]
+        then_project.hash_of(Member.new(fields)) || then_project.hash_of(Member.new(now_at))
       end
 
       # Each member the map at commit holds, by key. Legacy unreadable maps give nil; certified proof failures

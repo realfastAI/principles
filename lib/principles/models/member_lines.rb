@@ -5,7 +5,7 @@ require_relative "changed_regions"
 require_relative "line_diff"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # A member's own lines at its baseline and now, as a one-member audit's request shows them, so the agent reads
     # the change its quotes are checked against and not the rest of an edit to the file. A long member, such

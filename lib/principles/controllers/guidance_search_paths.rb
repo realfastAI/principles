@@ -23,7 +23,7 @@ module Principles
           wrote = unchanged ? [] : [updated.save]
           Views::GuidanceSearchPathsResult.new(invocation)
                                           .result(status: unchanged ? "unchanged" : "guidance_search_paths_updated",
-                                                  globs: updated.globs, wrote:)
+                                                  globs: updated.globs, wrote:, added: updated.added_since(current))
         end
       end
     end

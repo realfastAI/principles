@@ -4,7 +4,7 @@
 require_relative "../error"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # A glob the agent names for additional guidance inside this project, never a path outside it.
     class GuidanceSearchPath

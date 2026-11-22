@@ -4,19 +4,21 @@
 require_relative "invocation_options"
 
 module Principles
-  # The options that choose which audit start-audit begins, --member and --write-ups, and the form --as prints
-  # it in, and what is wrong with them as given, which CommandLine refuses as a usage error.
+  # The options that choose which audit start-audit begins, --member or --open-findings, and the form
+  # --as prints it in, and what is wrong with them as given, which CommandLine refuses as a usage error.
   class StartAuditOptions
     # The part that prints the answer to fill bare, saved as it stands, so no other part may print beside it.
     TEMPLATE_PART = "response_template" #: String
+    # Each option that starts an audit other than a full one, by its key among the options, and its flag.
+    AUDITS = { "member" => "--member",
+               "open_findings" => "--open-findings" }.freeze #: Hash[String, String]
 
     # several_ids is whether start-audit was given more than one principle id.
     #: (InvocationOptions, ?several_ids: bool) -> void
     def initialize(options, several_ids: false)
       @several_ids = several_ids
       @members = options.value("member") || [] #: Array[String]
-      @member = !@members.empty? #: bool
-      @write_ups = !options.value("write_ups").nil? #: bool
+      @audits = AUDITS.reject { |key, _| options.value(key).nil? }.values #: Array[String]
       @form = options.value("as") #: String?
       @instruction = !options.value("instruction").nil? #: bool
       @parts = options.value("part") || [] #: Array[String]
@@ -27,17 +29,25 @@ module Principles
     # What is wrong with the options as given, or nil when they fit.
     #: () -> String?
     def fault
-      return "--member and --write-ups each start a different audit; give one" if @member && @write_ups
-
-      several_ids_fault || member_fault || part_fault || instruction_fault || form_fault
+      audits_fault || several_ids_fault || member_fault || part_fault || instruction_fault || form_fault
     end
 
     private
 
+    # Two of the options that each start a different audit; nil when at most one is given.
+    #: () -> String?
+    def audits_fault
+      "#{@audits.first(2).join(" and ")} each start a different audit; give one" if @audits.size > 1
+    end
+
+    # Whether flag, one of AUDITS, was given.
+    #: (String) -> bool
+    def audit?(flag) = @audits.include?(flag)
+
     # Several principle ids, which only an acknowledgement of members they each map spans; nil otherwise.
     #: () -> String?
     def several_ids_fault
-      return unless @several_ids && !@member
+      return unless @several_ids && !audit?("--member")
 
       "several principle ids start one acknowledgement of the members they map, with --member; give one id for " \
         "any other audit"
@@ -74,29 +84,26 @@ module Principles
       "--instruction prints one field of a full audit's request, not of #{other}" if other
     end
 
-    # What --as, --member or --write-ups prints instead of a full audit's request, which --part and --instruction each
-    # read from; nil when none is given.
+    # What --as, --member or --open-findings prints instead of a full audit's request, which --part and --instruction
+    # each read from; nil when none is given.
     #: () -> String?
     def other_output
       @form ? "the answer --as template prints" : other_audit
     end
 
-    # What --member or --write-ups starts instead of a full audit; nil when neither is given.
+    # What --member or --open-findings starts instead of a full audit; nil when neither is given.
     #: () -> String?
     def other_audit
-      if @member then "the one-member audit --member starts"
-      elsif @write_ups then "the repoint --write-ups starts"
+      if audit?("--member") then "the one-member audit --member starts"
+      elsif audit?("--open-findings") then "the decision --open-findings starts"
       end
     end
 
-    # --as template prints a full audit's answer alone, or a one-member audit's, the one form
-    # built so far; nil when it fits.
+    # --as template prints an audit's answer alone, the one form built so far; nil when it fits.
     #: () -> String?
     def form_fault
       form = @form or return
-      return "--as takes template, the answer alone, not #{form}" unless form == "template"
-
-      "--as template prints a full or one-member audit's answer, not one --write-ups starts" if @write_ups
+      "--as takes template, the answer alone, not #{form}" unless form == "template"
     end
   end
 end

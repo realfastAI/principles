@@ -3,14 +3,35 @@
 
 require_relative "member_file"
 require_relative "frontmatter_fields"
+require_relative "prose_line"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # A Markdown file, where a member may be a section: a heading and what follows it, up to the next heading
     # at its level or above.
     class MarkdownFile < MemberFile
+      # The last line of the paragraph or list item that a passage named by its opening alone maps only the first
+      # line of, so the agent can judge whether it meant the whole; nil when no line continues it.
+      #: (Locator) -> Integer?
+      def continues_to(locator)
+        return unless locator.starting_at && !locator.ending_at
+
+        last = locate(locator).last_line
+        ending = block_end(last)
+        ending unless ending == last
+      end
+
       private
+
+      # The last line of the paragraph or list item that line, counted from 1, is in, read on from it; the line
+      # itself for a heading, a block of its own line.
+      #: (Integer) -> Integer
+      def block_end(line)
+        return line if ProseLine.new(@text.lines.fetch(line - 1)).heading?
+
+        line + @text.lines.drop(line).take_while { ProseLine.new(it).continues? }.length
+      end
 
       # The frontmatter field the reference's query names, or the section under its heading, or the whole text.
       #: (Array[String], Locator) -> [Integer, Integer]

@@ -7,7 +7,7 @@ require_relative "json_path_string"
 require_relative "json_path_selectors"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # A query in this tool's own profile of RFC 9535 JSONPath: from $, name selectors in dot or bracket
     # form, wildcards, and filters that keep the children whose relative paths equal strings, joined by &&.

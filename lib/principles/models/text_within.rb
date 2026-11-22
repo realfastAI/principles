@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # A text cut to at most some characters, as a candidate file's outline prints its items, opening line and
     # description: whole when it fits, else back to a sentence end or a whole word.

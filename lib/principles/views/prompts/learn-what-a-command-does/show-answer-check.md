@@ -35,8 +35,8 @@ is allowed when there is nowhere to point, and then `list-open-findings` prints 
 
 When a full audit's assessment has findings, `next_action` names the command that prints the correction's answer
 it leads to, `--as template`, with its `request_id` and the `basis` digests filled in, so you never copy them by
-hand; `show-open-correction ID` prints the same answer once the assessment is submitted. Redirect it to a file
-outside the project, such as under `$TMPDIR`, and fill only its `dispositions`: each `action` names the four actions
+hand; `show-open-correction ID` prints the same answer once the assessment is submitted. Redirect it to the file
+`next_action` names by its full path, outside the project, and fill only its `dispositions`: each `action` names the four actions
 and what each adds. Submit it after the assessment, as `next_action` says; the assessment writes the open record the
 correction is checked against. `--as template` refuses with `no_correction_to_fill` an answer that leads to none.
 

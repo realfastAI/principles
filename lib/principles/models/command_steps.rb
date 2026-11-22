@@ -5,8 +5,7 @@ require_relative "../error"
 require_relative "../data/command_steps_file"
 
 module Principles
-  # Values built from validated data, and the rules a schema cannot express. models/CLAUDE.md owns the
-  # boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # The steps each command runs: which are this tool's and which are the agent's, the refusals each of
     # this tool's steps can raise, and where each step leads. Each command's --help and the workflow diagram

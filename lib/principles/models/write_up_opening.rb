@@ -1,6 +1,8 @@
 # typed: strict
 # frozen_string_literal: true
 
+require_relative "prose_line"
+
 module Principles
   # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
@@ -9,41 +11,13 @@ module Principles
     class WriteUpOpening
       # The longest opening printed whole; a longer one is cut and marked truncated.
       LIMIT = 200
-      # A line that starts a new block, a list item or a heading, rather than continuing the paragraph before it.
-      NEW_BLOCK = /\A(([-*+]|\d+[.)])\s|#)/
-      # What a heading line starts with, a block of its own line.
-      HEADING = "#"
       # The end of a sentence: its mark and any closing quotes or brackets, before a space or the end.
       SENTENCE_END = /[.!?]["')\]]*(?=\s|\z)/
-
-      # One line of the file, as the opening reads it.
-      class Line
-        #: (String) -> void
-        def initialize(text)
-          @text = text
-          freeze
-        end
-
-        # The line without its indentation or line break.
-        #: () -> String
-        def text = @text.strip
-
-        #: () -> bool
-        def blank? = text.empty?
-
-        #: () -> bool
-        def heading? = text.start_with?(HEADING)
-
-        # Whether the line continues the paragraph before it: it is not blank and starts no new block. It keeps its
-        # line break, which NEW_BLOCK's \s may match, so a bare "-" line still starts a list item.
-        #: () -> bool
-        def continues? = !blank? && !@text.lstrip.match?(NEW_BLOCK)
-      end
 
       # lines are the file's lines; the region runs from index first up to, not including, index last.
       #: (lines: Array[String], first: Integer, last: Integer) -> void
       def initialize(lines:, first:, last:)
-        @lines = lines.map { |each| Line.new(each) } #: Array[Line]
+        @lines = lines.map { |each| ProseLine.new(each) } #: Array[ProseLine]
         @first = first
         @last = last
         freeze
@@ -103,8 +77,8 @@ module Principles
       def closed?(text) = text.count("(") <= text.count(")")
 
       # The line at index, or a blank one past the file's end.
-      #: (Integer) -> Line
-      def line(index) = @lines[index] || Line.new("")
+      #: (Integer) -> ProseLine
+      def line(index) = @lines[index] || ProseLine.new("")
     end
   end
 end

@@ -19,21 +19,37 @@ module Principles
       # entry point gives itself for the same reason.
       ON_PATH = Models::RunsFrom::PLUGIN_EXECUTABLE
 
+      # The folders the process was given, as Launch reads them: cwd, the one this run was started in, by its real
+      # path, or nil when it is gone; temp_directory, its temporary folder, where a printed next step saves an answer.
+      class Folders
+        #: String?
+        attr_reader :cwd
+        #: String
+        attr_reader :temp_directory
+
+        #: (temp_directory: String, ?cwd: String?) -> void
+        def initialize(temp_directory:, cwd: nil)
+          @cwd = cwd
+          @temp_directory = temp_directory
+          freeze
+        end
+      end
+
       # version gives the version running, read only when a command needs it, since in a checkout reading it
       # asks git; other_on_path gives the path and printed version of another principles earlier on PATH than this
       # one, and which of the commands it is asked about that copy does not run, or nil, read only when a command
       # needs it, since reading it starts that copy; launched_on_path says
       # whether this run was launched as the first principles on PATH, as a RubyGems binstub is, so a bare
-      # principles runs this same copy; cwd is the folder this run was started in, by its real path, or nil.
+      # principles runs this same copy; folders are the folders the process was given.
       #: (executable: String, version: ^() -> String,
       #|  ?other_on_path: ^(Array[String]) -> [String, String, Array[String]]?, ?launched_on_path: ^() -> bool,
-      #|  ?cwd: String?) -> void
-      def initialize(executable:, version:, other_on_path: ->(_) {}, launched_on_path: -> { false }, cwd: nil)
+      #|  folders: Folders) -> void
+      def initialize(executable:, version:, folders:, other_on_path: ->(_) {}, launched_on_path: -> { false })
         @executable = executable
         @version = version
         @other_on_path = other_on_path
         @launched_on_path = launched_on_path
-        @cwd = cwd
+        @folders = folders
         freeze
       end
 
@@ -59,7 +75,8 @@ module Principles
       # be run from elsewhere.
       #: (String) -> Views::Invocation
       def invocation(root)
-        Views::Invocation.new(executable: executable, project: root, named: !bare_from_path? || root != @cwd)
+        Views::Invocation.new(executable: executable, project: root, temp_directory: @folders.temp_directory,
+                              named: !bare_from_path? || root != @folders.cwd)
       end
 
       # Another principles earlier on PATH than this one, which a bare principles command runs in its place, asked

@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require_relative "answer_head"
+require_relative "assessment_answer_guide"
 require_relative "assessed_members"
 require_relative "context_parts"
 require_relative "instruction"
@@ -142,7 +143,7 @@ module Principles
       #: () -> Array[Instruction | GuideInstruction]
       def instructions
         [question, judge_because_instruction,
-         carried_forward_instruction, mapped_elsewhere_instruction, answer_guide]
+         carried_forward_instruction, mapped_elsewhere_instruction, AssessmentAnswerGuide.new(@members).instruction]
       end
 
       # The question, defining observed only when a member is judged afresh, whose delivery it guides.
@@ -174,31 +175,6 @@ module Principles
         Instruction.of_paragraphs("mapped_elsewhere_instruction", text) do |paragraph|
           entries.any? && (open || !paragraph.start_with?(OPEN_FINDINGS_ELSEWHERE))
         end
-      end
-
-      # The answer guide, showing check_result's fields only when a member has a check, so an audit
-      # with no checks costs no more context than before, and delivery's shapes only when a member is judged
-      # afresh, since a carried member's marker gives none. check_result's limits say how to review a check
-      # before running it only when a check is new or changed, as that check's own template says too.
-      #: () -> GuideInstruction
-      def answer_guide
-        guide = Prompts.data("assess-every-member/answer-guide")
-        narrowed = @members.check_to_review? ? {} : guide.slice("check_result")
-        GuideInstruction.new("answer_guide", guide.merge("check_result" => reviewed(guide.fetch("check_result"))),
-                             narrowed:) do |entry|
-          case entry
-          when "check_result" then @members.checked?
-          when "member_delivery" then @members.judged_afresh?
-          else true
-          end
-        end
-      end
-
-      # check_result's guide entry whole, its limits ending with how to review a new or changed check before running it.
-      #: (Hash[String, untyped]) -> Hash[String, untyped]
-      def reviewed(check_result)
-        review = Prompts.text("assess-every-member/review-a-new-or-changed-check-before-running-it")
-        check_result.merge("limits" => "#{check_result.fetch("limits")} #{review}")
       end
 
       # How to answer when the request carries some members' last assessments forward; nothing when it carries none.

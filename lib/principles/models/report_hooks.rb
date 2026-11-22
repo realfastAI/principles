@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 module Principles
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # The hooks that run this tool's two hook commands for a project without the principles plugin, on each host: the
     # file the project's own hooks go in, and the command each event runs. Claude Code runs a hook after a failed shell

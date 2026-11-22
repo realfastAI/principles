@@ -4,7 +4,7 @@
 require_relative "open_finding"
 require_relative "recorded_finding"
 require_relative "recorded_members"
-require_relative "write_up_repoint"
+require_relative "finding_decision"
 
 module Principles
   # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
@@ -38,13 +38,13 @@ module Principles
       #: () -> Array[String]
       def fixed_ids = @findings.select(&:fixed?).map(&:id)
 
-      # These findings with each one a repoint names moved by it, dated at; the last repoint naming one wins.
-      #: (Array[WriteUpRepoint], at: String) -> RecordedFindings
-      def repointed(repoints, at:)
-        by_finding = repoints.to_h { |repoint| [repoint.finding_id, repoint] }
+      # These findings with each decision applied to the one it names, dated at.
+      #: (Array[FindingDecision], at: String) -> RecordedFindings
+      def decided(decisions, at:)
+        by_finding = decisions.to_h { |decision| [decision.finding_id, decision] }
         moved = @findings.map do |finding|
-          repoint = by_finding[finding.id]
-          repoint ? repoint.applied_to(finding, at: at) : finding
+          decision = by_finding[finding.id]
+          decision ? decision.applied_to(finding, at: at) : finding
         end
         RecordedFindings.new(moved.map(&:to_h), principle_id: @principle_id, audited_at: @audited_at,
                                                 members: @members)

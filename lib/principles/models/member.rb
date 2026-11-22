@@ -7,7 +7,7 @@ require_relative "meta_principle"
 require_relative "report_hooks"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # One member of a principle as its map records it: a file, a Markdown section of it, or a passage
     # starting at a quoted first line. Its id names all three, so an agent can read where the member is

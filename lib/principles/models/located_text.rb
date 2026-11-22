@@ -6,7 +6,7 @@ require_relative "line_span"
 require_relative "locator"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # The text a locator found now: its file, the lines it spans and the hash of what it says. A Locator says where
     # to look; this is what was found there, as MemberFile#locate finds it.

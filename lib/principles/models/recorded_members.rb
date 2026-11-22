@@ -43,14 +43,12 @@ module Principles
       #: (String, String) -> String
       def freshness(key, sha) = hashes.freshness(key, sha)
 
-      # The hashes the record assessed, which a member now is compared with.
-      #: () -> RecordedHashes
-      def hashes = RecordedHashes.new(hashes_by_key)
-
-      # Each hash the record assessed, by the key of the member it belongs to.
-      #: () -> Hash[String, String]
-      def hashes_by_key
-        @entries.to_h { |id, entry| [RecordedEntry.new(id, entry).key, entry.fetch("sha256")] }
+      # The hashes the record assessed, each by the key of the member it belongs to, which a member now is compared
+      # with; waiting when a later copy wrote the record.
+      #: (?waiting: bool) -> RecordedHashes
+      def hashes(waiting: false)
+        RecordedHashes.new(@entries.to_h { |id, entry| [RecordedEntry.new(id, entry).key, entry.fetch("sha256")] },
+                           waiting:)
       end
 
       # The hash the record assessed for the member known by key, or nil when it assessed no such member.

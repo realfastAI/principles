@@ -45,10 +45,13 @@ module Principles
         joined.with_loading_scope(Views::NewLoadingScope.new(scopes.introduced_by(@member.id)))
       end
 
-      # The new member's id, current lines and stored check, located only after its map was saved.
+      # The new member's id, current lines, the line its paragraph or list item runs on to when it maps only the
+      # first, and its stored check, located only after its map was saved.
       #: () -> Hash[String, untyped]
       def located_member
+        continues = @project.continues_to(@member.locator)
         { "id" => @member.id }.merge(snapshot(@member.locator).lines)
+                              .merge(continues ? { "continues_to_line" => continues } : {})
                               .merge(@member.to_h.slice("check"))
       end
 

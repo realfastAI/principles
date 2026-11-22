@@ -11,9 +11,11 @@ To include other guidance now, repeat `--also GLOB`, quoting each root-relative 
 %{executable} list-candidate-files --also 'guides/**/*.md' --also 'docs/agents/*.md'
 
 Recorded globs in `.principles/guidance-search-paths.json` are reused automatically; `recorded_guidance_search_paths`
-lists them when nonempty. `--also` adds temporary selections; `additional_search_paths` counts each normalized glob once
-across both sources. Missing configuration is empty and creates nothing. Unusable configuration is refused rather
-than silently omitted; see add-guidance-search-path's repairs. After the table, ask where else guidance lives.
+lists them when nonempty. Repeated `--only GLOB` lists just the files its globs match, leaving out the places hosts
+load by convention and the recorded globs, so a survey after recording a search path reads only what it adds.
+`--also` adds temporary selections; `additional_search_paths` counts each normalized glob once across both sources.
+Missing configuration is empty and creates nothing. Unusable configuration is refused rather than silently omitted;
+see add-guidance-search-path's repairs. After the table, ask where else guidance lives.
 Globs match case-sensitively: `*` stays in one path segment, `**/` includes deeper folders, braces select alternatives,
 and dotfiles are included. A leading `./` is normalized. Blank or absolute globs, parent segments and NUL are refused
 as `invalid_guidance_search_path`. The inventory still skips internal stores, installed-package folders and nested Git
@@ -35,13 +37,12 @@ left out, as an entry file's is not; when they alone pass the budget, `range_out
 the question asks you to name a later REV or choose which to survey. `uncommitted` names each Markdown file that differs from HEAD or is untracked,
 since no commit in the range holds it yet: survey it yourself if the change includes it. Outside git it refuses with
 `range_needs_git`, and a REV git resolves to no commit refuses with `unknown_revision`, naming it under `revision`.
-Each listed Markdown file, except those under `possibly_test_data`, gives its `outline`: its headings in order, as
-Markdown, outside code fences, and under each its top-level list items, an item by its bold lead or its first 60
-characters, at most 20 a heading. One with frontmatter gives its `description` too, and leaves the frontmatter
-out of its outline. `opening_line` is the file's first prose paragraph, its hard-wrapped lines joined, outside
-headings, lists, tables and code, ending at its last sentence end within 160 characters, or else cut on a word. Read
-the outlines for the survey rather than the files, so you need no script to take headings out of them. The question
-then asks you to name, under the table, the files that look ticket-local or boilerplate.
+Each listed Markdown file, except those under `possibly_test_data`, gives its `outline`. `outline` is a flat list of
+strings, one per line, in the file's order, with no keys: each heading outside code fences as Markdown, `## Name`,
+then its top-level list items, `- item`, each by its bold lead or first 60 characters, at most 20 a heading. One
+with frontmatter gives its `description` too, and leaves the frontmatter out of its outline. `opening_line` is the
+file's first prose paragraph, its lines joined, outside headings, lists, tables and code, ending at its last sentence
+end within 160 characters, or else cut on a word. Read the outlines rather than the files; no script is needed.
 The result keeps to a byte budget under Claude Code's inline limit for a tool result, so it arrives inline rather
 than as a saved file, each file's entry on a line of its own. Past the budget, it cuts one file at a time, making
 each cut across the files before the next: a `description` over 300 characters ends at a sentence end, then `(N more
@@ -52,8 +53,7 @@ whose outline lines were cut; a file whose only cut is its description is not na
 each heading of a cut file, `(N more, lines A-B)`, or `(N more under M headings, lines A-B)`, says how many items
 its section held and which lines of the file hold it, so read just those lines where the survey needs them, not the
 whole file. `outlines_left_out` names files at path and size alone. Run `show-candidate-outlines PATH...` for needed
-outlines; request fewer paths if it omits any. Root CLAUDE.md and AGENTS.md keep outlines even past the budget.
-In git, `untracked` names each listed file git does not track, and
+outlines; request fewer paths if it omits any. In git, `untracked` names each listed file git does not track, and
 each file a listed link leads to that git does not track: it loads into context all the same, but start-audit
 refuses a member in it, or read through a link to it, until the file is committed, so ask the project's
 owner before mapping one. `ignored` names each file in those places that git ignores, by any ignore file, a global

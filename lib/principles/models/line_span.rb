@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # The lines a member spans in its file, first to last, as a LocatedText gives them, and whether the member is
     # its whole file, so two members' spans are compared in one place.

@@ -6,7 +6,7 @@ require_relative "member_problems"
 require_relative "missing_files"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # What list-member-problems reports across the maps it reads: refused while any member's reference is
     # broken, so a gate can stop on its exit status alone, and otherwise every changed member and a count of
@@ -89,6 +89,18 @@ module Principles
           files = [principles.file(id), *paths]
           [id, @history&.inside_git? ? @history.uncommitted(files) : files]
         end
+      end
+
+      # In git, for each map whose map or member files differ from HEAD, those files, which an audit of it refuses
+      # until they are committed; empty outside git, where an audit judges files as they are.
+      #: (MappedPrinciples) -> Hash[String, Array[String]]
+      def audit_files_to_commit(principles)
+        return {} unless @history&.inside_git?
+
+        @maps.filter_map do |map|
+          files = @history.uncommitted(principles.audited_files(map.principle_id, map.members))
+          [map.principle_id, files] unless files.empty?
+        end.to_h
       end
 
       private

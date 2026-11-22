@@ -19,9 +19,11 @@ module Principles
       # The release that first wrote each format. In the commit that adds a field an older copy would drop on a
       # rewrite, add the next format here, set by hand to the release that commit ships in, and name the field in
       # FIELD_FORMATS, so only a record carrying it moves up.
-      FIRST_RELEASES = { 1 => "0.0.4", 2 => "0.0.8" }.freeze #: Hash[Integer, String]
-      # The format each later field needs: the open record's correction, which show-open-correction prints again.
-      FIELD_FORMATS = { "correction" => 2 }.freeze #: Hash[String, Integer]
+      # Add its row to prompts/docs/AUDIT_RECORD_FORMAT_HISTORY.md too.
+      FIRST_RELEASES = { 1 => "0.0.4", 2 => "0.0.8", 3 => "0.1.0" }.freeze #: Hash[Integer, String]
+      # The format each later field needs, by its path of property names: the open record's correction, which
+      # show-open-correction prints again, and a finding's changes since its audit, which the next full audit shows.
+      FIELD_FORMATS = { "correction" => 2, "findings.changed_since_audit" => 3 }.freeze #: Hash[String, Integer]
       # The newest format this copy writes and rewrites without losing a field; formats count up from 1.
       NEWEST = FIRST_RELEASES.size #: Integer
       FIELDS = %w[format format_first_release].freeze
@@ -42,7 +44,7 @@ module Principles
       # format's first release, worked out again on each write.
       #: () -> Hash[String, untyped]
       def stamped
-        format = FIELD_FORMATS.filter_map { |field, needs| needs if @fields.key?(field) }.max || 1
+        format = FIELD_FORMATS.filter_map { |path, needs| needs if holds?(@fields, path.split(".")) }.max || 1
         { "format" => format, "format_first_release" => FIRST_RELEASES.fetch(format), **@fields.except(*FIELDS) }
       end
 
@@ -87,6 +89,17 @@ module Principles
       end
 
       private
+
+      # Whether value holds the property names leads to, through any entry of an array on the way.
+      #: (untyped, Array[String]) -> bool
+      def holds?(value, names)
+        first, *rest = names
+        return true unless first
+        return value.any? { holds?(it, names) } if value.is_a?(Array)
+        return false unless value.is_a?(Hash) && value.key?(first)
+
+        holds?(value[first], rest)
+      end
 
       #: (String, String, String) -> bot
       def refuse(file, format_stated, update)

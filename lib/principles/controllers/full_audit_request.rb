@@ -34,10 +34,14 @@ module Principles
         @listing = listing #: MembersToAssess::Listing
       end
 
-      # The request as start-audit prints it, with a notice when the last audit's record was left uncommitted.
+      # The request as start-audit prints it, with each part's bytes as --part prints it, and a notice when the last
+      # audit's record was left uncommitted.
       #: () -> Hash[String, untyped]
       def printed
-        audit_result.request(with_record_notice(audit_result.assessment_request(asked))).merge("wrote" => [])
+        request = asked
+        part_bytes = request_parts(request).part_bytes
+        audit_result.request(with_record_notice(audit_result.assessment_request(request, part_bytes:)))
+                    .merge("wrote" => [])
       end
 
       # The answer alone, as start-audit --as template prints it, to fill and submit under the request's id.
@@ -56,17 +60,17 @@ module Principles
       end
 
       # The parts of this request each --part names, in the order given, printed together under the request's one
-      # id, so the agent need not read the whole request for them, the index with how to answer it, and one it leaves
-      # out for listing nothing as empty; the answer to fill bare, given alone, to save as it stands; refused when the
-      # request has no part by one of the names.
+      # id, each member's in one members list, so the agent need not read the whole request for them, the index with
+      # how to answer it, and one it leaves out for listing nothing as empty; the answer to fill bare, given alone, to
+      # save as it stands; refused when the request has no part by one of the names.
       #: (Array[String]) -> Hash[String, untyped]
       def part(names)
         request = asked
-        parts = request.context_parts(texts: member_texts, optional: PartsToRead::OPTIONAL)
+        parts = request_parts(request)
         named = names.map { named_in(parts, it) }
         return parts.shown(Views::ContextParts::TEMPLATE) if named == [Views::ContextParts::TEMPLATE]
 
-        shown = named.reduce({ "request_id" => request.request_id }) { |all, name| all.merge(parts.shown(name)) }
+        shown = { "request_id" => request.request_id }.merge(parts.shown_together(named))
         answering(request, shown, named).merge("wrote" => [])
       end
 
@@ -81,6 +85,10 @@ module Principles
       end
 
       private
+
+      # The parts of request that --part prints, each member's with its text now.
+      #: (Views::AssessmentRequest) -> Views::ContextParts
+      def request_parts(request) = request.context_parts(texts: member_texts, optional: PartsToRead::OPTIONAL)
 
       # The part name names in parts, refused when the request neither prints it nor leaves it out as empty.
       #: (Views::ContextParts, String) -> String
@@ -143,9 +151,7 @@ module Principles
 
       # The map's file and every member's file, which the base commit is judged over.
       #: (Models::Principle) -> Array[String]
-      def audited_files(map)
-        [@principles.file(@id), *map.members.map(&:path)]
-      end
+      def audited_files(map) = @principles.audited_files(@id, map.members)
 
       # The request, with a notice when the last audit's record was left uncommitted: a completed one to commit, or an
       # open one, which its correction completes, never to commit.

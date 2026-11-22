@@ -10,7 +10,7 @@ require_relative "recorded_findings"
 require_relative "record_format"
 require_relative "recorded_members"
 require_relative "json_digest"
-require_relative "write_up_repoint"
+require_relative "finding_decision"
 require_relative "../data/schema_check"
 
 module Principles
@@ -183,19 +183,10 @@ module Principles
         AuditRecord.new(@fields.merge("members" => members.acknowledged(key, change, check_result:).to_h))
       end
 
-      # This record with each finding a repoint names moved by it at at; the last repoint naming a finding
-      # wins.
-      #: (Array[WriteUpRepoint], at: String) -> AuditRecord
-      def repointed(repoints, at:)
-        AuditRecord.new(@fields.merge("findings" => findings.repointed(repoints, at: at).to_a))
-      end
-
-      # The ids of the findings it leaves open whose recorded_at points elsewhere than earlier's did, as a repoint
-      # moved them.
-      #: (AuditRecord) -> Array[String]
-      def write_ups_moved_since(earlier)
-        before = earlier.left_open.to_h { |finding| [finding.id, finding.recorded_at] }
-        left_open.select { |finding| before.key?(finding.id) && before[finding.id] != finding.recorded_at }.map(&:id)
+      # This record with each decision applied at at to the finding it names.
+      #: (Array[FindingDecision], at: String) -> AuditRecord
+      def decided(decisions, at:)
+        AuditRecord.new(@fields.merge("findings" => findings.decided(decisions, at: at).to_a))
       end
 
       # Each finding the last completed audit deferred or accepted, which the next full audit must decide:

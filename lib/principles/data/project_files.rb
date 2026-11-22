@@ -87,8 +87,10 @@ module Principles
       end
 
       # The instruction files hosts load by convention, as CandidateFilesFound lists them, and the files also names.
-      #: (?also: Array[String], ?matching: Array[String]) -> Hash[String, untyped]
-      def inventory(also: [], matching: []) = CandidateFilesFound.new(self, also:, matching:).to_h
+      #: (?also: Array[String], ?matching: Array[String], ?conventional: bool) -> Hash[String, untyped]
+      def inventory(also: [], matching: [], conventional: true)
+        CandidateFilesFound.new(self, also:, matching:, conventional:).to_h
+      end
 
       # Literal outline requests never walk the project or load saved search paths.
       #: (Array[String]) -> Hash[String, untyped]

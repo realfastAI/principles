@@ -35,12 +35,14 @@ module Principles
         leads_to == path ? entry : entry.merge("symlink_to" => leads_to)
       end
 
-      # also names more files to list, inside the project, beside those hosts load by convention.
-      #: (ProjectFiles, ?also: Array[String], ?matching: Array[String]) -> void
-      def initialize(files, also: [], matching: [])
+      # also names more files to list, inside the project, beside those hosts load by convention; without
+      # conventional, only also and the matches of matching are listed.
+      #: (ProjectFiles, ?also: Array[String], ?matching: Array[String], ?conventional: bool) -> void
+      def initialize(files, also: [], matching: [], conventional: true)
         @files = files
         @also = also
         @matching = matching
+        @conventional = conventional
       end
 
       #: () -> Hash[String, untyped]
@@ -135,7 +137,7 @@ module Principles
 
       #: (String) -> bool
       def candidate?(relative)
-        CANDIDATE_NAMES.include?(File.basename(relative)) || relative.match?(CANDIDATE_PATH) ||
+        (@conventional && (CANDIDATE_NAMES.include?(File.basename(relative)) || relative.match?(CANDIDATE_PATH))) ||
           @matching.any? { |glob| matches?(glob, relative) }
       end
     end

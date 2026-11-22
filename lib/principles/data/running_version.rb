@@ -12,7 +12,7 @@ module Principles
     class RunningVersion
       # git archive writes the short sha of the commit it archives here, since .gitattributes marks this file
       # export-subst; a checkout keeps the placeholder as written.
-      ARCHIVED_COMMIT = "6eaca172" #: String
+      ARCHIVED_COMMIT = "53dd20cf" #: String
 
       #: (?String, release: String, ?built: String?, ?archived_commit: String) -> void
       def initialize(checkout = File.expand_path("../../..", __dir__), release:, built: nil,

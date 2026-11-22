@@ -4,6 +4,7 @@
 require "json"
 
 module Principles
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # The JSON a host hands its hook after each shell call, as report-after-commit reads it: the event it ran on,
     # when the call started, and the directories whose repositories the call may have committed in. Input it cannot

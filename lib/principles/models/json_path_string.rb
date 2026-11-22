@@ -5,7 +5,7 @@ require "strscan"
 require_relative "../error"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # One quoted name or string in a JSONPath query, read as RFC 9535 writes it: single or double quotes, the
     # escapes it defines, and no raw control character. Anything else refuses the whole query.

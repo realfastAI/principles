@@ -5,6 +5,7 @@ require_relative "member_loads"
 require_relative "loading_scope"
 
 module Principles
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # One map's per-member loading scopes and the scope an added member newly represents.
     class MemberLoadingScopes

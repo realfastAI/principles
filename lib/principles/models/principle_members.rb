@@ -6,7 +6,7 @@ require_relative "member"
 require_relative "misspelt_member_id"
 
 module Principles
-  # The domain logic, which loads and saves itself through data/. models/CLAUDE.md owns the boundary.
+  # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # One principle's members, as Members: finding one by its id, and the rules on ids and keys among them,
     # which Principle asks as it changes the map. It is Enumerable over its members, in the map's order.

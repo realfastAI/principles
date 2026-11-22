@@ -25,7 +25,8 @@ module Principles
       #: () -> bool
       def starting_at? = !@locator.starting_at.nil?
 
-      # The same heading or starting_at in the file at path, as a repoint checks git's match for a missing file.
+      # The same heading or starting_at in the file at path, as a decision on open findings checks git's match for a
+      # missing file.
       #: (String) -> WriteUpPointer
       def in_file(path) = WriteUpPointer.new(to_h.merge("path" => path))
 
