@@ -13,13 +13,21 @@ module Principles
         freeze
       end
 
+      # Its bytes, none for a text not measured.
+      #: () -> Integer
+      def bytes = @text.to_s.bytesize
+
+      # Its tokens, estimated as characters / 4, rounded up; none for a text not measured.
+      #: () -> Integer
+      def estimated_tokens = (@text.to_s.length / 4.0).ceil
+
       # The size under fields' two names, its bytes then its tokens; empty when there is no text.
       #: ([String, String]) -> Hash[String, Integer]
       def under(fields)
-        text = @text or return {}
+        return {} unless @text
 
-        bytes, tokens = fields
-        { bytes => text.bytesize, tokens => (text.length / 4.0).ceil }
+        bytes_field, tokens_field = fields
+        { bytes_field => bytes, tokens_field => estimated_tokens }
       end
     end
   end

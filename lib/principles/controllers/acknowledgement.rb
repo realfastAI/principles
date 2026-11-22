@@ -6,7 +6,9 @@ require_relative "answer_phase"
 require_relative "../prose_list"
 require_relative "member_acknowledgement"
 require_relative "../models/acknowledgement"
+require_relative "../models/acknowledgement_placeholders"
 require_relative "../models/reported_check"
+require_relative "../views/acknowledged_result"
 require_relative "../views/acknowledgement_result"
 
 module Principles
@@ -41,7 +43,7 @@ module Principles
       def answered(submitted)
         id = submitted.request_id.principle_id
         member = answering(submitted)
-        [view.acknowledged(principle_id: id, member_id: member.member.id, file: @audit_records.file(id)),
+        [accepted_view.acknowledged(principle_id: id, member_id: member.member.id, file: @audit_records.file(id)),
          [accepted(member, submitted.response)]]
       end
 
@@ -63,7 +65,7 @@ module Principles
 
       # The fields an answer may leave as its template printed them, read before its shape.
       #: () -> Models::AcknowledgementLeftAsPrinted
-      def left_as_printed = Models::Acknowledgement::LEFT_AS_PRINTED
+      def left_as_printed = Models::AcknowledgementPlaceholders::LEFT_AS_PRINTED
 
       # The placeholders a one-member audit's template prints, which its answer may leave as printed: its own, and
       # check_result's for a check the last audit ran, the only check it acknowledges. The member is in the
@@ -71,8 +73,9 @@ module Principles
       # @override
       #: (Models::RequestId) -> Hash[String, untyped]?
       def printed_placeholders(_request_id)
-        MemberAcknowledgement.placeholders(Models::ReportedCheck::UNCHANGED_PLACEHOLDERS.to_h
-                                             .merge("exit_status" => Models::Acknowledgement::EXIT_STATUS_PLACEHOLDER))
+        exit_status = Models::AcknowledgementPlaceholders::EXIT_STATUS_PLACEHOLDER
+        unchanged = Models::ReportedCheck::UNCHANGED_PLACEHOLDERS.to_h
+        MemberAcknowledgement.placeholders(unchanged.merge("exit_status" => exit_status))
       end
 
       # The one-member audit of principle id's member, as a refusal naming a near miss leads its repair with.
@@ -109,6 +112,10 @@ module Principles
       def view
         Views::AcknowledgementResult.new(invocation)
       end
+
+      # The view of an accepted answer.
+      #: () -> Views::AcknowledgedResult
+      def accepted_view = Views::AcknowledgedResult.new(invocation)
     end
   end
 end

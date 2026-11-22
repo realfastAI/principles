@@ -15,7 +15,7 @@ module Principles
     # each. The project locates the others; a member this tool cannot find now is left out, since show-principle
     # reports it.
     class MembersSharingLines
-      # The members sharing a line with member, located where it is now; refuses as Project#locate does when it
+      # The members sharing a line with member, located where it is now; refuses as Project#located_text does when it
       # cannot be found.
       #: (Project, Member) -> MembersSharingLines
       def self.of(project, member)

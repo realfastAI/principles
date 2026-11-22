@@ -21,10 +21,13 @@ module Principles
       #: (String, **String) -> String
       def self.markdown(name, **values) = Prompt.read(name).filled(values)
 
-      # A prompt that shows a shape by example, as JSON data.
-      #: (String) -> untyped
-      def self.data(name)
-        JSON.parse(File.read(File.join(ROOT, "#{name}.json")))
+      # A prompt that shows a shape by example, as JSON data, with each %{name} placeholder in its text filled
+      # from values, each written as JSON string content so a quote in it keeps the JSON whole.
+      #: (String, **String) -> untyped
+      def self.data(name, **values)
+        prompt = Prompt.new(name, File.read(File.join(ROOT, "#{name}.json")))
+        as_json = values.transform_values { |value| JSON.generate(value).delete_prefix('"').delete_suffix('"') }
+        JSON.parse(prompt.filled(as_json))
       end
 
       # Every prompt name, relative to ROOT and without its extension.

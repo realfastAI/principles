@@ -12,7 +12,8 @@ module Principles
     # The fields a one-member audit's answer leaves as its template printed them, refused in one refusal before the
     # answer's shape: its judgement's, meaning_kept and reason, and a checked member's exit_status, which was
     # otherwise refused as text with a repair offering the not_run_reason this template refuses. It holds the
-    # placeholders the template prints in each; Acknowledgement::LEFT_AS_PRINTED is the one every acknowledgement uses.
+    # placeholders the template prints in each; AcknowledgementPlaceholders::LEFT_AS_PRINTED is the one every
+    # acknowledgement uses.
     class AcknowledgementLeftAsPrinted
       include RefusalBeforeShape
 

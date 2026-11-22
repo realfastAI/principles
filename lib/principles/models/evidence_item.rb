@@ -30,7 +30,7 @@ module Principles
 
       # The lines it names in the project's file at commit, or nil when that commit lacks the file or its place there.
       #: (ProjectHistory, String) -> Array[String]?
-      def lines_at(history, commit) = history.lines_at(commit, @locator)
+      def lines_at(history, commit) = history.at(commit).lines(@locator)
 
       # The lines it names in the project's file now; refused when it no longer resolves.
       #: (Project) -> Array[String]

@@ -112,17 +112,17 @@ module Principles
       # Which of paths, relative to the project, git does not track and does not ignore. Before the first
       # commit, every path not staged is one.
       #: (Array[String]) -> Array[String]
-      def untracked(paths)
+      def untracked_excluding_ignored(paths)
         return [] if paths.empty?
 
         output, = git(["ls-files", "--others", "--exclude-standard", "-z", "--", *paths])
         output.split("\0").sort
       end
 
-      # Which of paths, relative to the project, git does not track, ignored or not. Unlike untracked, it names an
-      # ignored file too, since git holds it no more than an untracked one.
+      # Which of paths, relative to the project, git does not track, ignored or not. Unlike
+      # untracked_excluding_ignored, it names an ignored file too, since git holds it no more than an untracked one.
       #: (Array[String]) -> Array[String]
-      def not_tracked(paths)
+      def untracked_including_ignored(paths)
         return [] if paths.empty?
 
         output, = git(["ls-files", "--others", "-z", "--", *paths])

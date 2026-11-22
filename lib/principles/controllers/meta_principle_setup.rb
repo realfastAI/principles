@@ -80,11 +80,12 @@ module Principles
 
       # The passage's text, as the agent pastes it, with its size, which loads in every session (F9), and what it
       # presumes of a teammate without principles.
-      #: (Views::MetaPrincipleResult) -> Hash[String, untyped]
+      #: (Views::MetaPrincipleResult) -> Views::MetaPrincipleResult::Passage
       def passage(view)
         text = view.passage
-        size = Models::TextSize.new(text).under(%w[bytes estimated_tokens])
-        { "text" => text, **size, "presumes" => view.presumes(size.fetch("estimated_tokens")) }
+        size = Models::TextSize.new(text)
+        Views::MetaPrincipleResult::Passage.new(text: text, bytes: size.bytes, estimated_tokens: size.estimated_tokens,
+                                                presumes: view.presumes(size.estimated_tokens))
       end
     end
   end

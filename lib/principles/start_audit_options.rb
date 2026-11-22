@@ -7,6 +7,9 @@ module Principles
   # The options that choose which audit start-audit begins, --member and --write-ups, and the form --as prints
   # it in, and what is wrong with them as given, which CommandLine refuses as a usage error.
   class StartAuditOptions
+    # The part that prints the answer to fill bare, saved as it stands, so no other part may print beside it.
+    TEMPLATE_PART = "response_template" #: String
+
     # several_ids is whether start-audit was given more than one principle id.
     #: (InvocationOptions, ?several_ids: bool) -> void
     def initialize(options, several_ids: false)
@@ -16,7 +19,8 @@ module Principles
       @write_ups = !options.value("write_ups").nil? #: bool
       @form = options.value("as") #: String?
       @instruction = !options.value("instruction").nil? #: bool
-      @part = !options.value("part").nil? #: bool
+      @parts = options.value("part") || [] #: Array[String]
+      @part = !@parts.empty? #: bool
       freeze
     end
 
@@ -53,7 +57,11 @@ module Principles
       return unless @part
 
       other = other_audit || ("the whole field --instruction prints" if @instruction)
-      "--part prints one part of a full audit's request, not of #{other}" if other
+      return "--part prints one part of a full audit's request, not of #{other}" if other
+
+      return unless @parts.include?(TEMPLATE_PART) && @parts.size > 1
+
+      "--part #{TEMPLATE_PART} prints the bare answer to save as it stands; give it alone"
     end
 
     # --instruction prints one field of a full audit's request whole; nil when nothing beside it prints

@@ -113,23 +113,17 @@ module Principles
       #: (String) -> bool
       def folder?(path) = @files.folder?(path)
 
-      # Where a member is in its file now, and the hash of what it says there.
-      #: (Locator) -> Hash[String, untyped]
-      def locate(locator)
-        member_file(locator.path).locate(locator)
-      end
-
       # Check the location an add or move is about to persist, with the authoring-only ending constraint.
-      #: (Locator) -> Hash[String, untyped]
+      #: (Locator) -> LocatedText
       def locate_for_authoring(locator) = member_file(locator.path).locate_for_authoring(locator)
 
-      # The lines locator finds now, as one text; refused as locate refuses.
+      # The lines locator finds now, as one text; refused as located_text refuses.
       #: (Locator) -> String
       def member_text(locator) = member_file(locator.path).lines_of(locator).join
 
       # The text locator finds now, as one value: its path, its lines and the hash of what it says.
       #: (Locator) -> LocatedText
-      def located_text(locator) = LocatedText.of(locate(locator))
+      def located_text(locator) = member_file(locator.path).locate(locator)
 
       # The member at locator, its lines in its file at commit beside its lines now, which an audit shows the
       # agent so it judges the member's own change without the rest of its file's; nil when commit lacks the
@@ -137,7 +131,7 @@ module Principles
       # then_locator places it at commit where it was elsewhere then, as before a move.
       #: (Locator, since: String, ?then_locator: Locator) -> MemberLines?
       def member_lines(locator, since:, then_locator: locator)
-        before = history.lines_at(since, then_locator) or return nil
+        before = history.at(since).lines(then_locator) or return nil
 
         MemberLines.new(at_baseline: before, now: member_file(locator.path).lines_of(locator))
       end
@@ -175,7 +169,7 @@ module Principles
       #: (PrincipleMembers) -> Hash[String, untyped]
       def current_by_key(members)
         members.to_h do |member|
-          [member.key, locate(member.locator).fetch("sha256")]
+          [member.key, located_text(member.locator).sha256]
         rescue Error => e
           [member.key, e.payload]
         end
@@ -193,8 +187,8 @@ module Principles
       # refusal.
       #: (Locator) { (String) -> String } -> Hash[String, untyped]
       def freshness(locator, &)
-        now = locate(locator)
-        { "snapshot" => now, "freshness" => yield(now.fetch("sha256")) }
+        now = located_text(locator)
+        { "snapshot" => now.to_h, "freshness" => yield(now.sha256) }
       rescue Error => e
         { "freshness" => LocateRefusal.new(e.payload).member_state, "error" => e.payload }
       end

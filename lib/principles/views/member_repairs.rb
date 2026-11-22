@@ -17,6 +17,22 @@ module Principles
                        "ending_at" => "NEW_ENDING_TEXT", "query" => "QUERY",
                        "path" => "NEW_PATH" }.freeze #: Hash[String, String]
 
+      # One move that may repair the member: the locator fields it keeps, by name, and those the agent fills in.
+      class Move
+        #: Hash[String, String]
+        attr_reader :keep
+
+        #: Array[String]
+        attr_reader :fill
+
+        #: (keep: Hash[String, String], fill: Array[String]) -> void
+        def initialize(keep:, fill:)
+          @keep = keep
+          @fill = fill
+          freeze
+        end
+      end
+
       #: (Invocation) -> void
       def initialize(invocation)
         @invocation = invocation
@@ -25,14 +41,14 @@ module Principles
 
       # The repairs for member_id of principle id: each of moves, as Models::MemberRepairMoves gives them, the locator
       # fields it keeps and those to fill in, as a copyable move-member, then remove-member.
-      #: (String, String, Array[Hash[String, untyped]]) -> Array[String]
+      #: (String, String, Array[Move]) -> Array[String]
       def commands(id, member_id, moves)
         [*moves.map { move(id, member_id, it) }, @invocation.in_project("remove-member", id, member_id)]
       end
 
       # member, as show-principle prints it, with its repairs as repair_with when moves, its moves, are given, as the
       # controller gives them for a member an audit would refuse.
-      #: (String, Hash[String, untyped], Array[Hash[String, untyped]]?) -> Hash[String, untyped]
+      #: (String, Hash[String, untyped], Array[Move]?) -> Hash[String, untyped]
       def beside(id, member, moves)
         return member unless moves
 
@@ -41,10 +57,10 @@ module Principles
 
       private
 
-      #: (String, String, Hash[String, untyped]) -> String
+      #: (String, String, Move) -> String
       def move(id, member_id, move)
-        kept = move.fetch("keep").flat_map { |field, value| [FLAGS.fetch(field), value] }
-        fill = move.fetch("fill")
+        kept = move.keep.flat_map { |field, value| [FLAGS.fetch(field), value] }
+        fill = move.fill
         usage = fill.map { "#{FLAGS.fetch(it)} #{PLACEHOLDERS.fetch(it)}" }.join(" ") unless fill.empty?
         @invocation.in_project("move-member", id, member_id, options: kept, usage: usage)
       end

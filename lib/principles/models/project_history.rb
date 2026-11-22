@@ -5,9 +5,7 @@ require_relative "../error"
 require_relative "../data/repository"
 require_relative "../data/project_files"
 require_relative "../data/principles_subfolder"
-require_relative "principle_members"
-require_relative "member"
-require_relative "member_file"
+require_relative "project_at_commit"
 require_relative "commits_brought_in"
 require_relative "uncommitted_files"
 require_relative "captured_head"
@@ -39,15 +37,17 @@ module Principles
       #: () -> TrackedPaths
       def tracked_paths = @tracked_paths ||= TrackedPaths.new(@repository.tracked_files)
 
-      # Which of paths, and of the links and files they lead through, git does not track, which an audit refuses as
-      # members until committed. nil outside git, where nothing is checked.
+      # Which of paths, and of the links and files they lead through, git does not track and does not ignore, which
+      # an audit refuses as members until committed. nil outside git, where nothing is checked.
       #: (Array[String]) -> Array[String]?
-      def untracked(paths) = (@repository.untracked(through_links(paths)) if @repository.inside?)
+      def untracked_excluding_ignored(paths)
+        @repository.untracked_excluding_ignored(through_links(paths)) if @repository.inside?
+      end
 
       # Whether git tracks path and every file its links lead to, so a fresh clone finds its text; an ignored file is
       # not tracked either. True outside git, where nothing is checked.
       #: (String) -> bool
-      def tracks?(path) = !@repository.inside? || @repository.not_tracked(through_links([path])).empty?
+      def tracks?(path) = !@repository.inside? || @repository.untracked_including_ignored(through_links([path])).empty?
 
       # Whether the project is in git, so it has a history at all.
       #: () -> bool
@@ -99,39 +99,9 @@ module Principles
         head
       end
 
-      # path's text at commit, or nil when commit does not hold it.
-      #: (String, String) -> String?
-      def text_at(commit, path)
-        @repository.text_at(commit, @files.leads_to(path))
-      end
-
-      # The lines of the member at locator in its file at commit, or nil when commit lacks the file or the
-      # locator finds nothing in its text there, as after a move; any other refusal still refuses.
-      #: (String, Locator) -> Array[String]?
-      def lines_at(commit, locator)
-        path = locator.path
-        text = text_at(commit, path) or return nil
-        MemberFile.for(path: path, text: text).lines_of(locator)
-      rescue Error => e
-        raise unless MemberFile::PLACEMENT_REFUSALS.include?(e.payload.fetch("code"))
-
-        nil
-      end
-
-      # Each member's id and the hash of its text at commit, or nil when commit lacks a member's file or the
-      # member's place in it.
-      #: (String, PrincipleMembers) -> Hash[String, String]?
-      def hashes_at(commit, members)
-        members.to_h do |member|
-          path = member.path
-          text = text_at(commit, path)
-          return nil unless text
-
-          [member.id, MemberFile.for(path: path, text: text).locate(member.locator).fetch("sha256")]
-        end
-      rescue Error
-        nil
-      end
+      # The project as commit holds it.
+      #: (String) -> ProjectAtCommit
+      def at(commit) = ProjectAtCommit.new(@repository, @files, commit)
 
       # The rename git detects for path, a file absent from the working tree, as {"to", "similarity",
       # "deleted_in"}: the last commit that touched path, or nil while the move is not yet committed. It is
@@ -145,18 +115,6 @@ module Principles
         base = deleted_in ? "#{deleted_in}^" : "HEAD"
         found = @repository.renames_since(base).find { |each| each["from"] == path } or return nil
         found.slice("to", "similarity").merge("deleted_in" => deleted_in)
-      end
-
-      # Each member's key and the hash of its text at commit, leaving out a member that commit cannot find.
-      #: (String, Array[Hash[String, untyped]]) -> Hash[String, String]
-      def hashes_by_key_at(commit, members)
-        members.map { |fields| Member.new(fields) }.each_with_object({}) do |member, found|
-          path = member.path
-          text = text_at(commit, path) or next
-          found[member.key] = MemberFile.for(path: path, text: text).locate(member.locator).fetch("sha256")
-        rescue Error
-          next
-        end
       end
 
       # Which of paths, and of the links and files they lead through, differ from HEAD, or are not yet committed.

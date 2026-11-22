@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require_relative "assessment_request"
+require_relative "answer_in_a_file"
 require_relative "answered_request"
 require_relative "audit_changes"
 require_relative "completed_audit_next_step"
@@ -101,7 +102,8 @@ module Principles
         output = judgement("assessment", request, { "read_in_parts" => read_in_parts(request.principle_id) },
                            to_fill: { "response_template" => request.template })
         note = TrimmedInstructionsNote.new(request.trimmed_instruction_fields).to_h
-        output.merge("context" => output.fetch("context").merge(note))
+        fill = AnswerInAFile.new(@invocation).assessment(request.principle_id, request_id: request.request_id)
+        output.merge("context" => output.fetch("context").merge(note), "next_action" => fill)
       end
 
       # start-audit --as template: the assessment's answer alone, to fill and submit.

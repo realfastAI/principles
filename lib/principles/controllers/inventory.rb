@@ -65,14 +65,14 @@ module Principles
 
       # The moves that may repair each shown member whose reference is broken, so an audit would refuse it, by id in the
       # map's order.
-      #: (Models::Principle, Array[Hash[String, untyped]]) -> Hash[String, Array[Hash[String, untyped]]]
+      #: (Models::Principle, Array[Hash[String, untyped]]) -> Hash[String, Array[Views::MemberRepairs::Move]]
       def repairs(principle, members)
+        broken = broken_member_repairs
         members.select { |member| Models::MemberState.new(member.fetch("id"), member.fetch("freshness")).broken? }
                .to_h do |member|
           id = member.fetch("id")
           error = member.fetch("error", {})
-          [id, Models::MemberRepairMoves.new(principle.member(id), code: error["code"],
-                                                                   tracked_as: error["tracked_as"]).to_a]
+          [id, broken.moves(principle.member(id), code: error["code"], tracked_as: error["tracked_as"])]
         end
       end
 

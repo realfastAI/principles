@@ -22,9 +22,10 @@ module Principles
       # What a refusal to read its file calls that file.
       FILE_NAMED = "The answer file" #: String
 
-      # The repair of a field-by-field shape refusal for a phase that prints its answer to fill as response_template,
-      # such as the acknowledgements phase, whose controller refuses its own fields.
-      REPAIR = "Repair each field listed, starting from the request's response_template." #: String
+      # The repair of a field-by-field refusal for the acknowledgements phase, whose controller refuses its own
+      # fields: the agent repairs the bare answer it saved and fills, which --as template prints.
+      REPAIR = "Repair each field listed in the answer you saved from start-audit with the same --member options " \
+               "and --as template." #: String
 
       # The answer read from the file or stdin the agent named, to the request given, the REQUEST_ID the agent typed,
       # or when it typed none the request_id the answer names, as its template printed it, using that request's

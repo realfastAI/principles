@@ -51,8 +51,8 @@ module Principles
 
         id = submitted.request_id.principle_id
         several, members = answering_several(submitted)
-        [view.several_acknowledged(principle_id: id, member_ids: members.map { it.member.id },
-                                   file: @audit_records.file(id)),
+        [accepted_view.several_acknowledged(principle_id: id, member_ids: members.map { it.member.id },
+                                            file: @audit_records.file(id)),
          [all_accepted(several, members, submitted.response)]]
       end
 
@@ -72,8 +72,8 @@ module Principles
         records = across.accepted(submitted.response) do |id, several, answer|
           all_accepted(several, by_principle.fetch(id), answer, acknowledging: across.acknowledging)
         end
-        [view.across_acknowledged(member_ids: across.member_ids,
-                                  files: by_principle.keys.to_h { [it, @audit_records.file(it)] }), records]
+        files = by_principle.keys.to_h { [it, @audit_records.file(it)] }
+        [accepted_view.across_acknowledged(member_ids: across.member_ids, files:), records]
       end
 
       # The members each principle basis names maps, refused when a later copy wrote any of their records, or as stale

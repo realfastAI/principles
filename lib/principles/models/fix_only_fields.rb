@@ -3,6 +3,7 @@
 
 require_relative "../error"
 require_relative "answer_text"
+require_relative "named_placeholder"
 
 module Principles
   # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
@@ -12,8 +13,8 @@ module Principles
     # them as printed, and claims no change.
     class FixOnlyFields
       # disposition is the disposition as the agent gave it; left_reassessment is the reassessment its template
-      # prints, which a disposition not fixed leaves as printed.
-      #: (Hash[String, untyped], left_reassessment: String) -> void
+      # prints, for any finding, which a disposition not fixed leaves as printed.
+      #: (Hash[String, untyped], left_reassessment: NamedPlaceholder) -> void
       def initialize(disposition, left_reassessment:)
         @disposition = disposition
         @left_reassessment = left_reassessment
@@ -69,7 +70,7 @@ module Principles
       #: () -> void
       def fix_text_unclaimed
         reassessment = @disposition["reassessment"]
-        written = reassessment != @left_reassessment && AnswerText.new(reassessment).written?
+        written = !@left_reassessment.left?(reassessment) && AnswerText.new(reassessment).written?
         field = ("reassessment" if written) || ("evidence" unless list("evidence").empty?) or return
         raise Error.new("invalid_disposition", "Only a fixed disposition may give #{field}",
                         "Mark it fixed, or leave #{field} as printed.")

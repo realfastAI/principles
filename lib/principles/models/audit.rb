@@ -76,7 +76,7 @@ module Principles
       # evidence, giving where it is and the hash of its text.
       # judged_against is the principle's record as it stands, which says which members' last assessments the
       # answer may carry forward; answered_at is when the answer came, which no sighting it reports is after.
-      #: (untyped, RecordJudgedAgainst, String) { (Locator) -> Hash[String, untyped] }
+      #: (untyped, RecordJudgedAgainst, String) { (Locator) -> LocatedText }
       #|  -> AssessmentAnswer
       def assessment(response, judged_against, answered_at, &)
         AssessmentAnswer.new(response, members, answered_at: answered_at, judged_against: judged_against, &)

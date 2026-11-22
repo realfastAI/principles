@@ -70,12 +70,12 @@
       ]
     },
     {
-      "name": "list-member-problems", "usage": "list-member-problems [ID] [--short | --commits-after COMMIT --hook-event EVENT]", "group": "read", "options": ["short", "session-start", "commits-after", "hook-event"],
+      "name": "list-member-problems", "usage": "list-member-problems [ID] [--history | --short | --commits-after COMMIT --hook-event EVENT]", "group": "read", "options": ["history", "short", "session-start", "commits-after", "hook-event"],
       "summary": "Members whose reference is broken, or whose own text changed since their baseline.",
       "help": "learn-what-a-command-does/list-member-problems",
       "steps": [
         { "id": "compare-members-with-their-baselines", "actor": "cli",
-          "does": "Finds each member of map ID, or of every map, and compares its own text with the last audit's hash for it, or else with its text at the commit that mapped it where it is. Refuses while any member cannot be found or read, or a map cannot be read, so a gate can stop on the exit status; otherwise lists each changed member with what it was compared with, and counts every state. With --short, prints one tab-separated line per changed member, then one per principle counting its members no audit has assessed, and exits 3 when it prints any line.",
+          "does": "Finds each member of map ID, or of every map, and compares its own text with the last audit's hash for it, or else with its text at the commit that mapped it where it is. Refuses while any member cannot be found or read, or a map cannot be read, so a gate can stop on the exit status; otherwise lists each changed member with what it was compared with, and with --history the commits that changed it, and counts every state. With --short, prints one tab-separated line per changed member, then one per principle counting its members no audit has assessed, and exits 3 when it prints any line.",
           "refuses": ["broken_members"], "refuses_like": ["read-map", "read-audit"] },
         { "id": "repair-or-audit", "actor": "agent",
           "does": "For a refusal, say whether each listed member moved or is gone, and repair it. For a changed member, audit its principle when the change was meant to alter the principle.",
@@ -132,7 +132,7 @@
       "help": "learn-what-a-command-does/report-at-session-start",
       "steps": [
         { "id": "report-at-session-start", "actor": "cli",
-          "does": "Reads the SessionStart hook's JSON on stdin and always exits 0, since the host adds a SessionStart hook's output to the context only then. Prints nothing in a project with no maps. Otherwise prints, each line marked principles:, one line for each principle whose members an audit assessed changed since, with its count, that its audit no longer covers them, and the list-member-problems ID command to run before the user's task, which offers acknowledging them or auditing again, then, in git, what gives each principle's members with no baseline one, then each principle whose audit record a later release wrote, whose audits wait on an upgrade, then, while any principle awaits its first full audit, one line counting them that asks for one background subagent to follow show-first-audit-brief, or to offer the audit at the next pause if none can be started, and at resume and compact only the count, asking for no second subagent, then, while any audit finding is left open, the one line list-open-findings --short prints, worded for the session's start. When list-member-problems refuses, prints instead its code and the command that shows its repair; input it cannot read is read as a startup." }
+          "does": "Reads the SessionStart hook's JSON on stdin and always exits 0, since the host adds a SessionStart hook's output to the context only then. Prints nothing in a project with no maps. Otherwise prints, each line marked principles:, for one principle whose members an audit assessed changed since, a line with its count, that its audit no longer covers them, and the list-member-problems ID command to run before the user's task, which offers acknowledging them or auditing again, or for several, one line counting them with the list-member-problems --short command that lists them, then, in git, what gives each principle's members with no baseline one, then each principle whose audit record a later release wrote, whose audits wait on an upgrade, then, while any principle awaits its first full audit, one line counting them that asks for one background subagent to follow show-first-audit-brief, or to offer the audit at the next pause if none can be started, and at resume and compact only the count, asking for no second subagent, then, while any audit finding is left open, the one line list-open-findings --short prints, worded for the session's start. When list-member-problems refuses, prints instead its code and the command that shows its repair; input it cannot read is read as a startup." }
       ]
     },
     {
@@ -314,7 +314,7 @@
       ]
     },
     {
-      "name": "start-audit", "usage": "start-audit ID [ID ...] [--member MEMBER ... | --write-ups] [--as template [--part members/ID] | --instruction FIELD | --part PART]", "group": "write-audit-record", "options": ["member", "write-ups", "as", "instruction", "part"],
+      "name": "start-audit", "usage": "start-audit ID [ID ...] [--member MEMBER ... | --write-ups] [--as template [--part members/ID ...] | --instruction FIELD | --part PART ...]", "group": "write-audit-record", "options": ["member", "write-ups", "as", "instruction", "part"],
       "summary": "Ask for an assessment of every member and the set.",
       "help": "learn-what-a-command-does/start-audit",
       "steps": [

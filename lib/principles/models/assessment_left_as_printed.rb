@@ -55,7 +55,7 @@ module Principles
       # The fields of assessment, as sent, that are still the text the template printed there and must be written.
       #: (Hash[String, untyped]) -> Array[String]
       def unwritten_fields(assessment)
-        [("assessment" if assessment["assessment"] == MemberAssessments::PLACEHOLDER),
+        [("assessment" if MemberAssessments::ASSESSMENT.left?(assessment["assessment"])),
          ("observation" if assessment["delivery"] == "observed" &&
                            MemberAssessments::SIGHTING.left?("observation", assessment["observation"]))].compact
       end

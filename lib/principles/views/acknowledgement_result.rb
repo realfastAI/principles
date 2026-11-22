@@ -1,17 +1,19 @@
 # typed: strict
 # frozen_string_literal: true
 
+require_relative "answer_in_a_file"
 require_relative "invocation"
-require_relative "answered_request"
 require_relative "member_change_since_baseline"
 require_relative "prompts"
-require_relative "../prose_list"
 
 module Principles
   # What this tool prints, from plain values a controller hands it. views/CLAUDE.md owns the boundary.
   module Views
     # A one-member audit's request and its result.
     class AcknowledgementResult
+      # Where a placeholder names the member of the entry it prints in.
+      SLOT = "%<id>s" #: String
+
       #: (Invocation) -> void
       def initialize(invocation)
         @invocation = invocation
@@ -28,7 +30,8 @@ module Principles
           "context" => { "principle_id" => principle_id, **asked.fetch(:change).to_h, **asked.fetch(:context),
                          "question" => Prompts.text("acknowledge-a-change/say-whether-the-change-keeps-the-meaning") },
           "response_template" => answer_to_fill(request_id:, asked:),
-          "answer_with" => @invocation.submit_answer(request_id) }
+          "answer_with" => @invocation.submit_answer(request_id),
+          "next_action" => to_fill([principle_id], [asked.fetch(:change).member_id], request_id:) }
       end
 
       # The answer to the request request_id names, to fill: the request prints it as response_template, and
@@ -39,7 +42,7 @@ module Principles
       def answer_to_fill(request_id:, asked:)
         member_id = asked.fetch(:change).member_id
         { "request_id" => request_id, "basis" => { "member_ids" => [member_id] },
-          "members" => { member_id => asked.fetch(:placeholders) } }
+          "members" => { member_id => named(asked.fetch(:placeholders), member_id) } }
       end
 
       # The request for several members' acknowledgements in one answer: each of members holds a member's
@@ -52,7 +55,8 @@ module Principles
                          "members" => shown(members),
                          "question" => Prompts.text("acknowledge-a-change/say-whether-each-change-keeps-its-meaning") },
           "response_template" => several_to_fill(request_id:, members:),
-          "answer_with" => @invocation.submit_answer(request_id) }
+          "answer_with" => @invocation.submit_answer(request_id),
+          "next_action" => to_fill([principle_id], members.map { it.fetch(:change).member_id }, request_id:) }
       end
 
       # The answer to the request for several members request_id names, to fill: its basis names each member, and
@@ -60,7 +64,7 @@ module Principles
       #: (request_id: String, members: Array[Hash[Symbol, untyped]]) -> Hash[String, untyped]
       def several_to_fill(request_id:, members:)
         { "request_id" => request_id, "basis" => { "member_ids" => members.map { it.fetch(:change).member_id } },
-          "members" => members.to_h { [it.fetch(:change).member_id, it.fetch(:placeholders)] } }
+          "members" => members.to_h { named_entry(it) } }
       end
 
       # The request for the members several principles map in one answer: under context.principles, each
@@ -74,7 +78,8 @@ module Principles
           "context" => { "principles" => shown_once(principles),
                          **deferred_findings_kept(keeping_deferred), "question" => across_question },
           "response_template" => across_to_fill(request_id:, principles:),
-          "answer_with" => @invocation.submit_answer(request_id) }
+          "answer_with" => @invocation.submit_answer(request_id),
+          "next_action" => to_fill(principles.keys.uniq.sort, across_member_ids(principles), request_id:) }
       end
 
       # The answer to the request for the members several principles map, to fill: its basis names each principle and
@@ -85,51 +90,36 @@ module Principles
       def across_to_fill(request_id:, principles:)
         entries = principles.values.flatten.each_with_object({}) do |asked, by_member|
           id = asked.fetch(:change).member_id
-          by_member[id] = asked.fetch(:placeholders).merge(by_member.fetch(id, {}))
+          by_member[id] = named(asked.fetch(:placeholders), id).merge(by_member.fetch(id, {}))
         end
         { "request_id" => request_id, "basis" => { "principle_ids" => principles.keys, "member_ids" => entries.keys },
           "members" => entries }
       end
 
-      # The acknowledgement of each of member_ids was accepted, and file holds them all.
-      #: (principle_id: String, member_ids: Array[String], file: String) -> AnsweredRequest
-      def several_acknowledged(principle_id:, member_ids:, file:)
-        AnsweredRequest.new(
-          "status" => "acknowledged", "principle_id" => principle_id, "member_ids" => member_ids,
-          "files_to_commit" => [file],
-          "next_action" => "Commit #{file}. #{ProseList.new(member_ids)} read as judged until each is edited again.\n" \
-                           "This no longer lists them: " \
-                           "#{@invocation.in_project("list-member-problems", principle_id, usage: "--short")}"
-        )
-      end
-
-      # The acknowledgement of each of member_ids was accepted for every principle that maps it, each principle's in its
-      # file, under its id in files.
-      #: (member_ids: Array[String], files: Hash[String, String]) -> AnsweredRequest
-      def across_acknowledged(member_ids:, files:)
-        AnsweredRequest.new(
-          "status" => "acknowledged", "principle_ids" => files.keys, "member_ids" => member_ids,
-          "files_to_commit" => files.values,
-          "next_action" => "Commit #{ProseList.new(files.values)}. #{ProseList.new(member_ids)} read as judged until " \
-                           "each is edited again.\nThis no longer lists them: " \
-                           "#{@invocation.in_project("list-member-problems", usage: "--short")}"
-        )
-      end
-
-      # The acknowledgement was accepted and file holds it.
-      #: (principle_id: String, member_id: String, file: String) -> AnsweredRequest
-      def acknowledged(principle_id:, member_id:, file:)
-        fields = {
-          "status" => "acknowledged", "principle_id" => principle_id, "member_ids" => [member_id],
-          "files_to_commit" => [file],
-          "next_action" => "Commit #{file}. #{member_id} reads as judged until it is edited again.\n" \
-                           "This no longer lists it: " \
-                           "#{@invocation.in_project("list-member-problems", principle_id, usage: "--short")}"
-        }
-        AnsweredRequest.new(fields)
-      end
-
       private
+
+      # placeholders with each one's SLOT naming the member id, as its entry in the template prints them; any other
+      # text, a percent sign included, as it is.
+      #: (Hash[String, untyped], String) -> Hash[String, untyped]
+      def named(placeholders, id) = placeholders.transform_values { it.is_a?(String) ? it.gsub(SLOT, id) : it }
+
+      # The template's entry for the member asked asks about, by its id.
+      #: (Hash[Symbol, untyped]) -> [String, Hash[String, untyped]]
+      def named_entry(asked)
+        id = asked.fetch(:change).member_id
+        [id, named(asked.fetch(:placeholders), id)]
+      end
+
+      # How to fill the answer to request_id, acknowledging member_ids of principle_ids: saved bare from
+      # start-audit --as template to a file the agent edits.
+      #: (Array[String], Array[String], request_id: String) -> String
+      def to_fill(principle_ids, member_ids, request_id:)
+        AnswerInAFile.new(@invocation).acknowledgement(principle_ids, member_ids, request_id:)
+      end
+
+      # Each member the principles' requests ask about, once, in the order they ask.
+      #: (Hash[String, Array[Hash[Symbol, untyped]]]) -> Array[String]
+      def across_member_ids(principles) = principles.values.flatten.map { it.fetch(:change).member_id }.uniq
 
       # Where to read the deferred findings an acknowledgement across principles keeps, and the full audit of each
       # principle in ids that resolves them, one command to a line; nothing when ids is empty.

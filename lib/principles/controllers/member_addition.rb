@@ -48,7 +48,7 @@ module Principles
       # The new member's id, current lines and stored check, located only after its map was saved.
       #: () -> Hash[String, untyped]
       def located_member
-        { "id" => @member.id }.merge(snapshot(@member.locator).slice("first_line", "last_line"))
+        { "id" => @member.id }.merge(snapshot(@member.locator).lines)
                               .merge(@member.to_h.slice("check"))
       end
 

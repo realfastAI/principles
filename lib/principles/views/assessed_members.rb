@@ -18,7 +18,8 @@ module Principles
       # reviewed_check_placeholders is the text a checked member's template prints in each field it may leave as
       # printed to give none, for a check reviewed before it runs; unchanged_check_placeholders, for one the
       # last audit ran.
-      # assessment_placeholder is the text a fresh member's assessment prints, which an answer may not send back.
+      # assessment_placeholder is the text a fresh member's assessment prints, which an answer may not send back, its
+      # %<id>s filled with the member's id, so each slot's is its own and one edit fills one slot.
       #: (Array[Hash[String, untyped]], reviewed_check_placeholders: Hash[String, String],
       #|  unchanged_check_placeholders: Hash[String, String], assessment_placeholder: String) -> void
       def initialize(members, reviewed_check_placeholders:, unchanged_check_placeholders:, assessment_placeholder:)
@@ -151,7 +152,8 @@ module Principles
 
       #: (Hash[String, untyped]) -> Hash[String, untyped]
       def fresh(member)
-        { "member_id" => member.fetch("id"), "assessment" => @assessment_placeholder,
+        id = member.fetch("id")
+        { "member_id" => id, "assessment" => format(@assessment_placeholder, id:),
           "delivery" => "not_observed", "evidence" => member.fetch("evidence") }
       end
     end

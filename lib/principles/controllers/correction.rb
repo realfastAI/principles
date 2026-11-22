@@ -7,7 +7,7 @@ require_relative "../models/correction_answer"
 require_relative "../models/declared_map_changes"
 require_relative "../models/finding_write_ups"
 require_relative "../models/request_id"
-require_relative "../views/prompts"
+require_relative "../views/correction_request"
 require_relative "audit_completion"
 
 module Principles
@@ -57,7 +57,7 @@ module Principles
 
       # The placeholders a correction's template printed, its dispositions'.
       #: (Models::RequestId) -> Hash[String, untyped]?
-      def printed_placeholders(_request_id) = Models::Disposition::TEMPLATE_PLACEHOLDERS
+      def printed_placeholders(_request_id) = Models::DispositionPlaceholders::TEMPLATE_PLACEHOLDERS
 
       # The result of judging a correction answer: its basis, moves and dispositions checked, and the audit completed.
       #: (Models::RequestId, untyped, Models::Audit) -> [untyped, Array[Models::AuditRecord]]
@@ -77,12 +77,14 @@ module Principles
       def resumed(audit, basis, before, moves) = audit.resumed(basis, before, moves, @audit_records.find(audit.id))
 
       # The packaged answer guide, which the correction request prints, is the one owner of its samples, the text
-      # the agent saw, so its sample for each action is handed to the model, which refuses a field given back as
-      # its sample. Should the tool be upgraded between request and answer, that answer is checked only
+      # the agent saw, but for the deferred sample's reason, which is the template's reason placeholder that
+      # Models::Disposition owns. Its sample for each action is handed to the model, which refuses a field given back
+      # as its sample. Should the tool be upgraded between request and answer, that answer is checked only
       # against the new guide's samples.
       #: (untyped, Array[untyped], Models::AuditStart, Models::Audit) -> Array[Models::Disposition]
       def dispositions(response, findings, start, audit)
-        samples = Views::Prompts.data("dispose-of-each-finding/answer-guide").fetch("disposition")
+        samples = Views::CorrectionRequest.answer_guide(Models::DispositionPlaceholders::PLACEHOLDERS.fetch("reason"))
+                                          .fetch("disposition")
         Models::CorrectionAnswer.new(response, findings, samples:) { |locator| snapshot(locator) }
                                 .dispositions(changed: start.changed(now: audit.now))
       end

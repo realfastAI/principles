@@ -1,11 +1,11 @@
 # typed: strict
 # frozen_string_literal: true
 
-require "digest"
 require_relative "../error"
 require_relative "locator"
 require_relative "member_region"
 require_relative "line_span"
+require_relative "located_text"
 require_relative "write_up_opening"
 
 module Principles
@@ -50,7 +50,7 @@ module Principles
       end
 
       # Where the member locator names is in this text, and the hash of what it says there.
-      #: (Locator) -> Hash[String, untyped]
+      #: (Locator) -> LocatedText
       def locate(locator)
         refuse_mixed_locators(locator)
         lines = @text.lines
@@ -65,7 +65,7 @@ module Principles
       end
 
       # Only a newly supplied add/move location needs an unambiguous ending; existing references keep lookup.
-      #: (Locator) -> Hash[String, untyped]
+      #: (Locator) -> LocatedText
       def locate_for_authoring(locator)
         found = locate(locator)
         opening = locator.starting_at
@@ -82,7 +82,7 @@ module Principles
       #: (Locator) -> Array[String]
       def lines_of(locator)
         located = locate(locator)
-        @text.lines[(located.fetch("first_line") - 1)...located.fetch("last_line")].to_a
+        @text.lines[(located.first_line - 1)...located.last_line].to_a
       end
 
       # The opening of the region locator names, after the heading line itself when it names a heading, as
@@ -91,19 +91,16 @@ module Principles
       def write_up_opening(locator)
         located = locate(locator)
         heading_line = locator.heading && !locator.starting_at ? 1 : 0
-        WriteUpOpening.new(lines: @text.lines, first: located.fetch("first_line") - 1 + heading_line,
-                           last: located.fetch("last_line")).to_h
+        WriteUpOpening.new(lines: @text.lines, first: located.first_line - 1 + heading_line,
+                           last: located.last_line).to_h
       end
 
       private
 
-      # What locate found: the member's place, the hash of its text and its span. query appears only for a
-      # member that has one, so every other member's snapshot, and each request id digesting it, is unchanged.
-      #: (Locator, String, Integer, Integer) -> Hash[String, untyped]
+      # What locate found: the member's place, the hash of its text and its span.
+      #: (Locator, String, Integer, Integer) -> LocatedText
       def snapshot(locator, selected, first_line, last_line)
-        { "path" => @path, "heading" => locator.heading, "starting_at" => locator.starting_at,
-          "sha256" => Digest::SHA256.hexdigest(selected), "characters" => selected.length,
-          "first_line" => first_line, "last_line" => last_line }.merge(locator.to_h.slice("query"))
+        LocatedText.new(locator:, path: @path, first_line:, last_line:, text: selected)
       end
 
       # A query names a field whole, so it takes no section or passage beside it.

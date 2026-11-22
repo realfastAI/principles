@@ -52,16 +52,37 @@ module Principles
         Prompts.text("set-principles-up/what-the-passage-presumes", estimated_tokens: estimated_tokens.to_s)
       end
 
+      # The passage as the agent pastes it: its text, its size in bytes and estimated tokens, which loads in every
+      # session that loads the entry file it goes in, and what it presumes of a teammate without principles.
+      class Passage
+        #: Integer
+        attr_reader :estimated_tokens
+
+        #: (text: String, bytes: Integer, estimated_tokens: Integer, presumes: String) -> void
+        def initialize(text:, bytes:, estimated_tokens:, presumes:)
+          @text = text
+          @bytes = bytes
+          @estimated_tokens = estimated_tokens
+          @presumes = presumes
+          freeze
+        end
+
+        #: () -> Hash[String, untyped]
+        def to_h
+          { "text" => @text, "bytes" => @bytes, "estimated_tokens" => @estimated_tokens, "presumes" => @presumes }
+        end
+      end
+
       # Where the passage can go, as the agent places it from: how this run was started and whether the plugin's
-      # session-start hook runs in this session, each root entry file's facts, and the passage's text with its size
-      # and what it presumes of a teammate without principles.
+      # session-start hook runs in this session, each root entry file's facts, and the passage.
       class Placement
         #: (runs_from: String, session_start_hook_in_this_session: bool, entry_files: Array[Hash[String, untyped]],
-        #|  passage: Hash[String, untyped]) -> void
+        #|  passage: Passage) -> void
         def initialize(runs_from:, session_start_hook_in_this_session:, entry_files:, passage:)
           @fields = { "runs_from" => runs_from,
                       "session_start_hook_in_this_session" => session_start_hook_in_this_session,
-                      "entry_files" => entry_files, "passage" => passage }.freeze #: Hash[String, untyped]
+                      "entry_files" => entry_files, "passage" => passage.to_h }.freeze #: Hash[String, untyped]
+          @passage = passage
           freeze
         end
 
@@ -70,7 +91,7 @@ module Principles
 
         # The passage's estimated size, which loads in every session that loads the entry file it goes in.
         #: () -> Integer
-        def estimated_tokens = @fields.fetch("passage").fetch("estimated_tokens")
+        def estimated_tokens = @passage.estimated_tokens
 
         # Whether the plugin's hooks report in this session, so its hook entries need no offer.
         #: () -> bool

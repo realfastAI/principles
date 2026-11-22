@@ -4,9 +4,10 @@
 require_relative "../error"
 require_relative "acknowledgement"
 require_relative "assessment_answer"
-require_relative "disposition"
+require_relative "disposition_placeholders"
 require_relative "loading_decision"
 require_relative "member_assessments"
+require_relative "named_placeholder"
 require_relative "prior_decision_fields"
 require_relative "recent_decision"
 require_relative "refusal_before_shape"
@@ -63,11 +64,18 @@ module Principles
       # decision, the correction's disposition, and the one-member audit's acknowledgement. Its spec fails on a
       # placeholder constant in models/ missing here.
       KNOWN = [
-        MemberAssessments::PLACEHOLDER, AssessmentAnswer::COLLECTIVE_PLACEHOLDER, RecentDecision::PLACEHOLDERS.to_h,
+        MemberAssessments::PLACEHOLDER, MemberAssessments::NAMED_PLACEHOLDER, AssessmentAnswer::COLLECTIVE_PLACEHOLDER,
+        RecentDecision::PLACEHOLDERS.to_h,
         ReportedCheck::PLACEHOLDERS.to_h, ReportedCheck::UNCHANGED_PLACEHOLDERS.to_h,
         LoadingDecision::PLACEHOLDERS.to_h, PriorDecisionFields::TEMPLATE_PLACEHOLDERS,
-        Disposition::TEMPLATE_PLACEHOLDERS, Acknowledgement::PLACEHOLDERS.to_h, Acknowledgement::EXIT_STATUS_PLACEHOLDER
+        DispositionPlaceholders::TEMPLATE_PLACEHOLDERS, DispositionPlaceholders::ACTION_PLACEHOLDER,
+        AcknowledgementPlaceholders::PLACEHOLDERS.to_h, AcknowledgementPlaceholders::EXIT_STATUS_PLACEHOLDER
       ].then { Strings.new(it).by_pointer.values.to_set }.freeze #: Set[String]
+
+      # Every placeholder a template of this release prints naming its slot's id, for any id or as printed before
+      # it named one.
+      NAMED = [MemberAssessments::ASSESSMENT, *DispositionPlaceholders::NAMED,
+               *AcknowledgementPlaceholders::PLACEHOLDERS.named].freeze #: Array[NamedPlaceholder]
 
       # Each string in template, a request's template as printed, which its answer may send back; start_from says
       # where that template is printed, as RequestId#answer_to_fill gives it.
@@ -76,11 +84,14 @@ module Principles
         new(Strings.new(template).by_pointer.values, start_from:)
       end
 
-      # printed is the placeholders the request's own template printed, which an answer may leave as printed, and
-      # start_from where that template is printed.
+      # printed is the placeholders the request's own template printed, which an answer may leave as printed, each
+      # with NamedPlaceholder::SLOT where it names its slot's id, for any id, and start_from where that template is
+      # printed.
       #: (Array[String], start_from: String) -> void
       def initialize(printed, start_from:)
         @printed = printed
+        @printed_named = printed.select { it.include?(NamedPlaceholder::SLOT) }
+                                .map { NamedPlaceholder.new(it, before: it) } #: Array[NamedPlaceholder]
         @repair = "Start from #{start_from}, or replace each field named with your own text; if one is your own " \
                   "text, reword its ending" #: String
       end
@@ -108,7 +119,15 @@ module Principles
 
       # Whether text ends as a placeholder does, or is one another template prints, but is none printed.
       #: (String) -> bool
-      def other?(text) = (text.match?(ENDING) || KNOWN.include?(text)) && !@printed.include?(text)
+      def other?(text) = (known?(text) || NAMED.any? { it.left?(text) }) && !printed?(text)
+
+      # Whether the request's own template printed text, a slot's id in any named placeholder.
+      #: (String) -> bool
+      def printed?(text) = @printed.include?(text) || @printed_named.any? { it.left?(text) }
+
+      # Whether text ends as a placeholder does, or is one a model's constant holds.
+      #: (String) -> bool
+      def known?(text) = text.match?(ENDING) || KNOWN.include?(text)
     end
   end
 end

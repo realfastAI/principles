@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require_relative "answer_head"
+require_relative "answer_in_a_file"
 require_relative "invocation"
 require_relative "prompts"
 
@@ -12,7 +13,8 @@ module Principles
     # every disposition's shape, and what submitting the assessment stored.
     class CorrectionRequest
       # head is what the answer hands back unchanged, the request's id and the basis the correction depends on;
-      # placeholders is the text the template leaves in each field the agent writes.
+      # placeholders is the text the template leaves in each field the agent writes, with %<id>s where each
+      # disposition names its finding.
       #: (head: AnswerHead, principle_id: String, findings: Array[untyped], placeholders: Hash[String, String]) -> void
       def initialize(head:, principle_id:, findings:, placeholders:)
         @head = head
@@ -31,7 +33,15 @@ module Principles
       def context
         { "principle_id" => @principle_id, "findings" => @findings,
           "question" => Prompts.text("dispose-of-each-finding/fix-or-record-each-finding"),
-          "answer_guide" => Prompts.data("dispose-of-each-finding/answer-guide") }
+          "answer_guide" => self.class.answer_guide(@placeholders.fetch("reason")) }
+      end
+
+      # The guide to every disposition's shape, whose deferred sample's reason is reason_placeholder, the template's,
+      # its slot filled for no one finding, as the guide speaks of any.
+      #: (String) -> Hash[String, untyped]
+      def self.answer_guide(reason_placeholder)
+        Prompts.data("dispose-of-each-finding/answer-guide",
+                     reason_placeholder: format(reason_placeholder, id: "this finding"))
       end
 
       # The answer to fill in, as show-open-correction and show-answer-check --as template print it alone: one
@@ -40,10 +50,11 @@ module Principles
       #: () -> Hash[String, untyped]
       def template
         @head.leading("dispositions" => @findings.map do |finding|
-          { "finding_id" => finding["id"], "action" => @placeholders.fetch("action"),
-            "reason" => @placeholders.fetch("reason"), "changed_members" => [], "removed_members" => [],
+          named = @placeholders.transform_values { format(it, id: finding["id"]) }
+          { "finding_id" => finding["id"], "action" => named.fetch("action"),
+            "reason" => named.fetch("reason"), "changed_members" => [], "removed_members" => [],
             "evidence" => [],
-            "reassessment" => @placeholders.fetch("reassessment"), "recorded_at" => nil, "waits_on" => nil }
+            "reassessment" => named.fetch("reassessment"), "recorded_at" => nil, "waits_on" => nil }
         end)
       end
 
@@ -69,15 +80,10 @@ module Principles
                          "next_action" => "#{save}\n#{acceptable.fetch("next_action")}")
       end
 
-      # How to fill the correction by hand: save its answer alone, which show-open-correction prints from the open
-      # record, to a file, fill only its dispositions there, and submit that file.
+      # How to fill the correction by hand: save its answer alone, which show-open-correction prints bare from the
+      # open record, to a file, fill only its dispositions there with a file-edit tool, and submit that file.
       #: (Invocation) -> String
-      def to_fill_by_hand(invocation)
-        "Save the correction's answer alone in a file outside the project, such as under $TMPDIR, from this " \
-          "command's output, which prints it again from the open record whenever you need it: " \
-          "#{invocation.in_project("show-open-correction", @principle_id)}\nEdit only its dispositions in that " \
-          "file, then submit it: #{invocation.submit_answer(request_id)}"
-      end
+      def to_fill_by_hand(invocation) = AnswerInAFile.new(invocation).correction(@principle_id, request_id:)
 
       # What to keep while the correction is open, and the read-only command that prints its answer again from the
       # open record, in git or outside it.

@@ -60,7 +60,7 @@ module Principles
       def shown(name)
         return { INDEX => index } if name == INDEX
         return EMPTY if left_out.include?(name)
-        return { TEMPLATE => @template } if name == TEMPLATE
+        return @template if name == TEMPLATE
         return { name => @context.fetch(name) } unless name.start_with?(MEMBER)
 
         id = name.delete_prefix(MEMBER)

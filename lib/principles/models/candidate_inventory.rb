@@ -59,7 +59,7 @@ module Principles
                                                              text_of: ->(path) { texts[path] ||= text_of.call(path) })
         hints = inventory.fetch("possibly_test_data")
         listed = listed(inventory, files.listing(hints, changed:))
-        new(listed, untracked: history.untracked(listed.fetch("files").map { it.fetch("path") }),
+        new(listed, untracked: history.untracked_excluding_ignored(listed.fetch("files").map { it.fetch("path") }),
                     outlines: files.outlines(hints))
       end
 

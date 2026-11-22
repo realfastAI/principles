@@ -140,7 +140,7 @@ module Principles
       def request_to_correct(basis, audit, findings)
         head = Views::AnswerHead.new(request_id: basis.request_id(audit.id, audit.now).to_s, basis: basis.to_h)
         Views::CorrectionRequest.new(head: head, principle_id: audit.id, findings: findings,
-                                     placeholders: Models::Disposition::TEMPLATE_PLACEHOLDERS)
+                                     placeholders: Models::DispositionPlaceholders::TEMPLATE_PLACEHOLDERS)
       end
 
       # The open record that keeps the assessment, and outside git what the audit began from, and the last completed

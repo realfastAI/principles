@@ -1,8 +1,8 @@
 Asks you to assess every member of principle ID and the set as a whole. Run it after mapping and when `show-principle`
-reports a member changed, unassessed, locator_lost or unavailable. `--part PART` prints one part, a member's with its
-`text` and `lines_in_text`, an instruction or `response_template` as printed (`part_empty` if empty), `--as template
---part members/ID` a slot; `--part index` lists `part_command`, each one's `bytes`, whether `this_audit` `judges` or
-`carries_forward` a member, as `read_in_parts` says, `trimmed_instructions`, then `answer_with` and the `next_action`.
+reports a member changed, unassessed, locator_lost or unavailable. `--part PART`, repeatable, prints parts: a member's
+with its `text` and `lines_in_text`, an instruction as printed or `response_template` bare (`part_empty` if empty),
+`--as template --part members/ID` slots; `--part index` lists `part_command`, their `bytes`, whether `this_audit`
+`judges` or `carries_forward` a member, `trimmed_instructions`, `answer_with` and `next_action`, per `read_in_parts`.
 
 `start-audit` itself writes nothing. `submit-answer` writes the audit record, `.principles/audits/ID.json`: a full audit
 writes it open when its assessment has findings, completed once it has none or its correction is accepted. In git,

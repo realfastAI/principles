@@ -19,11 +19,13 @@ module Principles
         freeze
       end
 
-      # The one mapped id spelled like this one apart from punctuation, case and spacing, or nil.
+      # The one mapped id spelled like this one apart from punctuation, case and spacing, or else the one whose
+      # heading or passage this is, as an agent gives a passage's start text without its path@ prefix; nil when
+      # none or several are. It is only named, for the agent to judge.
       #: (Array[String]) -> String?
       def closest(mapped)
-        matches = mapped.select { |each| loose(each) == loose(@id) }
-        matches.first if matches.one?
+        only(mapped.select { |each| loose(each) == loose(@id) }) ||
+          only(mapped.select { |each| each.end_with?("##{@id}", "@#{@id}") })
       end
 
       # What a refusal says of this id: that it is not mapped, and the mapped id it is spelled like; nil when none.
@@ -34,6 +36,10 @@ module Principles
       end
 
       private
+
+      # The one id among matches, or nil.
+      #: (Array[String]) -> String?
+      def only(matches) = (matches.first if matches.one?)
 
       #: (String) -> String
       def loose(text)

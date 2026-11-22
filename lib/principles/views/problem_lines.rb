@@ -52,12 +52,17 @@ module Principles
                   status: short.status)
       end
 
-      # at_session_start's stdout, a line for each principle with changed audited members: how many, why that
+      # at_session_start's stdout: for one principle with changed audited members, a line saying how many, why that
       # matters, to act before the user's task, and the command whose output offers acknowledging them or auditing
-      # again. Its command leaves out --project, as the hook's own commands do, since a session runs in its project.
+      # again; for several, one line counting them, whose command lists each, so the line does not grow with their
+      # count. Its command leaves out --project, as the hook's own commands do, since a session runs in its project.
       #: (changed: Hash[String, Integer]) -> Array[String]
       def session_start_lines(changed:)
-        changed.map { |id, count| changed_line(id, count) }
+        return changed.map { |id, count| changed_line(id, count) } if changed.size <= 1
+
+        [Prompts.text("start-a-session/act-on-the-changed-principles",
+                      count: changed.size.to_s,
+                      command: @invocation.without_project.in_project("list-member-problems", options: ["--short"]))]
       end
 
       private

@@ -28,7 +28,7 @@ module Principles
       #: (String, String) -> [String, AuditRecord]?
       def at(id, commit)
         [file(id), earlier_file(id)].each do |path|
-          text = @history.text_at(commit, path) or next
+          text = @history.at(commit).text(path) or next
           return [path, AuditRecord.new(@files.parse(id, text) { refuse_unreadable(it, path) })]
         end
         nil

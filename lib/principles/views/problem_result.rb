@@ -54,6 +54,17 @@ module Principles
         [report.merge("next_action" => action), commands]
       end
 
+      # report, with each member's history leaving out its commits unless history, which an agent asks for with
+      # --history: the rest says what changed and what clears it.
+      #: (Hash[String, untyped], history: bool) -> Hash[String, untyped]
+      def listed(report, history:)
+        return report if history || !report.key?("members")
+
+        report.merge("members" => report.fetch("members").map do |member|
+          member.key?("history") ? member.merge("history" => member.fetch("history").except("commits")) : member
+        end)
+      end
+
       # For each principle with members no baseline holds, what gives them one: outside git a completed audit,
       # and in git committing the files no_baseline_files names.
       #: (Hash[String, untyped], Hash[String, Array[String]]) -> Array[MembersWithNoBaseline]

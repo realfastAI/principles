@@ -11,6 +11,7 @@ A new literal `--ending-at` must occur once after the complete opening in the se
 1-based line/character columns, and `ending_candidates_omitted`. Quote more specific closing text.
 Existing stored members and evidence keep the first ending and their hashes; only new add/move is stricter.
 
-An id no member has is refused with `unknown_member`. When it differs from one mapped id only in case, spacing,
-dashes or quotes, the refusal names that id under `did_you_mean` and starts its repair with this command run on it
-instead. This tool never acts on the near miss: check that it is the member you meant before you run it.
+An id no member has is refused with `unknown_member`. When it differs from one mapped id only in case, spacing, dashes
+or quotes, or is the heading or passage of exactly one mapped id given without its path, the refusal names that id under
+`did_you_mean` and starts its repair with this command run on it instead. This tool never acts on the near miss: check
+that it is the member you meant before you run it.

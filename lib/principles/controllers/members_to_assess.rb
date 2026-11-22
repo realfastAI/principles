@@ -124,7 +124,7 @@ module Principles
       # Whether the evidence at locator no longer hashes to sha, or can no longer be found.
       #: (Models::Locator, String) -> bool
       def evidence_changed?(locator, sha)
-        snapshot(locator).fetch("sha256") != sha
+        snapshot(locator).sha256 != sha
       rescue Error
         true
       end

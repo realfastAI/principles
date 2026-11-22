@@ -22,6 +22,22 @@ module Principles
       # tracked by git only under another spelling.
       FILE_NOT_AT_PATH = %w[unreadable_file renamed_in_case].freeze #: Array[String]
 
+      # One move: the locator fields it keeps, by name, and those the agent fills in.
+      class Move
+        #: Hash[String, untyped]
+        attr_reader :keep
+
+        #: Array[String]
+        attr_reader :fill
+
+        #: (Hash[String, untyped], Array[String]) -> void
+        def initialize(keep, fill)
+          @keep = keep
+          @fill = fill
+          freeze
+        end
+      end
+
       # member is the member's locator fields, as its map holds them; code is that of the refusal saying why it cannot
       # be found, and tracked_as the spelling git tracks its path under, which a renamed_in_case refusal gives.
       #: (Hash[String, untyped], code: String?, ?tracked_as: String?) -> void
@@ -32,8 +48,8 @@ module Principles
         freeze
       end
 
-      # Each move, as { "keep" => the locator fields it keeps, by name, "fill" => the fields the agent fills in }.
-      #: () -> Array[Hash[String, untyped]]
+      # Each move that may repair the member.
+      #: () -> Array[Move]
       def to_a
         return [move(@member.merge("path" => @tracked_as), [])] if @code == "renamed_in_case" && @tracked_as
         return [move(@member, %w[path])] if FILE_NOT_AT_PATH.include?(@code)
@@ -51,8 +67,8 @@ module Principles
       #: (Hash[String, untyped], Array[String]) -> Hash[String, untyped]
       def given(member, fields) = fields.filter_map { [it, member[it]] unless member[it].nil? }.to_h.freeze
 
-      #: (Hash[String, untyped], Array[String]) -> Hash[String, untyped]
-      def move(keep, fill) = { "keep" => keep, "fill" => fill }
+      #: (Hash[String, untyped], Array[String]) -> Move
+      def move(keep, fill) = Move.new(keep, fill)
     end
   end
 end

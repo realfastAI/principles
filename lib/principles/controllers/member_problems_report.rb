@@ -56,7 +56,10 @@ module Principles
                  .printed(after: options.fetch("commits_after"), event: event)
         end
 
-        return checked_report(id).merge("wrote" => []) unless options["short"]
+        unless options["short"]
+          return Views::ProblemResult.new(invocation).listed(checked_report(id), history: options.key?("history"))
+                                     .merge("wrote" => [])
+        end
 
         short(id, session_start: options["session_start"], named: options.key?("project"))
       end

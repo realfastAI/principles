@@ -10,6 +10,7 @@ require_relative "principle_members"
 require_relative "answered_time"
 require_relative "member_sighting"
 require_relative "misspelt_member_id"
+require_relative "named_placeholder"
 require_relative "record_judged_against"
 require_relative "reported_check"
 require_relative "template_placeholders"
@@ -25,9 +26,15 @@ module Principles
       # What a record entry keeps for a member carried forward, until completion puts back its last assessment.
       CARRIED = { "carried_forward" => true }.freeze #: Hash[String, untyped]
 
-      # The text a fresh member's template prints in its assessment, which an answer may not send back unchanged, as a
-      # correction may not send back its own.
+      # The text a fresh member's template printed in its assessment before each named its member, which an answer
+      # may not send back unchanged, as a correction may not send back its own.
       PLACEHOLDER = "Your assessment, including its context cost" #: String
+
+      # The text a fresh member's template prints in its assessment now, naming the member.
+      NAMED_PLACEHOLDER = "Your assessment of #{NamedPlaceholder::SLOT}, including its context cost".freeze #: String
+
+      # The assessment's placeholder, which any member's assessment leaves as printed for any member's id.
+      ASSESSMENT = NamedPlaceholder.new(NAMED_PLACEHOLDER, before: PLACEHOLDER) #: NamedPlaceholder
 
       # The text the template printed alone gives a sighting's fields beside delivery, each left as printed when the
       # delivery gives none.
@@ -74,12 +81,12 @@ module Principles
 
       # Each member's assessment by id, as its record entry keeps it: what the agent said, and the hash of each piece
       # of evidence it cited, which the block locates, so the next audit can say whether that evidence changed.
-      #: () { (Locator) -> Hash[String, untyped] } -> Hash[String, Hash[String, untyped]]
+      #: () { (Locator) -> LocatedText } -> Hash[String, Hash[String, untyped]]
       def kept(&locate)
         @assessments.to_h do |assessment|
           next [assessment.fetch("member_id"), { "assessment" => CARRIED }] if carried_forward?(assessment)
 
-          hashes = assessment.fetch("evidence").map { |reference| locate.call(Locator.new(reference)).fetch("sha256") }
+          hashes = assessment.fetch("evidence").map { |reference| locate.call(Locator.new(reference)).sha256 }
           [assessment.fetch("member_id"),
            { "assessment" => assessment.slice("assessment", "delivery", "observation", "observed_at", "evidence")
                                        .reject { |key, value| key == "observed_at" && value.nil? }

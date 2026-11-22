@@ -11,7 +11,7 @@
     },
     "deferred": {
       "action": "deferred",
-      "reason": "Why, and what remains",
+      "reason": "%{reason_placeholder}",
       "changed_members": [],
       "evidence": [],
       "recorded_at": { "path": "where the project keeps the write-up, or set recorded_at null if none", "starting_at": "the line that states the problem" },

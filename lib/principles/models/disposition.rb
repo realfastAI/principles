@@ -5,7 +5,10 @@ require_relative "../error"
 require_relative "answer_fields"
 require_relative "answer_place"
 require_relative "answer_text"
+require_relative "disposition_placeholders"
+require_relative "disposition_text_field"
 require_relative "fix_only_fields"
+require_relative "unfinished_field"
 require_relative "waits_on"
 require_relative "write_up_pointer"
 
@@ -19,78 +22,6 @@ module Principles
     # among them.
     class Disposition
       ACTIONS = %w[fixed deferred accepted disagreed].freeze #: Array[String]
-
-      # A field the agent left unfinished: empty, the template's placeholder, the answer guide's sample, or
-      # an action not one of the four. It says where it sits in the answer and what to write there, which one
-      # refusal lists beside every other.
-      class UnfinishedField
-        #: String
-        attr_reader :repair
-
-        #: (AnswerPlace, String, problem: String, repair: String) -> void
-        def initialize(place, name, problem:, repair:)
-          @place = place
-          @name = name
-          @problem = problem
-          @repair = repair
-          freeze
-        end
-
-        # Whose field it is, such as "Finding F1 reason".
-        #: () -> String
-        def to_s = "#{@place.subject} #{@name}"
-
-        # Its entry in the refusal's fields, as a malformed answer's are.
-        #: () -> Hash[String, String]
-        def field = { "pointer" => @place.pointer, "problem" => @problem }
-      end
-
-      # A text field the agent must write: the placeholder the correction template leaves in it, which an answer may
-      # not send back unchanged, and what to write instead; reassessment applies only to a fix.
-      class TextField
-        #: String
-        attr_reader :placeholder
-
-        #: (placeholder: String, repair: String) -> void
-        def initialize(placeholder:, repair:)
-          @placeholder = placeholder
-          @repair = repair
-          freeze
-        end
-
-        # The field named name, at place, when value leaves it empty, as the placeholder or as sample,
-        # the answer guide's illustration of this field for the disposition's action, if it gives one.
-        #: (untyped, AnswerPlace, String, sample: String?) -> UnfinishedField?
-        def left_in(value, place, name, sample:)
-          problem = if !AnswerText.new(value).written? then "must be a nonempty string"
-                    elsif value == @placeholder then "is the template's placeholder, unchanged"
-                    elsif value == sample then SAMPLE_UNCHANGED
-                    end
-          UnfinishedField.new(place, name, problem:, repair: @repair) if problem
-        end
-      end
-
-      # The problem with a field the agent gave back as the answer guide's sample.
-      SAMPLE_UNCHANGED = "is the answer guide's sample, unchanged" #: String
-
-      TEXT_FIELDS = {
-        "reason" => TextField.new(placeholder: "Why, and what remains",
-                                  repair: "Write why you chose this action and what remains."),
-        "reassessment" => TextField.new(placeholder: "fixed only: how the changed members now carry the " \
-                                                     "principle. Leave as printed otherwise",
-                                        repair: "Write how the changed members now carry the principle.")
-      }.freeze #: Hash[String, TextField]
-      # The placeholder in each field, which the template prints.
-      PLACEHOLDERS = TEXT_FIELDS.transform_values(&:placeholder).freeze #: Hash[String, String]
-      # What action takes, said where it is written when the correction's answer is printed with no answer guide
-      # beside it, as show-answer-check prints it. It is help, never an action, so it is left unchosen.
-      ACTION_PLACEHOLDER = "One of fixed, deferred, accepted or disagreed, each with a reason: fixed lists " \
-                           "changed_members for current text changes, optional removed_members for map removals, " \
-                           "and evidence and gives a reassessment; deferred gives recorded_at, " \
-                           "where the write-up is, and may give waits_on; any other action leaves changed_members, " \
-                           "evidence and reassessment as printed" #: String
-      # Every placeholder a correction's template prints: each text field's, and the action's.
-      TEMPLATE_PLACEHOLDERS = PLACEHOLDERS.merge("action" => ACTION_PLACEHOLDER).freeze #: Hash[String, String]
 
       # at is the disposition's place in the answer, such as /dispositions/0, which a refusal about its pointers names.
       # samples is the answer guide's disposition for each action, whose text illustrates each field.
@@ -167,7 +98,7 @@ module Principles
         action = @disposition["action"]
         return if ACTIONS.include?(action)
 
-        unchosen = action.nil? || action == ACTION_PLACEHOLDER
+        unchosen = action.nil? || DispositionPlaceholders::ACTION.left?(action)
         problem = unchosen ? "is not chosen" : "is #{action.inspect}, not one of the four"
         UnfinishedField.new(@place.child("action"), "action",
                             problem:, repair: "Set its action to one of fixed, deferred, accepted or disagreed.")
@@ -178,7 +109,8 @@ module Principles
       #: () -> Array[UnfinishedField]
       def unwritten_text
         action = @disposition["action"]
-        required = action == "fixed" ? TEXT_FIELDS : TEXT_FIELDS.slice("reason")
+        fields = DispositionPlaceholders::TEXT_FIELDS
+        required = action == "fixed" ? fields : fields.slice("reason")
         required.filter_map do |name, field|
           field.left_in(@disposition[name], @place.child(name), name, sample: @samples.dig(action, name))
         end
@@ -191,7 +123,8 @@ module Principles
         sample = @samples.dig(@disposition["action"], "waits_on")
         return unless sample && @disposition["waits_on"] == sample
 
-        UnfinishedField.new(@place.child("waits_on"), "waits_on", problem: SAMPLE_UNCHANGED, repair: WaitsOn::REPAIR)
+        UnfinishedField.new(@place.child("waits_on"), "waits_on", problem: DispositionTextField::SAMPLE_UNCHANGED,
+                                                                  repair: WaitsOn::REPAIR)
       end
 
       # A fix's claimed members, each of which must have changed. A fix may claim no member's text when it
@@ -216,7 +149,10 @@ module Principles
       end
 
       #: () -> FixOnlyFields
-      def fix_fields = FixOnlyFields.new(@disposition, left_reassessment: PLACEHOLDERS.fetch("reassessment"))
+      def fix_fields
+        FixOnlyFields.new(@disposition,
+                          left_reassessment: DispositionPlaceholders::TEXT_FIELDS.fetch("reassessment").placeholder)
+      end
 
       # Each piece of evidence, and where the finding is written up, located in the project.
       #: () -> void

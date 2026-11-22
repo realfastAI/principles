@@ -55,30 +55,46 @@ module Principles
         { "request_id" => request.request_id, named => request.whole_instruction(named), "wrote" => [] }
       end
 
-      # The part of this request --part names, printed alone under the request's id, so the agent need not read the
-      # whole request for it, the index with how to answer it, and one it leaves out for listing nothing as empty;
-      # refused when the request has no part by that name.
-      #: (String) -> Hash[String, untyped]
-      def part(name)
+      # The parts of this request each --part names, in the order given, printed together under the request's one
+      # id, so the agent need not read the whole request for them, the index with how to answer it, and one it leaves
+      # out for listing nothing as empty; the answer to fill bare, given alone, to save as it stands; refused when the
+      # request has no part by one of the names.
+      #: (Array[String]) -> Hash[String, untyped]
+      def part(names)
         request = asked
         parts = request.context_parts(texts: member_texts, optional: PartsToRead::OPTIONAL)
-        named = Models::PartNamed.new(name, principle_id: @id, printed: parts.printable, empty: parts.left_out).part
-        shown = { "request_id" => request.request_id, **parts.shown(named) }
-        shown = Views::PartsIndexResult.new(invocation).printed(shown, request) if named == Views::ContextParts::INDEX
-        shown.merge("wrote" => [])
+        named = names.map { named_in(parts, it) }
+        return parts.shown(Views::ContextParts::TEMPLATE) if named == [Views::ContextParts::TEMPLATE]
+
+        shown = named.reduce({ "request_id" => request.request_id }) { |all, name| all.merge(parts.shown(name)) }
+        answering(request, shown, named).merge("wrote" => [])
       end
 
-      # The slot of the answer to fill that --part names beside --as template, a member's as members/ID, printed alone
-      # under the request's id; refused when the template has no slot by that name.
-      #: (String) -> Hash[String, untyped]
-      def slot_to_fill(name)
+      # The slots of the answer to fill that each --part names beside --as template, a member's as members/ID, in the
+      # order given, printed together under the request's id; refused when the template has no slot by one name.
+      #: (Array[String]) -> Hash[String, untyped]
+      def slot_to_fill(names)
         request = asked
         slots = request.slots_to_fill
-        named = Models::PartNamed.new(name, principle_id: @id, printed: slots.keys, template: true).part
-        { "request_id" => request.request_id, "member_assessments" => [slots.fetch(named)], "wrote" => [] }
+        named = names.map { Models::PartNamed.new(it, principle_id: @id, printed: slots.keys, template: true).part }
+        { "request_id" => request.request_id, "member_assessments" => named.map { slots.fetch(it) }, "wrote" => [] }
       end
 
       private
+
+      # The part name names in parts, refused when the request neither prints it nor leaves it out as empty.
+      #: (Views::ContextParts, String) -> String
+      def named_in(parts, name)
+        Models::PartNamed.new(name, principle_id: @id, printed: parts.printable, empty: parts.left_out).part
+      end
+
+      # shown, the parts named printed from request, with how to answer the request when the index is among them.
+      #: (Views::AssessmentRequest, Hash[String, untyped], Array[String]) -> Hash[String, untyped]
+      def answering(request, shown, named)
+        return shown unless named.include?(Views::ContextParts::INDEX)
+
+        Views::PartsIndexResult.new(invocation).printed(shown, request)
+      end
 
       # The request and what it asks, listing the findings the last completed audit left to decide, under an id that
       # digests them and the revision of that audit's record, but not the findings other principles leave
@@ -116,7 +132,7 @@ module Principles
         Views::AssessedMembers.new(@listing.members,
                                    reviewed_check_placeholders: Models::ReportedCheck::PLACEHOLDERS.to_h,
                                    unchanged_check_placeholders: Models::ReportedCheck::UNCHANGED_PLACEHOLDERS.to_h,
-                                   assessment_placeholder: Models::MemberAssessments::PLACEHOLDER)
+                                   assessment_placeholder: Models::MemberAssessments::NAMED_PLACEHOLDER)
       end
 
       # Each member's lines now, by id, without their line endings, so its part carries the text it is judged on.

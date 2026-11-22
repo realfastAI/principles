@@ -74,7 +74,8 @@ module Principles
       # The part of the request --part names, or beside --as template the member's slot of the answer it names.
       #: (FullAuditRequest, Hash[String, untyped]) -> Hash[String, untyped]
       def full_part(full, options)
-        options["as"] ? full.slot_to_fill(options.fetch("part")) : full.part(options.fetch("part"))
+        parts = options.fetch("part")
+        options["as"] ? full.slot_to_fill(parts) : full.part(parts)
       end
 
       # id's committed record. With none, an id no map has is refused as show-principle refuses it, since

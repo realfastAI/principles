@@ -13,6 +13,17 @@ The agent's mechanics are the means, never the lead: do not open with "An agent 
 
 ## Unreleased
 
+## [0.0.11] - 2026-11-22
+
+### Changed
+
+- **An audit reads the parts of a request it needs in one call, with no script to stitch them together.** `principles start-audit ID --part A --part B` prints each part named, in the order given, under the request's one `request_id`, instead of one call per part, and beside `--as template` each member's slot named in one `member_assessments`. `--part response_template`, the bare answer to save as it stands, is refused beside another part.
+- **Checking a principle's changed members reads only what decides the next step, with no script to pull the fields out.** `principles list-member-problems [ID]` now gives each changed member's id, state, baseline and the command that clears it without the list of commits that changed it, one entry per commit; `--history` adds that list back when your agent needs it.
+- **A session start costs the same whether one principle's audited rules changed or several did.** When more than one principle has changed audited members, `principles report-at-session-start` prints one line counting them, with `principles list-member-problems --short` to list them, instead of a line per principle: 208 bytes for any number of principles, where four printed 747. A single principle's line is as before.
+- **A member named by its heading or passage alone is one command away from the right id, not a trip through `show-principle`.** When `change-member-role`, `change-member-check`, `remove-member-check`, `move-member` or `remove-member` is given text that exactly one mapped member's id ends with, after its `#` or `@`, the refusal names that id and starts its repair with the same command run on it. Nothing runs on the guess itself.
+- **Your agent fills a full audit's answer with its own file editor, with no script to unwrap or escape it.** `principles start-audit ID --part response_template` now prints the answer bare, ready to save and submit as it stands, and the request and its `--part index` say to save it to a file outside the project, fill it there with the agent's file-edit tool rather than a shell heredoc, and submit that file, naming the only three characters JSON escapes. The line adds about 420 bytes to each full-audit request. A correction's next step says the same of its dispositions, saved from `show-open-correction`, and an acknowledgement request, for one member, several or members across principles, now has a next step too, saving the answer `--as template` prints, and its refusals send the agent back to that saved answer rather than to the request.
+- **Each member's slot in a full audit's answer is its own, so a file editor's one-match replace fills one slot at a time.** Every judged member's assessment placeholder now names its member, and an answer that leaves any member's placeholder in a slot, its own or one pasted from another, is refused as left as printed. A correction's dispositions do the same, each one's action, reason and reassessment placeholders naming its finding, and so does each member's entry in an acknowledgement's answer.
+
 ## [0.0.10] - 2026-11-21
 
 ### Changed

@@ -3,6 +3,7 @@
 
 require_relative "command"
 require_relative "../models/acknowledgement"
+require_relative "../models/acknowledgement_placeholders"
 require_relative "../models/check_since_last_audit"
 require_relative "../models/list_member_problems_check"
 require_relative "../models/listed_members"
@@ -26,7 +27,7 @@ module Principles
       #: (Hash[String, untyped]?, ?Views::MemberChangeSinceBaseline?) -> Hash[String, untyped]
       def self.placeholders(check_result, change = nil)
         quotes = change&.first_changed_lines.to_h
-        { **Models::Acknowledgement.placeholders_beside(quotes),
+        { **Models::AcknowledgementPlaceholders.beside(quotes),
           **(check_result ? { "check_result" => check_result } : {}) }
       end
 
@@ -45,7 +46,7 @@ module Principles
         @base = @history.base_commit(principle_id, [@principles.file(principle_id), @member.path]) #: String?
         @acknowledgement = Models::Acknowledgement.new(
           principle_id:, member: @member, record: @audit_records.find(principle_id), base: @base,
-          now_sha256: @project.locate(@member.locator).fetch("sha256")
+          now_sha256: @project.located_text(@member.locator).sha256
         ) #: Models::Acknowledgement
       end
 
@@ -100,9 +101,8 @@ module Principles
       def check_template
         checks = Models::CheckSinceLastAudit.new(principle_history: principle_history(@id),
                                                  record: @audit_records.find(@id))
-        Views::OneMemberCheckResultTemplate.for(checks.entry(@member),
-                                                exit_status: Models::Acknowledgement::EXIT_STATUS_PLACEHOLDER,
-                                                own_listing: !own_listing.nil?)
+        exit_status = Models::AcknowledgementPlaceholders::EXIT_STATUS_PLACEHOLDER
+        Views::OneMemberCheckResultTemplate.for(checks.entry(@member), exit_status:, own_listing: !own_listing.nil?)
       end
 
       # The member's check read as this tool's own list-member-problems --short; nil for any other.

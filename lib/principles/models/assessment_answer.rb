@@ -32,14 +32,14 @@ module Principles
                              "\"observed\" and adds observation, and observed_at for one before this audit." #: String
 
       #: (untyped, PrincipleMembers, answered_at: String, ?judged_against: RecordJudgedAgainst?)
-      #|   { (Locator) -> Hash[String, untyped] } -> void
+      #|   { (Locator) -> LocatedText } -> void
       def initialize(response, members, answered_at:, judged_against: nil, &locate)
         @response = response
         @members = members
         @answered_at = answered_at
         @judged_against = judged_against
         @loads = judged_against&.loads #: LoadsToCheck?
-        @locate = locate #: ^(Locator) -> Hash[String, untyped]
+        @locate = locate #: ^(Locator) -> LocatedText
         @fields = AnswerFields.new(locate) #: AnswerFields
       end
 

@@ -68,7 +68,7 @@ module Principles
       #: (Hash[String, untyped]) -> Hash[String, untyped]
       def span(member)
         { "id" => Models::Member.new(member).id }
-          .merge(snapshot(Models::Member.new(member).locator).slice("first_line", "last_line"))
+          .merge(snapshot(Models::Member.new(member).locator).lines)
       end
 
       # Points an existing member at a new place (a narrower passage, a renamed heading, an anchor that was

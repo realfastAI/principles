@@ -88,7 +88,7 @@ module Principles
         mapping = @mapping
         return mapping.map_at_revision(commit, captured: @history.captured_head) if mapping
 
-        text = map_paths.lazy.filter_map { |path| @history.text_at(commit, path) }.first
+        text = map_paths.lazy.filter_map { |path| @history.at(commit).text(path) }.first
         @principles.parsed(@id, text.to_s, commit: commit)
       end
 
@@ -157,7 +157,7 @@ module Principles
         fields_at = [members_at(commit)&.fetch(key, nil), now_at].compact
         fields_at.uniq { |fields| Member.new(fields).reference }.map do |fields|
           Placement.new(commit: commit, reference: Member.new(fields).reference,
-                        sha256: @history.hashes_by_key_at(commit, [fields]).values.first)
+                        sha256: @history.at(commit).hashes_by_key([fields]).values.first)
         end
       end
 
@@ -175,7 +175,8 @@ module Principles
       #: (String, Hash[String, untyped], String) -> String?
       def hash_at(key, now_at, revision)
         fields = members_at(revision)&.fetch(key, nil) or return nil
-        @history.hashes_by_key_at(revision, [fields])[key] || @history.hashes_by_key_at(revision, [now_at])[key]
+        then_project = @history.at(revision)
+        then_project.hashes_by_key([fields])[key] || then_project.hashes_by_key([now_at])[key]
       end
 
       # Each member the map at commit holds, by key. Legacy unreadable maps give nil; certified proof failures

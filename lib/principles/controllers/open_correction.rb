@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require_relative "command"
-require_relative "../models/disposition"
+require_relative "../models/disposition_placeholders"
 require_relative "../models/open_correction"
 require_relative "../views/answer_head"
 require_relative "../views/correction_request"
@@ -34,8 +34,8 @@ module Principles
         kept = Models::OpenCorrection.kept(principle_id, @audit_records.find(principle_id),
                                            file: @audit_records.file(principle_id))
         head = Views::AnswerHead.new(request_id: kept.request_id, basis: kept.basis)
-        Views::CorrectionRequest.new(head:, principle_id:, findings: kept.findings,
-                                     placeholders: Models::Disposition::TEMPLATE_PLACEHOLDERS).correction_to_fill
+        placeholders = Models::DispositionPlaceholders::TEMPLATE_PLACEHOLDERS
+        Views::CorrectionRequest.new(head:, principle_id:, findings: kept.findings, placeholders:).correction_to_fill
       end
     end
   end

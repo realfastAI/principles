@@ -3,7 +3,7 @@
 
 require_relative "../error"
 require_relative "acknowledged_check"
-require_relative "acknowledgement_left_as_printed"
+require_relative "acknowledgement_placeholders"
 require_relative "acknowledgement_refusal"
 require_relative "acknowledgements"
 require_relative "request_id"
@@ -12,8 +12,6 @@ require_relative "member"
 require_relative "member_lines"
 require_relative "placement"
 require_relative "quoted_change"
-require_relative "reported_check"
-require_relative "template_placeholders"
 
 module Principles
   # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
@@ -23,30 +21,6 @@ module Principles
     # Refused outside git, for a member no completed audit assessed, and for an unchanged or checked member.
     class Acknowledgement
       PHASE = "acknowledgement"
-      # The text the answer's template prints in each field the agent judges, which an answer may not send back, so
-      # a template returned as printed acknowledges nothing. It prints no quotes, which an answer leaving them
-      # out reads as first_changed_lines. After a pure insertion, meaning_kept's says that an
-      # inserted line usually adds a rule, for an agent that reads the template alone.
-      PLACEHOLDERS = TemplatePlaceholders.new(
-        { "meaning_kept" => "true only if the member still says the same thing",
-          "reason" => "Why, in one line of your own" },
-        also_printed: { "meaning_kept" => "true only if the member still says the same thing; this change inserted " \
-                                          "a line, which usually adds a rule" }
-      ) #: TemplatePlaceholders
-      # The text a checked member's template prints where its check's exit status goes, short since the request's
-      # context says how to run the check.
-      EXIT_STATUS_PLACEHOLDER = ReportedCheck::EXIT_STATUS_PLACEHOLDER #: String
-      # The fields an answer may not send back as the template printed them, refused before its shape.
-      LEFT_AS_PRINTED = AcknowledgementLeftAsPrinted.new(
-        PLACEHOLDERS, exit_status: EXIT_STATUS_PLACEHOLDER
-      ) #: AcknowledgementLeftAsPrinted
-
-      # The placeholders the template prints beside quotes, its first_changed_lines.
-      #: (Hash[String, String]) -> Hash[String, untyped]
-      def self.placeholders_beside(quotes)
-        quotes["old_line"] == "" ? PLACEHOLDERS.with_other_text_in("meaning_kept") : PLACEHOLDERS.to_h
-      end
-
       # before holds the member's lines at its baseline commit, now its lines and hash at base, HEAD.
       #: (principle_id: String, member: Member, record: AuditRecord?, base: String?, now_sha256: String) -> void
       def initialize(principle_id:, member:, record:, base:, now_sha256:)

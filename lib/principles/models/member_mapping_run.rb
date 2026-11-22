@@ -19,7 +19,7 @@ module Principles
       #: (ProjectHistory) -> Hash[String, String]?
       def baseline(history)
         @entries.reverse_each do |sha, fields|
-          hash = history.hashes_by_key_at(sha, [fields])[@key] or next
+          hash = history.at(sha).hashes_by_key([fields])[@key] or next
 
           return { "commit" => sha, "sha256" => hash }
         end

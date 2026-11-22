@@ -9,12 +9,12 @@ module Principles
   class InvocationOptions
     # The options that take a value; --help, -h and --version take none.
     VALUE_OPTIONS = %w[project file description path section starting-at ending-at query role
-                       check session-start commits-after hook-event as instruction part].freeze #: Array[String]
+                       check session-start commits-after hook-event as instruction].freeze #: Array[String]
     # The options that take no value, as list-member-problems --short.
-    FLAG_OPTIONS = %w[short lines when-invoked always write-ups confirm open-findings].freeze #: Array[String]
+    FLAG_OPTIONS = %w[short lines when-invoked always write-ups confirm open-findings history].freeze #: Array[String]
     # The options that may be given more than once, each value kept in order, as change-activation --when-files and
-    # start-audit --member.
-    LIST_OPTIONS = %w[when-files also member].freeze #: Array[String]
+    # start-audit --member and --part.
+    LIST_OPTIONS = %w[when-files also member part].freeze #: Array[String]
     # The words that name an option taking the next word as its value.
     VALUE_WORDS = (VALUE_OPTIONS + LIST_OPTIONS).map { |name| "--#{name}" }.freeze #: Array[String]
     # Every word the parser reads as an option, which an option taking a value refuses as its value.

@@ -8,7 +8,6 @@ require_relative "../models/audit"
 require_relative "../models/carried_assessments"
 require_relative "../models/member"
 require_relative "../models/member_grounds"
-require_relative "../models/member_repair_moves"
 require_relative "../models/principle_history"
 require_relative "../models/members_sharing_lines"
 require_relative "../models/project"
@@ -17,8 +16,8 @@ require_relative "../models/record_judged_against"
 require_relative "../views/audit_result"
 require_relative "../views/lines_shared_with_member"
 require_relative "../views/map_result"
-require_relative "../views/member_repairs"
 require_relative "../views/record_waiting_on_an_upgrade"
+require_relative "broken_member_repairs"
 require_relative "running_tool"
 
 module Principles
@@ -76,33 +75,12 @@ module Principles
         refusal = (rerun ? e.rerun_with_near_miss(&rerun) : e).printing_commands do |command|
           invocation.listed_in_project(command.command, command.values, options: command.options, usage: command.usage)
         end
-        raise with_member_repairs(refusal).naming(invocation.prefix)
+        raise broken_member_repairs.beside(refusal).naming(invocation.prefix)
       end
 
-      # A broken_members refusal, with each member's own repair commands beside it as repair_with, since a
-      # model's repair can only name placeholders. Any other refusal is returned as it is.
-      #: (Error) -> Error
-      def with_member_repairs(error)
-        return error unless error.payload["code"] == "broken_members"
-
-        repairs = Views::MemberRepairs.new(invocation)
-        members = error.payload.fetch("members").map do |entry|
-          repaired({ "principle" => error.payload["principle"] }.compact.merge(entry), repairs)
-        end
-        error.including("members" => members)
-      end
-
-      # entry with repair_with, when it names a member its map still lists.
-      #: (Hash[String, untyped], Views::MemberRepairs) -> Hash[String, untyped]
-      def repaired(entry, repairs)
-        principle = entry["principle"] or return entry
-        id = entry["id"] or return entry
-        member = @principles.find(principle).member(id)
-        moves = Models::MemberRepairMoves.new(member, code: entry["code"], tracked_as: entry["tracked_as"]).to_a
-        entry.merge("repair_with" => repairs.commands(principle, id, moves))
-      rescue Error
-        entry
-      end
+      # The repairs this tool prints for members it cannot find, in this project's maps.
+      #: () -> BrokenMemberRepairs
+      def broken_member_repairs = BrokenMemberRepairs.new(@principles, invocation)
 
       #: (String) -> bot
       def unknown(command)
@@ -166,7 +144,7 @@ module Principles
 
       # Each member's hash at base, or nil outside git.
       #: (String?, Models::Principle) -> Hash[String, String]?
-      def committed(base, map) = base ? @history.hashes_at(base, map.members) : nil
+      def committed(base, map) = base ? @history.at(base).hashes(map.members) : nil
 
       # When each of the map's members loads, by id, which a full audit's request lists against the activation and
       # show-principle prints, from the project's hooks as hooks read them.
@@ -201,9 +179,9 @@ module Principles
       end
 
       # Where a member is in its file now, and the hash of what it says there.
-      #: (Models::Locator) -> Hash[String, untyped]
+      #: (Models::Locator) -> Models::LocatedText
       def snapshot(locator)
-        @project.locate(locator)
+        @project.located_text(locator)
       end
 
       # The members sharing a line with member where it is now, in map and in the other maps, as add-member and

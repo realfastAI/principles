@@ -4,6 +4,7 @@
 require_relative "assessment_request"
 require_relative "context_parts"
 require_relative "invocation"
+require_relative "answer_in_a_file"
 require_relative "shell_word"
 require_relative "trimmed_instructions_note"
 
@@ -21,18 +22,19 @@ module Principles
 
       # The index of request, with the note naming the instructions it prints only in part, the command that submits
       # its answer and, as the next step, reading each part, where skipping a carried member's is the agent's choice,
-      # then the one printing that answer to fill, which is too large to carry here, keeping each carried entry.
+      # then filling the answer the template part prints bare, which is too large to carry here, keeping each carried
+      # entry, in a file the agent edits with its own tool, since escaping prose for a shell took a script.
       #: (Hash[String, untyped], AssessmentRequest) -> Hash[String, untyped]
       def printed(index, request)
-        to_fill = @invocation.in_project("start-audit", request.principle_id,
-                                         options: ["--part", ContextParts::TEMPLATE])
+        request_id = index.fetch("request_id")
         read = "Run part_command with each part as printed; skipping a member marked carries_forward is fine, " \
                "unless you judge it again. --as template prints the same answer long, with each slot's help. " \
-               "Then fill in the answer this command prints"
+               "Then fill in the answer the response_template part prints"
+        fill = AnswerInAFile.new(@invocation).assessment(request.principle_id, request_id:)
         listed(index, request.principle_id)
           .merge(TrimmedInstructionsNote.new(request.trimmed_instruction_fields).to_h)
-          .merge("answer_with" => @invocation.submit_answer(index.fetch("request_id")),
-                 "next_action" => "#{read}, #{carried(request)}, and submit it with answer_with: #{to_fill}")
+          .merge("answer_with" => @invocation.submit_answer(request_id),
+                 "next_action" => "#{read}, #{carried(request)}. #{fill}")
       end
 
       private

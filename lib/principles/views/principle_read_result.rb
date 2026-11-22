@@ -25,7 +25,7 @@ module Principles
       # an audit would refuse, with its repair_with commands, from the moves repairs gives it.
       # hook_settings_not_read names each project settings file whose hooks this tool could not read.
       # loaded_files lists each file the members load once, with the total of those loading at session start.
-      #: (PrintedPrinciple, repairs: Hash[String, Array[Hash[String, untyped]]],
+      #: (PrintedPrinciple, repairs: Hash[String, Array[MemberRepairs::Move]],
       #|  ?hook_settings_not_read: Array[Hash[String, String]], ?loaded_files: Hash[String, untyped])
       #|  -> Hash[String, untyped]
       def shown(principle, repairs:, hook_settings_not_read: [], loaded_files: {})
@@ -87,7 +87,7 @@ module Principles
       end
 
       # member, with its repairs when repairs names it.
-      #: (String, Hash[String, untyped], Hash[String, Array[Hash[String, untyped]]]) -> Hash[String, untyped]
+      #: (String, Hash[String, untyped], Hash[String, Array[MemberRepairs::Move]]) -> Hash[String, untyped]
       def repaired(id, member, repairs)
         MemberRepairs.new(@invocation).beside(id, member, repairs[member.fetch("id")])
       end

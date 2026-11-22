@@ -12,13 +12,12 @@ match, so check it before you fill in `NEW_PATH`.
 
 Otherwise it lists each changed member with `since`: whether it was compared with the last audit (`audit`) or with
 the commit that mapped the member where it is (`mapping_commit`), and that commit, and `history`: the commits after
-which the member's own text differed, newest first, and `stopped_at`, which says where the walk back ended and why.
+which the member's own text differed, newest first, given with `--history`, and `stopped_at`: where the walk ended.
 It ends at the first commit whose text matches the baseline, so a fix an audit already took in is not listed. It
 follows a member that `move-member --path` moved to a renamed file. A merge is compared with its first parent. `uncommitted` says whether the text on disk differs from HEAD.
-`compared_with` counts each principle's members by baseline, `no_baseline` among them, and `counts` holds every
-state: `unchanged` for a member as its last audit or acknowledgement recorded it, `unchanged_since_mapping`
-for one compared only with the commit that mapped it, which no audit has assessed, and `no_baseline` for a member with
-no earlier text to compare with.
+`compared_with` counts each principle's members by baseline, `no_baseline` among them, and `counts` holds every state:
+`unchanged` for a member as its last audit or acknowledgement recorded it, `unchanged_since_mapping` for one compared
+only with the commit that mapped it, which no audit has assessed, and `no_baseline` for a member with no earlier text.
 `no_baseline_because` says why, for each principle with one: `outside_git`, where no completed audit assessed it,
 so a completed audit gives each one; or `not_committed`, where no commit holds the member where its map places it,
 so committing those of the map and the member's file that differ from HEAD or are untracked gives it one,
@@ -39,7 +38,7 @@ Run it after a commit that touches a mapped member's file, and at the start of a
 
 `--short` is for a git hook or a heartbeat that acts on an exit status and short lines alone. It prints one line per
 changed member on stdout, with these tab-separated fields: its principle, its id, the newest commit that changed it
-(or `uncommitted`), whose subject and earlier commits the JSON result's `history` gives, and what it was compared
+(or `uncommitted`), whose subject and earlier commits `--history` adds to the JSON result, and what it was compared
 with: `audit` when an audit or acknowledgement assessed its text, or `mapping_commit`
 when no audit has, so only the commit that mapped it gives a baseline, then `waiting_on_an_upgrade` for one compared
 with hashes a later copy wrote. Members compared with an audit come first. Control and invisible characters in a field
@@ -56,8 +55,8 @@ it, else run in the project it names once, and says when there are no maps, or m
 stdout would hide. A changed member stays listed until an audit takes it in: a notice, not a gate that blocks commits.
 For a post-commit hook, run: %{executable} list-member-problems --short || true
 A heartbeat can compare each line's commit with the last one it reported.
-`--short --session-start SOURCE`, for the session-start hook, prints instead a line for each principle with changed
-audited members, its count and, to run before the user's task, this command for that principle.
+`--short --session-start SOURCE`, for the session-start hook, prints one line instead: a changed principle's count
+and this command for it, to run before the user's task, or, for several, their count and `--short`, which lists them.
 
 `--commits-after COMMIT --hook-event EVENT` is for a Claude Code hook that runs after a Bash call, so a long session
 learns of a member it changed at the commit that changed it, not only at its next start. The plugin's after-commit
