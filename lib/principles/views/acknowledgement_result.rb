@@ -11,7 +11,7 @@ module Principles
   module Views
     # A one-member audit's request and its result.
     class AcknowledgementResult
-      # Where a placeholder names the member of the entry it prints in.
+      # Where a placeholder names the entry it prints in, by its position in the template's members, 1 the first.
       SLOT = "%<id>s" #: String
 
       #: (Invocation) -> void
@@ -43,7 +43,7 @@ module Principles
       def answer_to_fill(request_id:, asked:)
         member_id = asked.fetch(:change).member_id
         { "request_id" => request_id, "basis" => { "member_ids" => [member_id] },
-          "members" => { member_id => named(asked.fetch(:placeholders), member_id) } }
+          "members" => { member_id => named(asked.fetch(:placeholders), 1) } }
       end
 
       # The request for several members' acknowledgements in one answer: each of members holds a member's
@@ -66,7 +66,7 @@ module Principles
       #: (request_id: String, members: Array[Hash[Symbol, untyped]]) -> Hash[String, untyped]
       def several_to_fill(request_id:, members:)
         { "request_id" => request_id, "basis" => { "member_ids" => members.map { it.fetch(:change).member_id } },
-          "members" => members.to_h { named_entry(it) } }
+          "members" => members.each_with_index.to_h { |asked, index| named_entry(asked, index + 1) } }
       end
 
       # The request for the members several principles map in one answer: under context.principles, each
@@ -91,27 +91,34 @@ module Principles
       # print the same field.
       #: (request_id: String, principles: Hash[String, Array[Hash[Symbol, untyped]]]) -> Hash[String, untyped]
       def across_to_fill(request_id:, principles:)
-        entries = principles.values.flatten.each_with_object({}) do |asked, by_member|
-          id = asked.fetch(:change).member_id
-          by_member[id] = named(asked.fetch(:placeholders), id).merge(by_member.fetch(id, {}))
-        end
+        entries = across_entries(principles)
         { "request_id" => request_id, "basis" => { "principle_ids" => principles.keys, "member_ids" => entries.keys },
           "members" => entries }
       end
 
       private
 
-      # placeholders with each one's SLOT naming the member id, as its entry in the template prints them; any other
-      # text, a percent sign included, as it is.
-      #: (Hash[String, untyped], String) -> Hash[String, untyped]
-      def named(placeholders, id) = placeholders.transform_values { it.is_a?(String) ? it.gsub(SLOT, id) : it }
-
-      # The template's entry for the member asked asks about, by its id.
-      #: (Hash[Symbol, untyped]) -> [String, Hash[String, untyped]]
-      def named_entry(asked)
-        id = asked.fetch(:change).member_id
-        [id, named(asked.fetch(:placeholders), id)]
+      # One entry per member the principles' requests ask about, by its id, with every field any principle's template
+      # prints for it, the first principle's text where two print the same field, its placeholders naming its position.
+      #: (Hash[String, Array[Hash[Symbol, untyped]]]) -> Hash[String, Hash[String, untyped]]
+      def across_entries(principles)
+        ids = across_member_ids(principles)
+        principles.values.flatten.each_with_object({}) do |asked, by_member|
+          id = asked.fetch(:change).member_id
+          by_member[id] = named(asked.fetch(:placeholders), ids.index(id).to_i + 1).merge(by_member.fetch(id, {}))
+        end
       end
+
+      # placeholders with each one's SLOT naming the entry's position, as its entry in the template prints them; any
+      # other text, a percent sign included, as it is.
+      #: (Hash[String, untyped], Integer) -> Hash[String, untyped]
+      def named(placeholders, position)
+        placeholders.transform_values { it.is_a?(String) ? it.gsub(SLOT, position.to_s) : it }
+      end
+
+      # The template's entry for the member asked asks about, by its id, its placeholders naming its position.
+      #: (Hash[Symbol, untyped], Integer) -> [String, Hash[String, untyped]]
+      def named_entry(asked, position) = [asked.fetch(:change).member_id, named(asked.fetch(:placeholders), position)]
 
       # How to fill the answer to request_id, acknowledging member_ids of principle_ids: saved bare from
       # start-audit --as template to a file the agent edits.

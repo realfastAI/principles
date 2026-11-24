@@ -49,6 +49,15 @@ module Principles
       #: (String) -> bool
       def tracks?(path) = !@repository.inside? || @repository.untracked_including_ignored(through_links([path])).empty?
 
+      # The project's tmp/ folder, by its full path, when it is there and git ignores it, so an answer saved in it is
+      # never committed; nil otherwise, outside git too. Asked once for the command.
+      #: () -> String?
+      def ignored_tmp_folder
+        return @ignored_tmp_folder if defined?(@ignored_tmp_folder)
+
+        @ignored_tmp_folder = ("#{@files.root}/tmp" if @files.folder?("tmp") && @repository.ignores?("tmp/")) #: String?
+      end
+
       # Whether the project is in git, so it has a history at all.
       #: () -> bool
       def inside_git? = @repository.inside?

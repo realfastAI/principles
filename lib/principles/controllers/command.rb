@@ -94,10 +94,11 @@ module Principles
         controller.new(@project, tool: @tool, **)
       end
 
-      # The executable and project that printed commands name, built for each run and never stored.
+      # The executable and project that printed commands name, and the folder a printed answer is saved in, built for
+      # each run and never stored.
       #: () -> Views::Invocation
       def invocation
-        @tool.invocation(@project.root)
+        @tool.invocation(@project.root, answer_folder: @history.ignored_tmp_folder)
       end
 
       # Principle id as waiting on an upgrade, when a later copy wrote its record.

@@ -1,7 +1,7 @@
 Checks your answer, to the request its `request_id` or REQUEST_ID names, as `submit-answer` would; writes nothing.
 It prints the refusal `submit-answer` would give, such as a passage that matches twice, or `answer_acceptable`
 with the files submitting would write. Use it instead of searching the project yourself before you submit. Pass
-`--file FILE`, naming the answer written to a FILE outside the project; `--file -` reads it from stdin instead.
+`--file FILE`, naming the answer written to a FILE kept out of git; `--file -` reads it from stdin instead.
 Its `next_action` ends with `submit-answer`, giving the same `--file` value again.
 
 The same current-ID history checks apply to assessment/correction answers with a Git base. For their
@@ -36,8 +36,8 @@ is allowed when there is nowhere to point, and then `list-open-findings` prints 
 When a full audit's assessment has findings, `next_action` names the command that prints the correction's answer
 it leads to, `--as template`, with its `request_id` and the `basis` digests filled in, so you never copy them by
 hand; `show-open-correction ID` prints the same answer once the assessment is submitted. Redirect it to the file
-`next_action` names by its full path, outside the project, and fill only its `dispositions`: each `action` names the four actions
-and what each adds. Submit it after the assessment, as `next_action` says; the assessment writes the open record the
+`next_action` names by its full path, kept out of git, and fill only its `dispositions`: each `action` names the four actions,
+and the answer guide shows what each adds. Submit it after the assessment, as `next_action` says; the assessment writes the open record the
 correction is checked against. `--as template` refuses with `no_correction_to_fill` an answer that leads to none.
 
 `correction_recovery` says to keep a copy of the assessment you submit, or for `--file -` its exact stdin bytes,

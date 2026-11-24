@@ -1,5 +1,5 @@
 Gives your answer, filled from its template, to the request its `request_id` names; a REQUEST_ID you give must
-match. Pass a JSON FILE outside the project with `--file FILE`; `--file -` reads stdin. This tool writes audit records
+match. Pass a JSON FILE kept out of git with `--file FILE`; `--file -` reads stdin. This tool writes audit records
 at `.principles/audits/ID.json`, never member guidance. In a full audit, make each fix after the assessment is accepted
 and before you submit the correction that reports it; earlier fixes cause `stale_request` before an assessment's shape
 check. A completed full audit or acknowledgement after an assessment/correction request causes

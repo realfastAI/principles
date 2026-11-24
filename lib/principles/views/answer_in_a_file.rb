@@ -9,7 +9,7 @@ require_relative "shell_word"
 module Principles
   # What this tool prints, from plain values a controller hands it. views/CLAUDE.md owns the boundary.
   module Views
-    # How to fill an answer this tool prints bare: save it to a file outside the project, named in full, fill it
+    # How to fill an answer this tool prints bare: save it to a file kept out of git, named in full, fill it
     # there with the agent's own file-edit tool, and submit that file, with the three characters JSON escapes.
     # Filling a template in a shell heredoc took a script, since prose full of quotes needed escaping for the shell
     # and for JSON.

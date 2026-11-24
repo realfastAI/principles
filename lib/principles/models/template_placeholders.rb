@@ -16,20 +16,21 @@ module Principles
 
       # placeholders is the text printed in each field, by field name, or for a field that takes pointers, one pointer
       # whose fields hold that text, so the template shows their shape; empty_lists names the fields a template
-      # may instead start as an empty list, which is not given either; also_printed, the other text a template
-      # may print in a field, refused alike. A NamedPlaceholder in either prints with its slot, which the view fills
-      # with the id of the entry it prints in, and is left as printed for any id.
-      #: (Hash[String, untyped], ?empty_lists: Array[String], ?also_printed: Hash[String, untyped]) -> void
+      # may instead start as an empty list, which is not given either; also_printed, the other texts a template
+      # may print in a field, each by a name saying when, refused alike. A NamedPlaceholder in either prints with its
+      # slot, which the view fills with the id of the entry it prints in, and is left as printed for any id.
+      #: (Hash[String, untyped], ?empty_lists: Array[String], ?also_printed: Hash[String, Hash[Symbol, untyped]])
+      #|  -> void
       def initialize(placeholders, empty_lists: [], also_printed: {})
         @placeholders = placeholders.freeze #: Hash[String, untyped]
         @empty_lists = empty_lists.freeze #: Array[String]
-        @also_printed = also_printed.freeze #: Hash[String, untyped]
+        @also_printed = also_printed.freeze #: Hash[String, Hash[Symbol, untyped]]
         freeze
       end
 
-      # The text printed in each field, with field's other text in place of its own.
-      #: (String) -> Hash[String, untyped]
-      def with_other_text_in(field) = to_h.merge(field => shown(@also_printed.fetch(field)))
+      # The text printed in each field, with field's other text named name in place of its own.
+      #: (String, Symbol) -> Hash[String, untyped]
+      def with_other_text_in(field, name) = to_h.merge(field => shown(@also_printed.fetch(field).fetch(name)))
 
       # Each placeholder printed in its own field naming its entry's id; a field's other text is printed only by
       # some of its requests, so another template leaving it is not read as this one's.
@@ -73,7 +74,7 @@ module Principles
       # Whether value is a text the template prints in field.
       #: (String, untyped) -> bool
       def printed?(field, value)
-        [@placeholders[field], @also_printed[field]].compact.any? do |printed|
+        [@placeholders[field], *@also_printed.fetch(field, {}).values].compact.any? do |printed|
           printed.is_a?(NamedPlaceholder) ? printed.left?(value) : printed == value
         end
       end

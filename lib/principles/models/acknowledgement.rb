@@ -61,6 +61,16 @@ module Principles
       #: (Placement) -> Array[String]
       def paths_since(baseline) = baseline.paths_to(@member.path)
 
+      # Whether the member's file at the base commit holds the text its file held at baseline, so a change to the
+      # member is a change to its span alone, as after move-member --ending-at.
+      #: (Placement, Project) -> bool
+      def file_unchanged_since?(baseline, project)
+        base = @base or return false
+
+        then_text = project.history.at(baseline.commit).text(baseline.reference.fetch("path"))
+        !then_text.nil? && then_text == project.history.at(base).text(@member.path)
+      end
+
       # The commit the member was last judged at, when baseline is later than it, as when the member's own full
       # audit fixed it after its base.
       #: (Placement) -> String?

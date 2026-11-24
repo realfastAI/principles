@@ -109,6 +109,11 @@ module Principles
       #: (Array[String]) -> Array[String]
       def untracked_excluding_ignored(paths) = @changes.untracked_excluding_ignored(paths)
 
+      # Whether git ignores path, relative to the project, a folder ending in "/"; false outside git. check-ignore
+      # refuses literal pathspecs, and reads each path as a name, never a glob, without them.
+      #: (String) -> bool
+      def ignores?(path) = git(["--no-literal-pathspecs", "check-ignore", "-q", "--", path]).last
+
       # Which of paths, relative to the project, git does not track, ignored or not.
       #: (Array[String]) -> Array[String]
       def untracked_including_ignored(paths) = @changes.untracked_including_ignored(paths)

@@ -22,12 +22,13 @@ module Principles
     # template prints, and the record with the acknowledgement in it once the answer holds.
     class MemberAcknowledgement < Command
       # The text the template prints in each field the agent writes: its judgement's placeholders, meaning_kept's
-      # chosen by whether the change's first_changed_lines is a pure insertion, and check_result's for a
-      # checked member. The quotes the answer reads as first_changed_lines when left out are not printed.
-      #: (Hash[String, untyped]?, ?Views::MemberChangeSinceBaseline?) -> Hash[String, untyped]
-      def self.placeholders(check_result, change = nil)
+      # chosen by whether the change's first_changed_lines is a pure insertion and file_unchanged, whether the
+      # member's file text is as at its baseline, and check_result's for a checked member. The quotes the answer
+      # reads as first_changed_lines when left out are not printed.
+      #: (Hash[String, untyped]?, ?Views::MemberChangeSinceBaseline?, ?file_unchanged: bool) -> Hash[String, untyped]
+      def self.placeholders(check_result, change = nil, file_unchanged: false)
         quotes = change&.first_changed_lines.to_h
-        { **Models::AcknowledgementPlaceholders.beside(quotes),
+        { **Models::AcknowledgementPlaceholders.beside(quotes, file_unchanged:),
           **(check_result ? { "check_result" => check_result } : {}) }
       end
 
@@ -57,13 +58,11 @@ module Principles
       def asked
         baseline, lines = since_baseline
         check = check_template
-        change = Views::MemberChangeSinceBaseline.new(
-          member: shown(baseline), member_lines: lines.shown(taken: bytes_of(check)),
-          first_changed_lines: @acknowledgement.first_changed_lines(lines), commits: commits(baseline),
-          read_the_change: read_the_change(baseline)
-        )
+        change = change_since(baseline, lines, check)
         { change:, context: { **@acknowledgement.open_findings, **instruction_for(check) },
-          placeholders: MemberAcknowledgement.placeholders(check&.to_h, change) }
+          placeholders: MemberAcknowledgement.placeholders(
+            check&.to_h, change, file_unchanged: @acknowledgement.file_unchanged_since?(baseline, @project)
+          ) }
       end
 
       # The record with the acknowledgement in it, once its quotes are found at the baseline and now, made to into
@@ -78,6 +77,17 @@ module Principles
       end
 
       private
+
+      # The member's change since baseline as the request shows it, its lines giving up the bytes check takes.
+      #: (Models::Placement, Models::MemberLines, Views::OneMemberCheckResultTemplate?)
+      #|  -> Views::MemberChangeSinceBaseline
+      def change_since(baseline, lines, check)
+        Views::MemberChangeSinceBaseline.new(
+          member: shown(baseline), member_lines: lines.shown(taken: bytes_of(check)),
+          first_changed_lines: @acknowledgement.first_changed_lines(lines), commits: commits(baseline),
+          read_the_change: read_the_change(baseline)
+        )
+      end
 
       # What the member's check lists now beside the members the answer acknowledges, when the check is this
       # tool's own list-member-problems --short; nil for any other check.

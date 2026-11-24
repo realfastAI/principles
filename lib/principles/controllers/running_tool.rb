@@ -72,10 +72,12 @@ module Principles
       # The executable and project that this run's printed commands name, for the project at root. A command line run
       # printed as the bare principles, from root itself, leaves out --project, since a command copied from its
       # output runs there too; any other run names the project, as the plugin's hooks and a checkout's commands may
-      # be run from elsewhere.
-      #: (String) -> Views::Invocation
-      def invocation(root)
-        Views::Invocation.new(executable: executable, project: root, temp_directory: @folders.temp_directory,
+      # be run from elsewhere. answer_folder is the project's own folder for a printed answer, when it has one, which
+      # every answer file is saved in rather than the temporary folder.
+      #: (String, ?answer_folder: String?) -> Views::Invocation
+      def invocation(root, answer_folder: nil)
+        Views::Invocation.new(executable: executable, project: root,
+                              temp_directory: answer_folder || @folders.temp_directory,
                               named: !bare_from_path? || root != @folders.cwd)
       end
 

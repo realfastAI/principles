@@ -13,6 +13,18 @@ The agent's mechanics are the means, never the lead: do not open with "An agent 
 
 ## Unreleased
 
+## [0.1.3] - 2026-11-24
+
+### Changed
+
+- **Answer files land in the project's own ignored scratch folder when it has one, not a system temporary folder the agent may not be able to reach or find again.** When the project has a `tmp/` folder that git ignores, every answer file a printed next step names, from `principles start-audit`, `principles submit-answer` and `principles show-first-audit-brief`, is in it, where each named a system temporary folder; a project with no ignored `tmp/` keeps the temporary folder. The steps now say the file is kept out of git rather than outside the project, and the first-audit brief says to keep it at the one path named and nowhere else.
+- **Choosing a finding's action in a correction means replacing a few words, not a long sentence.** Each disposition's `action` in the correction's answer, as `principles show-open-correction` and `principles show-answer-check --as template` print it, now reads "For F1: fixed, deferred, accepted or disagreed", and the answer guide `principles submit-answer` prints with the correction shows what each action adds. Each finding's action takes 57 bytes instead of 373, so a one-finding correction template takes 721 bytes instead of 1,037. An answer still holding an earlier release's long placeholder is refused as unchosen, as before.
+- **Acknowledging several edited members fills each slot with a file-edit tool, with no script.** In `principles start-audit ID --member MEMBER --member MEMBER --as template`, each member's placeholders now name its entry by position, such as "M2: true only if it still says the same thing" and "M2: why, in one line of your own", where each repeated the member's full id, long and often holding quotes, that an edit had to quote exactly; the id stays the entry's key. A four-member template with long ids takes 1,104 bytes instead of 1,608. An answer still holding a placeholder, as this or an earlier release printed it, is refused as unanswered, as before.
+
+### Fixed
+
+- **A member widened over lines its file already held is no longer described as an edit that inserted a line.** After `principles move-member --ending-at` stretches a member over existing text, `principles start-audit ID --member MEMBER` now says in the template that the member's span grew over lines its file already held, which may add a rule, where it said the change inserted a line though the file's text had not changed.
+
 ## [0.1.2] - 2026-11-24
 
 ### Added

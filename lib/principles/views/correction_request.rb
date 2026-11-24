@@ -76,7 +76,7 @@ module Principles
         assessment_id = acceptable.fetch("request_id")
         file = invocation.answer_file(request_id)
         save = "Once this answer is submitted with the last line's command, save the correction's answer it leads " \
-               "to in a file outside the project, at this full path, the same from every shell, from this command's " \
+               "to in a file kept out of git, at this full path, the same from every shell, from this command's " \
                "output: #{alone(assessment_id, answer_file, invocation)} > #{ShellWord.new(file)}\nFill only its " \
                "dispositions, and submit it: #{invocation.submit_answer(request_id, file:)}"
         acceptable.merge("correction_recovery" => recovery(invocation),

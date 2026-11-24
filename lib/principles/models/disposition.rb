@@ -98,7 +98,7 @@ module Principles
         action = @disposition["action"]
         return if ACTIONS.include?(action)
 
-        unchosen = action.nil? || DispositionPlaceholders::ACTION.left?(action)
+        unchosen = action.nil? || DispositionPlaceholders.action_left?(action)
         problem = unchosen ? "is not chosen" : "is #{action.inspect}, not one of the four"
         UnfinishedField.new(@place.child("action"), "action",
                             problem:, repair: "Set its action to one of fixed, deferred, accepted or disagreed.")

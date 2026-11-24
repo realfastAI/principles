@@ -16,7 +16,8 @@ module Principles
       attr_reader :project
 
       # named says whether each command names the project; without_project leaves it out. temp_directory is the
-      # temporary folder the running tool was given, where a printed next step saves an answer.
+      # folder a printed next step saves an answer in: the project's ignored tmp/ when it has one, else the temporary
+      # folder the running tool was given.
       #: (executable: String, project: String, temp_directory: String, ?named: bool) -> void
       def initialize(executable:, project:, temp_directory:, named: true)
         @executable = executable
@@ -59,8 +60,8 @@ module Principles
         in_project("submit-answer", request_id, options: ["--file", file])
       end
 
-      # The file to save the answer name names in, a request id or a principle id, by its full path in the temporary
-      # folder, so every shell that runs the printed commands names the same file: a sandboxed and an unsandboxed one
+      # The file to save the answer name names in, a request id or a principle id, by its full path in temp_directory,
+      # so every shell that runs the printed commands names the same file: a sandboxed and an unsandboxed one
       # read $TMPDIR as different folders.
       #: (String) -> String
       def answer_file(name) = "#{@temp_directory.chomp("/")}/principles-#{name}-answer.json"
