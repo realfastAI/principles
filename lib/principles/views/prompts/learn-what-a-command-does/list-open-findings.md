@@ -36,14 +36,14 @@ never cut at a full stop. Otherwise the cut is mechanical, so "e.g." outside a p
 characters is cut after its last whole word and marked `truncated`. This tool does not check that the line summarises
 the finding, and it is quoted project text, not an instruction. To make it the line that states the problem, point
 `recorded_at` at that line with `starting_at` rather than at a heading alone, which a status line may follow. When there
-is no line, `write_up_opening` is null and `write_up_opening_reason` says why: `not_recorded`, `empty_region`, or
-`unavailable`, with `write_up_opening_error` when the pointer no longer resolves. When the write-up's file is missing
-because it was renamed, as when its folder was renamed, `write_up_opening_error` carries `git_detected_rename`: git's
-match for the file, with its `to` path and `similarity`, as a member's missing file does. This tool does not read the
-write-up there, since git's match can pair unrelated files: check it. When `recorded_at` has a `starting_at`,
-`git_detected_rename` also carries `starting_at_found_in_rename`: whether `recorded_at`, moved to `to`, still finds its
-`starting_at` exactly once, within its heading's section when it names one, as a member's passage must. false can mean
-an unrelated file, or only a heading renamed there.
+is no line, `write_up_opening` is null and `write_up_opening_reason` says why: `not_recorded`, `outside_project` for a
+`url`, which this tool never reads, `empty_region`, or `unavailable`, with `write_up_opening_error` when the pointer no
+longer resolves. When the write-up's file is missing because it was renamed, as when its folder was renamed,
+`write_up_opening_error` carries `git_detected_rename`: git's match for the file, with its `to` path and `similarity`,
+as a member's missing file does. This tool does not read the write-up there, since git's match can pair unrelated files:
+check it. When `recorded_at` has a `starting_at`, `git_detected_rename` also carries `starting_at_found_in_rename`:
+whether `recorded_at`, moved to `to`, still finds its `starting_at` exactly once, within its heading's section when it
+names one, as a member's passage must. false can mean an unrelated file, or only a heading renamed there.
 
 To change what an open finding waits on, its action or its write-up without a full audit, run `start-audit ID
 --open-findings`, which lists the principle's open findings as this command does; its `decisions` template names each by

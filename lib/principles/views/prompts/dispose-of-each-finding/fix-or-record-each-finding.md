@@ -1,12 +1,13 @@
 Address each finding with an authorised edit, or record it as deferred, accepted or disagreed. The
 template leaves each `action` as a placeholder: set it to fixed, deferred, accepted or disagreed for each finding. A
-fixed finding needs an actual change to its members, evidence and a reassessment. Replace each placeholder the
-template gives a `reason` or a fix's `reassessment` with your own words, and do not copy an `answer_guide`
-sample into the field it illustrates, `waits_on` included; either one sent back unchanged is refused. Keep the project's
+fixed finding needs an actual change to its members, evidence and a reassessment. Replace the placeholder the
+template gives each `reason` with your own words, write a `reassessment` only on a fix, where it prints null,
+and do not copy an `answer_guide` sample into the field it illustrates, `waits_on` included; either one sent
+back unchanged is refused. Keep the project's
 owner-approval process; this tool edits nothing. The audit record keeps each finding's members, its
 `problem` as you stated it, its disposition and your reason, and `list-open-findings` prints the reason. So when you write a finding up somewhere the project keeps, such as a ticket
 or a notes file, set its `recorded_at` to that place, as `{"path": ..., "heading": ...}` or with
-`starting_at`, and the record keeps the pointer. When the write-up is outside the project, such as an issue or a tracker comment, leave `recorded_at` null and give its link in the `reason`. Leave it null when there is nowhere to point. `list-open-findings` prints the first non-blank line where `recorded_at` points, so open a write-up with one line saying what the finding is. Point with `starting_at` at the line that states the problem, rather than at a heading alone, since a heading is often followed by a status line or is shared by several findings.
+`starting_at`, and the record keeps the pointer. When the write-up is outside the project, such as an issue or a tracker comment, set `recorded_at` to `{"url": "https://..."}`, its whole link alone; this tool never reads it, so `list-open-findings` prints no opening for it. Leave it null when there is nowhere to point. `list-open-findings` prints the first non-blank line where `recorded_at` points, so open a write-up with one line saying what the finding is. Point with `starting_at` at the line that states the problem, rather than at a heading alone, since a heading is often followed by a status line or is shared by several findings.
 When a deferral waits on someone, set its `waits_on` to one line saying whom it waits on and to decide what, such as
 "<person>, to approve a CI change", and keep the reason in the write-up. Leave it null when it waits on no one in
 particular. Only a deferral may give one, and this tool records when it was asked.

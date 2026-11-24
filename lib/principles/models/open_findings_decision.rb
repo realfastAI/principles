@@ -110,13 +110,14 @@ module Principles
                         "Give each finding one decision.")
       end
 
-      # The decision at index, its new recorded_at, when it gives one, located and committed.
+      # The decision at index, its new recorded_at, when it gives one, located and committed, or checked as a link.
       #: (Hash[String, untyped], Integer, AnswerFields) -> FindingDecision
       def decision_at(decision, index, fields)
         place = AnswerPlace.new("/decisions/#{index}", "Finding #{decision["finding_id"]}")
         reference = decision["recorded_at"]
         pointer = fields.write_up_pointer(reference, place.child("recorded_at")) if reference
-        @history.refuse_uncommitted_write_up(pointer.path) if pointer
+        file = pointer&.file
+        @history.refuse_uncommitted_write_up(file) if file
         FindingDecision.new(decision, place, principle_id: @principle_id, recorded_at: pointer)
       end
     end

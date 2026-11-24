@@ -55,7 +55,7 @@ module Principles
           { "finding_id" => finding["id"], "action" => named.fetch("action"),
             "reason" => named.fetch("reason"), "changed_members" => [], "removed_members" => [],
             "evidence" => [],
-            "reassessment" => named.fetch("reassessment"), "recorded_at" => nil, "waits_on" => nil }
+            "reassessment" => nil, "recorded_at" => nil, "waits_on" => nil }
         end)
       end
 

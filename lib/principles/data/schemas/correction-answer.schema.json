@@ -181,21 +181,25 @@
           "recorded_at": {
             "x-type-refusal-advice": {
               "keys": [
+                "path",
+                "url",
                 "heading",
-                "starting_at"
+                "starting_at",
+                "ending_at",
+                "query"
               ],
-              "says": "plus starting_at (or heading) when the file holds more than this finding"
+              "says": "with path, plus starting_at (or heading) when the file holds more than this finding, or with url alone, a whole https link, for a write-up outside the project such as an issue"
             },
             "type": [
               "object",
               "null"
             ],
-            "required": [
-              "path"
-            ],
             "additionalProperties": false,
             "properties": {
               "path": {
+                "type": "string"
+              },
+              "url": {
                 "type": "string"
               },
               "heading": {
@@ -231,7 +235,8 @@
             }
           },
           "reassessment": {
-            "type": "string"
+            "type": ["string", "null"],
+            "description": "How a fix's changed members now carry the principle: the template prints null, which any other action keeps or omits, and Models::Disposition refuses on a fix."
           },
           "waits_on": {
             "type": ["string", "null"],

@@ -13,6 +13,24 @@ The agent's mechanics are the means, never the lead: do not open with "An agent 
 
 ## Unreleased
 
+## [0.1.2] - 2026-11-24
+
+### Added
+
+- **A full audit now asks whether each rule its principle states is enforced, and whether each enforced rule is written down.** `principles start-audit ID` asks the agent to judge from the members' roles and text whether a check, hook or CI step enforces each rule, and to raise either gap as a finding, where a map holding only statements often went unremarked. It adds about 180 bytes to each full audit's request, and members judged at the last audit still carry their assessments forward.
+
+- **Looping over the mapped principles takes no script.** `principles list-principles --lines` prints each principle's id alone, one per line, ready for a shell loop, where an agent pulled the ids out of the JSON listing with a script of its own.
+
+### Changed
+
+- **A release needs its publisher only to type the RubyGems one-time code.** `bundle exec rake release:prepare` does everything slow: the gate, the tag, the public copy, and the gem built and checked. Then `bundle exec rake release:publish OTP=<code>` uploads the gem the moment the code arrives. After that it pushes, publishes the plugin through a merged pull request and commits the next patch, where nine closing commands were once run by hand. A stopped step resumes on a rerun, and a refused or expired code uploads nothing. **Breaking:** `RELEASE=1 bundle exec rake release` no longer publishes; `bundle exec rake release` is the dry run.
+
+### Fixed
+
+- **A finding written up in an issue is pointed at by its link, with no stub file in the project.** A deferral's `recorded_at` in `principles submit-answer`, from a correction, a full audit's kept finding or `start-audit ID --open-findings`, now takes `{"url": "https://..."}`, where a link was refused. A link that is not a whole https one is refused with how to give one. `principles list-open-findings` reads nothing at the link, and never reports it lost. A record holding a link can be read only by this release or later: an older copy refuses it as newer, so leave it as it is.
+- **A deferred, accepted or disagreed finding is no longer refused for a reassessment its template invited.** The correction's answer, as `principles show-open-correction` prints it, now leaves each `reassessment` null, which only a fix replaces, where it printed a sentence that any other action had to send back word for word.
+- **A first audit run in the background knows where its answer file may not go, even in a worktree inside the repository's own folders.** The brief that `principles show-first-audit-brief ID` prints now names the project's root as the place no answer file may go, where it said only "never in the project".
+
 ## [0.1.1] - 2026-11-24
 
 ### Changed

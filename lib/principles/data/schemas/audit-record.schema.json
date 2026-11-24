@@ -268,9 +268,10 @@
           "waits_on_since": { "type": "string", "minLength": 1, "description": "When an earlier audit asked waits_on, carried since. Absent means this record's audited_at; only principles writes it." },
           "recorded_at": {
             "type": "object",
-            "required": ["path"],
+            "description": "A file in the project, by path and optionally a place inside it, or a write-up outside the project by url alone.",
             "properties": {
               "path": { "type": "string", "minLength": 1 },
+              "url": { "type": "string", "minLength": 1 },
               "heading": { "type": "string" },
               "starting_at": { "type": "string" },
               "ending_at": { "type": "string" },

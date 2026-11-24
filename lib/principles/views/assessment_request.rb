@@ -25,7 +25,8 @@ module Principles
       OPEN_FINDINGS_ELSEWHERE = "Where an entry names `open_finding_ids`" #: String
 
       # The question every member's assessment answers, which a completed record digests with the description:
-      # the whole question, what observed means too, however much of it a request prints.
+      # the whole question, what observed means too, however much of it a request prints, but not whether each rule
+      # is enforced, which only the set's assessment answers.
       #: () -> String
       def self.question = question_paragraphs.join(" ")
 
@@ -146,11 +147,14 @@ module Principles
          carried_forward_instruction, mapped_elsewhere_instruction, AssessmentAnswerGuide.new(@members).instruction]
       end
 
-      # The question, defining observed only when a member is judged afresh, whose delivery it guides.
+      # The question, defining observed only when a member is judged afresh, whose delivery it guides, then whether
+      # each rule is enforced, which the set's assessment answers afresh at every audit. A record digests the question
+      # without it, so asking it still carries forward each member's last assessment, which never answered it.
       #: () -> Instruction
       def question
         assess, observed = AssessmentRequest.question_paragraphs
-        Instruction.new("question", [[assess, true], [observed, @members.judged_afresh?]])
+        enforced = Prompts.text("assess-every-member/ask-whether-each-rule-is-enforced")
+        Instruction.new("question", [[assess, true], [observed, @members.judged_afresh?], [enforced, true]])
       end
 
       # Why each member with judge_because is judged afresh, explaining only the values the members carry, so the

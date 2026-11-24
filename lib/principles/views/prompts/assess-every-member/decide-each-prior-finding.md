@@ -4,7 +4,7 @@ carries its `problem` as that audit stated it, its members under their ids now, 
 member is `current`, `changed` or `removed` since that audit. Read its write-up where `recorded_at` points when
 there is one. A finding marked `text_not_kept` has no statement; judge it from its members.
 
-Decide `still_holds` to keep it. Give `recorded_at` to point at a new write-up, and `problem`, one line, when the
+Decide `still_holds` to keep it. Give `recorded_at` to point at a new write-up, as `{"url": "https://..."}` when it is outside the project, and `problem`, one line, when the
 finding is marked `text_not_kept` or to restate its problem when a term in it was renamed or a fact it names moved,
 since a different problem is a new finding; the record keeps its `first_raised_at`, so leave that field out unless an
 earlier record held the same finding; to claim that, read this field whole.

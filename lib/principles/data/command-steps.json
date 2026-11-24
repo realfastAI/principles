@@ -60,12 +60,12 @@
       ]
     },
     {
-      "name": "list-principles", "usage": "list-principles [--open-findings]", "group": "read", "options": ["open-findings"],
+      "name": "list-principles", "usage": "list-principles [--open-findings | --lines]", "group": "read", "options": ["open-findings", "lines"],
       "summary": "Every mapped principle and whether its members are current.",
       "help": "learn-what-a-command-does/list-principles",
       "steps": [
         { "id": "count-members-by-freshness", "actor": "cli",
-          "does": "Reads every map and the audit record of each, and counts its members as current, changed, unassessed, locator_lost or unavailable. With --open-findings, adds each principle's open findings, one line each, saying whom it waits on, or that it is accepted, and how many days it has been open.",
+          "does": "Reads every map and the audit record of each, and counts its members as current, changed, unassessed, locator_lost or unavailable. With --open-findings, adds each principle's open findings, one line each, saying whom it waits on, or that it is accepted, and how many days it has been open. With --lines, prints each principle's id alone, one per line, and reads no map.",
           "refuses_like": ["read-map", "read-audit"] }
       ]
     },

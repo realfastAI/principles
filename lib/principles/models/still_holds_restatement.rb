@@ -41,7 +41,7 @@ module Principles
         problem if @decision.key?("problem")
         return unless @decision["recorded_at"]
 
-        AnswerFields.new(locate).pointer(@decision["recorded_at"], @place.child("recorded_at"))
+        AnswerFields.new(locate).write_up_pointer(@decision["recorded_at"], @place.child("recorded_at"))
       end
 
       private

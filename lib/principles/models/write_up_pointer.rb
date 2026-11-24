@@ -7,9 +7,9 @@ module Principles
   # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # Where a finding is written up, as its record's recorded_at keeps it: a path, with a heading or a starting_at
-    # inside it. It holds that place as the Locator the hash it was read from gives, which keeps its keys, nulls
-    # and order, since the record's bytes and each digest over them depend on it; two pointers are the same when
-    # those hashes hold the same keys and values, in any order.
+    # inside it, or a url outside the project, such as an issue's. It holds that place as the Locator the hash it was
+    # read from gives, which keeps its keys, nulls and order, since the record's bytes and each digest over them
+    # depend on it; two pointers are the same when those hashes hold the same keys and values, in any order.
     class WriteUpPointer
       #: (Hash[String, untyped]) -> void
       def initialize(fields)
@@ -17,7 +17,15 @@ module Principles
         freeze
       end
 
-      # The file the write-up is in.
+      # The link to a write-up outside the project, which this tool never reads, or nil for one in a file here.
+      #: () -> String?
+      def url = @locator.to_h["url"]
+
+      # The project file it points into, which an audit commits and its record cites, or nil at a url.
+      #: () -> String?
+      def file = url ? nil : path
+
+      # The file the write-up is in, for a pointer with no url.
       #: () -> String
       def path = @locator.path
 

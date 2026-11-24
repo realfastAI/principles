@@ -27,6 +27,7 @@ module Principles
         { "principle" => id,
           "brief" => Prompts.text("run-a-first-audit-in-the-background/follow-the-brief",
                                   id: id, answer_file: ShellWord.new(@invocation.answer_file(id)).to_s,
+                                  project_root: @invocation.project,
                                   index: @invocation.in_project("start-audit", id, options: ["--part", "index"]),
                                   template: @invocation.in_project("start-audit", id, options: ["--as", "template"])),
           "wrote" => [] }

@@ -20,10 +20,12 @@ module Principles
       # rewrite, add the next format here, set by hand to the release that commit ships in, and name the field in
       # FIELD_FORMATS, so only a record carrying it moves up.
       # Add its row to prompts/docs/AUDIT_RECORD_FORMAT_HISTORY.md too.
-      FIRST_RELEASES = { 1 => "0.0.4", 2 => "0.0.8", 3 => "0.1.0" }.freeze #: Hash[Integer, String]
+      FIRST_RELEASES = { 1 => "0.0.4", 2 => "0.0.8", 3 => "0.1.0", 4 => "0.1.2" }.freeze #: Hash[Integer, String]
       # The format each later field needs, by its path of property names: the open record's correction, which
-      # show-open-correction prints again, and a finding's changes since its audit, which the next full audit shows.
-      FIELD_FORMATS = { "correction" => 2, "findings.changed_since_audit" => 3 }.freeze #: Hash[String, Integer]
+      # show-open-correction prints again, a finding's changes since its audit, which the next full audit shows, and a
+      # write-up at a URL, which an older copy's schema refuses as broken for its missing path.
+      FIELD_FORMATS = { "correction" => 2, "findings.changed_since_audit" => 3,
+                        "findings.recorded_at.url" => 4 }.freeze #: Hash[String, Integer]
       # The newest format this copy writes and rewrites without losing a field; formats count up from 1.
       NEWEST = FIRST_RELEASES.size #: Integer
       FIELDS = %w[format format_first_release].freeze

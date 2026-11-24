@@ -25,7 +25,8 @@ module Principles
         "waits_on" => "One line, on a deferred finding only: whom it now waits on and to decide what. Or null, " \
                       "even on a deferred finding, to drop it.",
         "action" => "deferred or accepted, as when the owner rules; its reason becomes the finding's own.",
-        "recorded_at" => "Where its write-up is now, in a committed file: {\"path\": ..., \"heading\": ...}, or null.",
+        "recorded_at" => "Where its write-up is now, in a committed file: {\"path\": ..., \"heading\": ...}; outside " \
+                         "the project, such as an issue: {\"url\": \"https://...\"}; or null.",
         "reason" => "One line saying why, required with any change. A field left out keeps its value; " \
                     "decision_fields may be kept or deleted."
       }.freeze #: Hash[String, String]

@@ -51,9 +51,9 @@ module Principles
       #: () -> Array[String]
       def changed_members = @disposition.fetch("changed_members", [])
 
-      # The file where the finding is written up, if anywhere.
+      # The project file where the finding is written up, if anywhere; none for a write-up at a url.
       #: () -> String?
-      def recorded_path = recorded_at&.path
+      def recorded_path = recorded_at&.file
 
       # What the audit record keeps of this disposition beside its finding: the action, and why a finding left
       # unfixed was left so, which a fix's reassessment answers instead; where the finding is written up and
@@ -154,12 +154,13 @@ module Principles
                           left_reassessment: DispositionPlaceholders::TEXT_FIELDS.fetch("reassessment").placeholder)
       end
 
-      # Each piece of evidence, and where the finding is written up, located in the project.
+      # Each piece of evidence located in the project, and where the finding is written up, there or at a link.
       #: () -> void
       def locate_pointers
         fix_fields.check_removal_evidence if fixed?
         @fields.evidence(fix_fields.list("evidence"), @place.child("evidence"))
-        @fields.pointer(@disposition["recorded_at"], @place.child("recorded_at")) if @disposition["recorded_at"]
+        recorded_at = @disposition["recorded_at"]
+        @fields.write_up_pointer(recorded_at, @place.child("recorded_at")) if recorded_at
       end
 
       # A deferral must say where it is written up, or null, so an answer reused from before recorded_at existed

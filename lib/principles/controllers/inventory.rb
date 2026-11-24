@@ -17,7 +17,7 @@ module Principles
       def call(command, id, options)
         naming_the_executable do
           case command
-          when "list-principles" then listing(open_findings: options["open_findings"]).merge("wrote" => [])
+          when "list-principles" then listed(options)
           when "show-principle" then members(required_id(id)).merge("wrote" => [])
           else unknown(command)
           end
@@ -96,6 +96,14 @@ module Principles
       #: () -> Views::PrincipleReadResult
       def read_result
         Views::PrincipleReadResult.new(invocation)
+      end
+
+      # list-principles as options ask: each id on a line with --lines, else the rows as JSON.
+      #: (Hash[String, untyped]) -> untyped
+      def listed(options)
+        return read_result.ids(@principles.ids) if options["lines"]
+
+        listing(open_findings: options["open_findings"]).merge("wrote" => [])
       end
 
       # Its next_action offers an audit while one principle's audits do not wait on an upgrade; a map listed with its

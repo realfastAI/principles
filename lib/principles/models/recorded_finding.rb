@@ -58,9 +58,9 @@ module Principles
       #: () -> bool
       def evidence_kept? = !evidence.nil?
 
-      # The path of each file it points at: its evidence and its write-up.
+      # The path of each file it points at: its evidence and its write-up, unless that is at a url.
       #: () -> Array[String]
-      def cited_paths = [*evidence&.map { it.fetch("path") }, recorded_at&.path].compact.uniq
+      def cited_paths = [*evidence&.map { it.fetch("path") }, recorded_at&.file].compact.uniq
 
       # The commit whose record an audit cited for an earlier first_raised_at, when one did.
       #: () -> String?

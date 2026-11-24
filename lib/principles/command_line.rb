@@ -6,6 +6,7 @@ require_relative "invocation_options"
 require_relative "after_commit_hook_options"
 require_relative "session_start_options"
 require_relative "list_open_findings_options"
+require_relative "list_principles_options"
 require_relative "start_audit_options"
 require_relative "models/command_steps"
 require_relative "prose_list"
@@ -160,13 +161,15 @@ module Principles
     end
 
     # Options checked together, each set owning what is wrong with it as given: --session-start, the
-    # after-commit hook's pair on the command it runs, the audit start-audit begins and the form
-    # list-open-findings prints; the first fault is refused.
+    # after-commit hook's pair on the command it runs, the audit start-audit begins and the forms
+    # list-open-findings and list-principles print; the first fault is refused.
     #: (String) -> void
     def check_combined_options(name)
       hook = (AfterCommitHookOptions.new(@options) if name == AfterCommitHookOptions::COMMAND)
+      principles = (ListPrinciplesOptions.new(@options) if name == ListPrinciplesOptions::COMMAND)
       start_audit = StartAuditOptions.new(@options, several_ids: several_ids?(name))
-      sets = [SessionStartOptions.new(@options), hook, start_audit, ListOpenFindingsOptions.new(@options)].compact
+      sets = [SessionStartOptions.new(@options), hook, start_audit, ListOpenFindingsOptions.new(@options),
+              principles].compact
       fault = sets.filter_map(&:fault).first or return
       raise UsageRefusal.new(fault, help_repair(name))
     end

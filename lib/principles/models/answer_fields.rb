@@ -13,6 +13,12 @@ module Principles
     # The checks every answer's fields share: a field is a nonempty string or an array, and each piece of
     # evidence names a path that the caller's block locates in the project.
     class AnswerFields
+      # A whole https link: a host, then anything but whitespace.
+      LINK = %r{\Ahttps://[^\s/?#]+\S*\z}
+      LINK_REPAIR = "Give recorded_at as {\"url\": \"https://...\"}, the whole link to where it is written up, " \
+                    "such as an issue, with no other field; or as {\"path\": ..., \"heading\": ...} for a file in " \
+                    "the project."
+
       #: (^(Locator) -> void) -> void
       def initialize(locate)
         @locate = locate
@@ -56,11 +62,24 @@ module Principles
         end
       end
 
-      # Where a finding is written up, located at its place in the answer, as the value its record keeps.
+      # Where a finding is written up, located at its place in the answer, as the value its record keeps: a place in a
+      # project file, or a link outside the project, which is checked as a link and read nowhere.
       #: (untyped, AnswerPlace) -> WriteUpPointer
       def write_up_pointer(reference, place)
-        pointer(reference, place)
+        reference.key?("url") ? link(reference, place.child("url")) : pointer(reference, place)
         WriteUpPointer.new(reference)
+      end
+
+      private
+
+      # A write-up's url: a whole https link with a host and no space, given alone.
+      #: (Hash[String, untyped], AnswerPlace) -> void
+      def link(reference, place)
+        url = reference["url"]
+        return if reference.size == 1 && url.is_a?(String) && url.match?(LINK)
+
+        raise place.refusal(Error.new("invalid_answer", "recorded_at's url must be a whole https link, given alone",
+                                      LINK_REPAIR))
       end
     end
   end

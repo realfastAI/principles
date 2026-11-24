@@ -62,8 +62,14 @@ module Principles
 
       # pointer's write_up_opening, or null with the reason: not_recorded, empty_region, or unavailable with the
       # refusal, so one pointer that no longer resolves never refuses the whole list.
+      # A url's is null as outside_project, since this tool reads nothing outside the project.
       #: (WriteUpPointer?) -> Hash[String, untyped]
-      def opening_fields(pointer) = pointer ? opening_found(pointer) : none("not_recorded")
+      def opening_fields(pointer)
+        return none("not_recorded") unless pointer
+        return none("outside_project") if pointer.url
+
+        opening_found(pointer)
+      end
 
       # The write_up_opening pointer leads to, or null with why: empty_region, or unavailable with the refusal.
       #: (WriteUpPointer) -> Hash[String, untyped]
@@ -74,10 +80,10 @@ module Principles
         none("unavailable").merge("write_up_opening_error" => unavailable(e.payload, pointer))
       end
 
-      # Whether a recorded pointer no longer resolves in the project's file now.
+      # Whether a recorded pointer no longer resolves in the project's file now; a url names no file here to lose.
       #: (WriteUpPointer?) -> bool
       def unresolved?(pointer)
-        return false unless pointer
+        return false if pointer.nil? || pointer.url
 
         pointer.opening_in(@project)
         false

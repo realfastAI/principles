@@ -44,6 +44,11 @@ module Principles
         { "principles" => entries, "next_action" => listed_next_action(entries, waiting, one_to_audit).join("\n") }
       end
 
+      # list-principles --lines: each mapped principle's id on a line of its own, for a shell loop; nothing when none
+      # is mapped.
+      #: (Array[String]) -> Lines
+      def ids(ids) = Lines.new(stdout: ids.map { "#{it}\n" }.join, stderr: "", status: 0)
+
       # Each of list-principles' entries with its principle's open findings, a line each, for --open-findings. open
       # maps each principle id to its findings' plain fields, as list-open-findings --lines takes them.
       #: (Array[Hash[String, untyped]], Hash[String, Array[Hash[String, untyped]]]) -> Array[Hash[String, untyped]]
