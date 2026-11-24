@@ -13,14 +13,25 @@ module Principles
     # each state.
     class ProblemReport
       # What list-member-problems reports for map id, or every map, listing a map it cannot read among them, with the
-      # project's history, which lets each missing file carry the rename git detects for it.
+      # project's history, which lets each missing file carry the rename git detects for it. Every map's history is
+      # read in one walk of git's, not one each.
       #: (Project, String?) -> ProblemReport
       def self.for(project, id)
         maps = if id then [MemberProblems.for(project, id)]
-               else project.principles.ids.map { MemberProblems.for(project, it, listing_all: true) }
+               else every_map(project)
                end
         new(maps, history: project.history)
       end
+
+      # Each map's problems, its history read ahead at the files PrincipleHistory walks for a map, under the folder's
+      # name now and its earlier one.
+      #: (Project) -> Array[MemberProblems]
+      def self.every_map(project)
+        ids = project.principles.ids
+        project.history.read_ahead(ids.map { [project.principles.file(it), project.principles.earlier_file(it)] })
+        ids.map { MemberProblems.for(project, it, listing_all: true) }
+      end
+      private_class_method :every_map
 
       # history, when given, lets each missing file carry the rename git detects for it.
       #: (Array[MemberProblems], ?history: ProjectHistory?) -> void

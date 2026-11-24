@@ -111,18 +111,24 @@ module Principles
         "To add a member to an existing principle: #{add}\nTo map a distinct principle: #{create}"
       end
 
-      # The survey, leaving out files possibly test data, and when outlines were cut or left out how to read them, then
-      # one item per list to ask the owner about after the table.
+      # The survey and how rules group into principles, leaving out files possibly test data, and when outlines were cut
+      # or left out how to read them, then what to ask after the table, in order: the choice, where else guidance is
+      # kept, and the owner about each list that names a file.
       #: (Found, survey: String, choice: String) -> String
       def principle_question(found, survey:, choice:)
         owner_asks = found.owner_asks
-        asks = owner_asks.map { |key, paths| "- #{owner_ask(key, named: inline(paths))}" }
-        [survey, *left_out_of_the_survey(owner_asks),
-         *budget_notes(found),
-         choice,
-         Prompts.text("find-a-principle-to-map/ask-about-other-guidance-search-paths"),
-         *([Prompts.text("find-a-principle-to-map/ask-the-owner-after-the-table"), *asks].join("\n") if asks.any?)]
-          .join("\n\n")
+        owner = Prompts.text("find-a-principle-to-map/ask-the-owner")
+        asks = [choice, Prompts.text("find-a-principle-to-map/ask-about-other-guidance-search-paths"),
+                *owner_asks.map { |key, paths| "#{owner} #{owner_ask(key, named: inline(paths))}" }]
+        [survey, Prompts.text("find-a-principle-to-map/group-rules-into-principles"),
+         *left_out_of_the_survey(owner_asks), *budget_notes(found), in_order(asks)].join("\n\n")
+      end
+
+      # asks as one numbered list, after the line saying to ask them in that order once the table is shown.
+      #: (Array[String]) -> String
+      def in_order(asks)
+        [Prompts.text("find-a-principle-to-map/ask-in-this-order-after-the-table"),
+         *asks.each_with_index.map { |ask, index| "#{index + 1}. #{ask}" }].join("\n")
       end
 
       # How to read what the budget cut: a cut section back by its lines, and a file whose outline was left out.

@@ -4,6 +4,8 @@
 require_relative "git_command"
 require_relative "verified_head"
 require_relative "first_parent_log"
+require_relative "working_tree_changes"
+require_relative "committed_texts"
 
 module Principles
   # Every file and process this tool reads or writes. data/CLAUDE.md owns the boundary.
@@ -24,8 +26,9 @@ module Principles
       def initialize(root)
         @root = root
         @git = GitCommand.new(root) #: GitCommand
-        @texts = {} #: Hash[[String, String], String?]
+        @texts = CommittedTexts.new(root, ->(name) { show(name) }) #: CommittedTexts
         @log = FirstParentLog.new(@git) #: FirstParentLog
+        @changes = WorkingTreeChanges.new(@git) #: WorkingTreeChanges
       end
 
       # A strict permission snapshot; legacy best-effort readers keep their existing behavior.
@@ -100,34 +103,15 @@ module Principles
       # Which of paths, relative to the project, are untracked or ignored, or differ from HEAD in the index
       # or the working tree. Before the first commit, every path does.
       #: (Array[String]) -> Array[String]
-      def uncommitted(paths)
-        return [] if paths.empty?
-        return paths.uniq.sort unless head
+      def uncommitted(paths) = @changes.uncommitted(paths, committed: !head.nil?)
 
-        changed, = git(["diff", "--name-only", "--relative", "-z", "HEAD", "--", *paths])
-        untracked, = git(["ls-files", "--others", "-z", "--", *paths])
-        (changed.split("\0") + untracked.split("\0")).uniq.sort
-      end
-
-      # Which of paths, relative to the project, git does not track and does not ignore. Before the first
-      # commit, every path not staged is one.
+      # Which of paths, relative to the project, git does not track and does not ignore.
       #: (Array[String]) -> Array[String]
-      def untracked_excluding_ignored(paths)
-        return [] if paths.empty?
+      def untracked_excluding_ignored(paths) = @changes.untracked_excluding_ignored(paths)
 
-        output, = git(["ls-files", "--others", "--exclude-standard", "-z", "--", *paths])
-        output.split("\0").sort
-      end
-
-      # Which of paths, relative to the project, git does not track, ignored or not. Unlike
-      # untracked_excluding_ignored, it names an ignored file too, since git holds it no more than an untracked one.
+      # Which of paths, relative to the project, git does not track, ignored or not.
       #: (Array[String]) -> Array[String]
-      def untracked_including_ignored(paths)
-        return [] if paths.empty?
-
-        output, = git(["ls-files", "--others", "-z", "--", *paths])
-        output.split("\0").sort
-      end
+      def untracked_including_ignored(paths) = @changes.untracked_including_ignored(paths)
 
       # Every path in the project git tracks, as git spells it, sorted, so a path a disk that folds case opens under
       # another spelling can be told apart; none outside git.
@@ -137,16 +121,10 @@ module Principles
         ok ? output.force_encoding("UTF-8").split("\0").sort : []
       end
 
-      # Every file in the project that differs from HEAD, is gone since it, or is untracked, sorted. Unlike
-      # uncommitted, it leaves ignored files out: it is asked about the whole project, where an ignored file is
-      # one the owner chose to keep out of git, while uncommitted is asked about named members, which an audit
-      # needs committed. Before the first commit, every file not ignored is one.
+      # Every file in the project that differs from HEAD, is gone since it, or is untracked, ignored ones aside,
+      # sorted.
       #: () -> Array[String]
-      def changed_files
-        changed, = head ? git(["diff", "--name-only", "--relative", "-z", "HEAD"]) : [""]
-        untracked, = git(["ls-files", "--others", "--exclude-standard", "-z"])
-        (changed.split("\0") + untracked.split("\0")).uniq.sort
-      end
+      def changed_files = @changes.changed_files(committed: !head.nil?)
 
       # path's text at commit, frozen, or nil when the commit does not hold it. Text at a full sha never changes, so
       # git is asked for it once; HEAD moves with each commit, so it is asked every time.
@@ -154,7 +132,7 @@ module Principles
       def text_at(commit, path)
         return read_text_at(commit, path) unless FULL_SHA.match?(commit)
 
-        @texts[[commit, path]] ||= read_text_at(commit, path)
+        @texts.text(name_at(commit, path))
       end
 
       # The commits after commit, up to HEAD, that changed any of paths, newest first, each as its short sha and
@@ -181,11 +159,25 @@ module Principles
         @log.touching(range, paths, kept: [since || up_to, up_to].all? { FULL_SHA.match?(it) })
       end
 
+      # Reads the commits on up_to's first-parent line, up_to a full sha, touching each of path_sets in one git log,
+      # so commits_touching asks git no more for any of them up to it. Any other up_to is not kept, so nothing is read.
+      #: (Array[Array[String]], up_to: String) -> void
+      def read_ahead(path_sets, up_to:)
+        @log.read_ahead(revision(up_to), path_sets) if FULL_SHA.match?(up_to) && !path_sets.empty?
+      end
+
       private
 
       #: (String, String) -> String?
-      def read_text_at(commit, path)
-        text, ok = git(["show", "--end-of-options", "#{revision(commit)}:./#{path}"])
+      def read_text_at(commit, path) = show(name_at(commit, path))
+
+      # How git names path, relative to the project, at commit.
+      #: (String, String) -> String
+      def name_at(commit, path) = "#{revision(commit)}:./#{path}"
+
+      #: (String) -> String?
+      def show(name)
+        text, ok = git(["show", "--end-of-options", name])
         ok ? text.force_encoding("UTF-8").freeze : nil
       end
 

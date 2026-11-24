@@ -11,10 +11,11 @@ plugin updates.
 
 ## How to think about it
 
-- A principle is one rule the project's guidance holds in several scattered places: instruction files and their
-  sections, skills, hooks, settings and checks. Each place is a member.
-- A map, in `.principles/maps/`, names a principle's members. An audit judges whether they still agree, and its
-  record, in `.principles/audits/`, says what was found.
+- A principle is one operating intent, carried in several scattered places: instruction files and their sections,
+  skills, hooks, settings and checks. Each place is a member, with a role; a rule is what a member states or checks.
+- A map, in `.principles/maps/`, names a principle's members and roles. A full audit judges whether they still
+  agree; an acknowledgement checks one edit that kept a member's meaning. An audit's record, in `.principles/audits/`,
+  keeps each finding, a problem found, with its disposition, the decision on it.
 - `principles` holds that state and asks you to judge. Each result says what to do next, in its `question`,
   `answer_with` and `next_action`: follow them rather than planning the workflow yourself.
 
@@ -35,13 +36,13 @@ it, not only the one you were pointed at. Copy this checklist and work it:
 Run `principles list-principles` from the project's root, and follow its `next_action`. With nothing mapped, it
 leads you to survey the project's principles for the user first. To find principles in new guidance or a recent
 change when maps already exist, take the survey route it prints, with --commits-after REV for a committed range.
-Show the table before asking anything; compare its rules with the existing maps before creating distinct ones.
+Show the table before asking anything; compare its principles with the existing maps before creating distinct ones.
 Extend an existing principle with add-member, or create a distinct map and add its members, then audit each new
-map. Compare maps sharing a file so related facets are not split into competing rules. The CLI asks you to judge
+map. Compare maps sharing a file so related facets are not split into competing principles. The CLI asks you to judge
 these relationships; a valid map alone does not establish them.
 
 To reshape existing maps, inspect their members with `principles show-principle ID`. Use change-description,
-add-member and remove-member to consolidate or split the rules you judge belong together, then audit the
+add-member and remove-member to consolidate or split the members you judge belong together, then audit the
 resulting maps. Remove an obsolete map with `principles remove-principle ID`. If its current audit entry
 protects it, use `--confirm` only after deciding to deactivate that exact map in routine reports. Removal
 preserves member files and audit history; retained findings remain unresolved. A readable retained record

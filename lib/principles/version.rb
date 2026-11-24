@@ -3,9 +3,9 @@
 
 module Principles
   # The next production release, as major.minor.patch. A production build is versioned with this alone.
-  RELEASE = "0.1.0"
+  RELEASE = "0.1.1"
   # The version a built gem prints. `rake build[production]` stamps RELEASE here, in the copy of lib/ it
   # packages, and `rake build[development]` stamps RELEASE.g<short sha>. A checkout leaves it nil, and
   # Data::RunningVersion reads the commit this tool runs from instead.
-  BUILT_VERSION = "0.1.0" #: String?
+  BUILT_VERSION = "0.1.1" #: String?
 end

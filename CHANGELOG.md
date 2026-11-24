@@ -13,6 +13,13 @@ The agent's mechanics are the means, never the lead: do not open with "An agent 
 
 ## Unreleased
 
+## [0.1.1] - 2026-11-24
+
+### Changed
+
+- **A session starts about four times faster in a project with a long history.** `principles report-at-session-start`, which the session-start hook runs, and `principles list-member-problems` now read the files at each commit through one git process and every map's history in one walk, where they started a git process for each. On a project of 5,235 commits and 14 principles, each took about 3.4 s and now takes under 0.9 s, with the same output.
+- **A first survey proposes principles, not one map per rule, and its follow-up questions come one at a time.** `principles list-candidate-files` now asks the agent to group rules under the intent they serve, split a hub file such as a CI workflow by passage, pair a rule with what enforces it, and map a lone rule as a member rather than a principle. What it asks after the table is a numbered list, the first offering to map every principle at once. The `/principles` skill defines a principle, member, rule, map, audit and finding in the same words.
+
 ## [0.1.0] - 2026-11-23
 
 ### Added

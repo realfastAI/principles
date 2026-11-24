@@ -151,6 +151,14 @@ module Principles
         @repository.commits_touching(through_links(paths), since: since, up_to: head || "HEAD")
       end
 
+      # Reads the commits on head's first-parent line touching each of path_sets, and the links and files they lead
+      # through, in one git log, so commits_touching asks git no more for any of them. Nothing outside git.
+      #: (Array[Array[String]]) -> void
+      def read_ahead(path_sets)
+        up_to = head or return
+        @repository.read_ahead(path_sets.map { through_links(it) }, up_to: up_to)
+      end
+
       # The commits after commit, up to HEAD, that one move of HEAD brought in, whatever they changed.
       #: (String) -> CommitsBroughtIn
       def commits_brought_in(commit)
