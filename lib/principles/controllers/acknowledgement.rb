@@ -10,6 +10,7 @@ require_relative "../models/acknowledgement_placeholders"
 require_relative "../models/reported_check"
 require_relative "../views/acknowledged_result"
 require_relative "../views/acknowledgement_result"
+require_relative "../views/acknowledgement_template_alone"
 
 module Principles
   # Each runs one command: reads models, applies their rules and prints through a view.
@@ -23,8 +24,9 @@ module Principles
       def start(id, member_id)
         naming_the_executable(rerun: one_member_audit(id)) do
           member = of(id, member_id)
-          view.request(request_id: member.acknowledgement.request_id.to_s, principle_id: id, asked: member.asked)
-              .merge("wrote" => [])
+          request_id = member.acknowledgement.request_id
+          view.request(request_id: request_id.to_s, principle_id: id, asked: member.asked,
+                       answer_file: answer_file(request_id)).merge("wrote" => [])
         end
       end
 
@@ -33,7 +35,10 @@ module Principles
       def to_fill(id, member_id)
         naming_the_executable(rerun: one_member_audit(id)) do
           member = of(id, member_id)
-          view.answer_to_fill(request_id: member.acknowledgement.request_id.to_s, asked: member.asked)
+          asked = member.asked
+          request_id = member.acknowledgement.request_id
+          alone.of(view.answer_to_fill(request_id: request_id.to_s, asked:), [asked],
+                   answer_file: answer_file(request_id))
         end
       end
 
@@ -43,7 +48,8 @@ module Principles
       def answered(submitted)
         id = submitted.request_id.principle_id
         member = answering(submitted)
-        [accepted_view.acknowledged(principle_id: id, member_id: member.member.id, file: @audit_records.file(id)),
+        [accepted_view.acknowledged(principle_id: id, member_id: member.member.id, file: @audit_records.file(id),
+                                    open_findings: member.acknowledgement.open_finding_ids),
          [accepted(member, submitted.response)]]
       end
 
@@ -112,6 +118,15 @@ module Principles
       def view
         Views::AcknowledgementResult.new(invocation)
       end
+
+      # The file the answer to request_id is saved in, named by the principle the id names and "acknowledgement",
+      # whatever the member count, so the path does not change with the phase, acknowledgement or acknowledgements.
+      #: (Models::RequestId) -> String
+      def answer_file(request_id) = invocation.answer_file(request_id.principle_id, "acknowledgement")
+
+      # The view of the answer to fill as the template printed alone gives it.
+      #: () -> Views::AcknowledgementTemplateAlone
+      def alone = Views::AcknowledgementTemplateAlone.new(invocation)
 
       # The view of an accepted answer.
       #: () -> Views::AcknowledgedResult

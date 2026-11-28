@@ -19,6 +19,11 @@ module Principles
       TEXT_CHECK = "Lines are not text: where two share a first or last line, a passage can start or end partway " \
                    "through it, so check the text there before deciding which edit reaches which member. " #: String
 
+      # What an edit to this member reaches when one of them spans all of its lines.
+      SPANNING = "Every edit to this member's text is an edit to each marked spans_these_lines too. " #: String
+      # What an edit to one of them reaches when it lies within this member's lines.
+      WITHIN = "Every edit to the text of each marked within_these_lines is an edit to this member's too. " #: String
+
       # text_check says whether a member holding another's lines is not a whole file, so the text needs checking.
       #: (?overlaps: Array[String], ?same_lines_as: Array[String], ?mapped_elsewhere: Array[Hash[String, untyped]],
       #|  ?text_check: bool) -> void
@@ -60,33 +65,22 @@ module Principles
           "share changes each. #{spans_note}Check that this member's role fits beside the roles they give it there. "
       end
 
-      # Which of them span all of this member's lines and which lie within them, so the agent can work out which
-      # member an edit reaches. Lines are not text, so the agent checks where they share a first or last line.
+      # What an edit reaches where some of them are marked spans_these_lines or within_these_lines, said once by the
+      # mark, since mapped_elsewhere names each; one sentence per entry made a whole-file member's result 9.4 KB.
+      # Lines are not text, so the agent checks where they share a first or last line.
       #: () -> String
       def spans_note
-        spans = @mapped_elsewhere.filter_map do |each|
-          if each["spans_these_lines"] then spanning(each)
-          elsif each["within_these_lines"] then within(each)
-          end
-        end
-        "#{spans.join}#{TEXT_CHECK if @text_check && spans.any?}"
+        spans = marked?("spans_these_lines")
+        within = marked?("within_these_lines")
+        return "" unless spans || within
+
+        "#{SPANNING if spans}#{WITHIN if within}An edit outside the shared lines reaches only the member it is in. " \
+          "#{TEXT_CHECK if @text_check}"
       end
 
-      # One that spans all of this member's lines: an edit to this member reaches it, and one outside them only it.
-      #: (Hash[String, untyped]) -> String
-      def spanning(each)
-        id = "`#{each.fetch("member_id")}`"
-        "#{id} in #{each.fetch("principle_id")} spans all of this member's lines, so every edit to this member's " \
-          "text is an edit to it too, and an edit outside the shared lines reaches only #{id}. "
-      end
-
-      # One within this member's lines: an edit to it reaches this member, and one outside them only this member.
-      #: (Hash[String, untyped]) -> String
-      def within(each)
-        "`#{each.fetch("member_id")}` in #{each.fetch("principle_id")} lies within this member's lines, so every " \
-          "edit to its text is an edit to this member's too, and an edit outside the shared lines reaches only " \
-          "this member. "
-      end
+      # Whether any of them carries this mark.
+      #: (String) -> bool
+      def marked?(mark) = @mapped_elsewhere.any? { |each| each[mark] }
 
       # Equal lines are not equal text, as a passage can end within its last line, so the agent decides.
       #: () -> String

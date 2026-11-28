@@ -3,6 +3,7 @@
 
 require_relative "../error"
 require_relative "audit_record"
+require_relative "correction_basis"
 
 module Principles
   # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
@@ -52,6 +53,10 @@ module Principles
       # The findings the basis asks the correction to dispose of.
       #: () -> Array[Hash[String, untyped]]
       def findings = @basis.fetch("findings")
+
+      # The decisions on prior findings the basis carries to completion.
+      #: () -> DecidedPriorFindings
+      def prior_decided = CorrectionBasis.new(@basis).prior_decided
     end
   end
 end

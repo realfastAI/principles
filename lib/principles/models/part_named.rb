@@ -1,6 +1,7 @@
 # typed: strict
 # frozen_string_literal: true
 
+require "shellwords"
 require_relative "../error"
 require_relative "../prose_list"
 
@@ -24,10 +25,12 @@ module Principles
         freeze
       end
 
-      # The part, refused unless the request, or its template, has it or leaves it out as empty.
+      # The part, refused unless the request, or its template, has it or leaves it out as empty: named as it is, or as
+      # the index prints it, one shell word quoted where a shell would split it, for a name passed outside a shell.
       #: () -> String
       def part
-        return @part if @printed.include?(@part) || @empty.include?(@part)
+        named = [@part, *as_shell_word].find { @printed.include?(it) || @empty.include?(it) }
+        return named if named
 
         whole = @template ? "template" : "request"
         refusal = Error.new("unknown_part",
@@ -35,6 +38,17 @@ module Principles
         usage = @template ? "--as template --part PART" : "--part PART"
         raise refusal.ending_with([Error::RepairCommand.new(purpose: "To print one part", command: "start-audit",
                                                             values: [@id], usage:)])
+      end
+
+      private
+
+      # The part as a shell reads it, when it reads as one word; none when it does not, or holds an unbalanced quote.
+      #: () -> Array[String]
+      def as_shell_word
+        words = Shellwords.split(@part)
+        words.size == 1 ? words : []
+      rescue ArgumentError
+        []
       end
     end
   end

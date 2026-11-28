@@ -7,7 +7,7 @@ module Principles
   # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # Every finding the records leave open, deferred or accepted, as one fact the session-start line states: how
-    # many wait, and which has waited longest.
+    # many deferred wait, and which of them has waited longest.
     class FindingsLeftOpen
       # The findings each record leaves open for the next full audit.
       #: (Array[AuditRecord]) -> FindingsLeftOpen
@@ -19,19 +19,17 @@ module Principles
         freeze
       end
 
-      # How many are open, how many of them are deferred with no waits_on and how many with one, so how many someone
-      # should raise, and the first raised earliest of those with one and of all, each as it has waited until now, or
-      # nil when none is open. How long it waited runs from first_raised_at, never from when its
-      # waits_on was asked, which a later audit may have given it.
+      # How many someone should raise, those deferred, how many of them have no waits_on and how many one, and the
+      # first raised earliest of them as it has waited until now, or nil when none is deferred: an accepted finding
+      # waits on no one by design, so every start counts the same. How long it waited runs from first_raised_at,
+      # never from when its waits_on was asked, which a later audit may have given it.
       #: (Time) -> Hash[String, untyped]?
       def waiting_at(now)
-        oldest = @findings.min_by(&:first_raised_time) or return nil
+        deferred = @findings.select { it.action == "deferred" }
+        oldest = deferred.min_by(&:first_raised_time) or return nil
 
-        named = @findings.select(&:waiting_on_someone_named?)
-        unnamed = @findings.count(&:waiting_on_no_one_named?)
-        { "count" => @findings.length, "waiting_on_no_one_named" => unnamed,
-          "waiting_on_someone_named" => named.length, "to_raise" => named.length + unnamed,
-          "oldest_waiting_on_someone" => named.min_by(&:first_raised_time)&.waited_at(now), **oldest.waited_at(now) }
+        { "count" => deferred.length, "waiting_on_no_one_named" => deferred.count(&:waiting_on_no_one_named?),
+          "waiting_on_someone_named" => deferred.count(&:waiting_on_someone_named?), **oldest.waited_at(now) }
       end
     end
   end

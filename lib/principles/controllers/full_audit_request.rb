@@ -4,12 +4,14 @@
 require_relative "command"
 require_relative "../models/audit"
 require_relative "../models/instruction_named"
+require_relative "../models/member_texts"
 require_relative "../models/meta_principle"
 require_relative "../models/part_named"
 require_relative "../models/recent_decision"
 require_relative "../models/reported_check"
 require_relative "../views/assessment_request"
 require_relative "../views/parts_index_result"
+require_relative "last_record_notice_beside"
 require_relative "members_to_assess"
 require_relative "parts_to_read"
 
@@ -21,6 +23,10 @@ module Principles
     # the commit it is based on, its id and what it asks. Starting writes nothing: the request id is a digest of what
     # the request depends on, so Answer checks the answer against the project as it is then.
     class FullAuditRequest < Command
+      # The parts --part prints from the scan of the captured requests: its own alone, since the index, read first to
+      # size the reads after it, leaves that part unsized rather than wait on the scan.
+      SCANNED = [Views::LoggedRequestsEvidence::PART].freeze #: Array[String]
+
       # principle_id names the principle whose full audit is asked for; its map is refused unless it can be audited.
       #: (Models::Project, tool: RunningTool, principle_id: String) -> void
       def initialize(project, tool:, principle_id:)
@@ -40,21 +46,21 @@ module Principles
       def printed
         request = asked
         part_bytes = request_parts(request).part_bytes
-        audit_result.request(with_record_notice(audit_result.assessment_request(request, part_bytes:)))
-                    .merge("wrote" => [])
+        noticed = handed(LastRecordNoticeBeside, principle_id: @id, base: @base)
+        audit_result.request(noticed.beside(audit_result.assessment_request(request, part_bytes:))).merge("wrote" => [])
       end
 
       # The answer alone, as start-audit --as template prints it, to fill and submit under the request's id.
       #: () -> Hash[String, untyped]
       def to_fill
-        audit_result.answer_to_fill(asked)
+        audit_result.answer_to_fill(asked(scanned: false))
       end
 
       # The instruction field this request prints, read on its own and whole, with the paragraphs for cases the
       # request does not hold; refused when it prints none by that name.
       #: (String) -> Hash[String, untyped]
       def instruction(field)
-        request = asked
+        request = asked(scanned: false)
         named = Models::InstructionNamed.new(field, principle_id: @id, printed: request.instruction_fields).field
         { "request_id" => request.request_id, named => request.whole_instruction(named), "wrote" => [] }
       end
@@ -65,7 +71,7 @@ module Principles
       # save as it stands; refused when the request has no part by one of the names.
       #: (Array[String]) -> Hash[String, untyped]
       def part(names)
-        request = asked
+        request = asked(scanned: names.intersect?(SCANNED))
         parts = request_parts(request)
         named = names.map { named_in(parts, it) }
         return parts.shown(Views::ContextParts::TEMPLATE) if named == [Views::ContextParts::TEMPLATE]
@@ -78,7 +84,7 @@ module Principles
       # order given, printed together under the request's id; refused when the template has no slot by one name.
       #: (Array[String]) -> Hash[String, untyped]
       def slot_to_fill(names)
-        request = asked
+        request = asked(scanned: false)
         slots = request.slots_to_fill
         named = names.map { Models::PartNamed.new(it, principle_id: @id, printed: slots.keys, template: true).part }
         { "request_id" => request.request_id, "member_assessments" => named.map { slots.fetch(it) }, "wrote" => [] }
@@ -86,9 +92,16 @@ module Principles
 
       private
 
-      # The parts of request that --part prints, each member's with its text now.
+      # The parts of request that --part prints, each member's with its text now, or with that text in a part of its
+      # own where MemberTexts says.
       #: (Views::AssessmentRequest) -> Views::ContextParts
-      def request_parts(request) = request.context_parts(texts: member_texts, optional: PartsToRead::OPTIONAL)
+      def request_parts(request)
+        read = Models::MemberTexts.new(@project, @audit.map, listed: @listing.members)
+        apart = Views::ContextParts::TextsApart.new(read.apart_ids, invocation, principle_id: @id,
+                                                                                read_whole: read.read_whole)
+        texts = Views::ContextParts::MemberTexts.new(read.lines, apart:)
+        request.context_parts(texts:, optional: PartsToRead::OPTIONAL)
+      end
 
       # The part name names in parts, refused when the request neither prints it nor leaves it out as empty.
       #: (Views::ContextParts, String) -> String
@@ -106,17 +119,24 @@ module Principles
 
       # The request and what it asks, listing the findings the last completed audit left to decide, under an id that
       # digests them and the revision of that audit's record, but not the findings other principles leave
-      # open on members sharing these lines.
-      #: () -> Views::AssessmentRequest
-      def asked
+      # open on members sharing these lines. Unless scanned, its logged_requests part holds nothing, for a read that
+      # prints none of it, since scanning the captured requests is slow.
+      #: (?scanned: bool) -> Views::AssessmentRequest
+      def asked(scanned: true)
         record = @audit_records.find(@id)
         prior = @audit.prior_findings(record)
         loads = loads_to_check(@audit).listed
-        basis = Models::AssessmentBasis.printed(@base, record)
-        head = Views::AnswerHead.new(request_id: @audit.assessment_id(basis, prior.digested, loads).to_s,
-                                     basis: basis.to_h)
-        request_to_assess(head, handed(PartsToRead, audit: @audit, listing: @listing,
-                                                    audited_files: audited_files(@audit.map)).listed(prior, loads))
+        request_to_assess(answer_head(record, prior, loads),
+                          handed(PartsToRead, audit: @audit, listing: @listing,
+                                              audited_files: audited_files(@audit.map)).listed(prior, loads, scanned:))
+      end
+
+      # The head of the answer: the request's id, digesting prior, the findings the last completed audit left to
+      # decide, and loads, what the request lists to check against the activation, with the basis it was printed on.
+      #: (Models::AuditRecord?, Models::PriorFindings, Hash[String, untyped]?) -> Views::AnswerHead
+      def answer_head(record, prior, loads)
+        basis = audited_basis(Models::AssessmentBasis.printed(@base, record), @audit.map)
+        Views::AnswerHead.new(request_id: @audit.assessment_id(basis, prior.digested, loads).to_s, basis: basis.to_h)
       end
 
       # What the agent assesses: the members, with what else it reads beside them.
@@ -140,37 +160,13 @@ module Principles
         Views::AssessedMembers.new(@listing.members,
                                    reviewed_check_placeholders: Models::ReportedCheck::PLACEHOLDERS.to_h,
                                    unchanged_check_placeholders: Models::ReportedCheck::UNCHANGED_PLACEHOLDERS.to_h,
-                                   assessment_placeholder: Models::MemberAssessments::NAMED_PLACEHOLDER)
-      end
-
-      # Each member's lines now, by id, without their line endings, so its part carries the text it is judged on.
-      #: () -> Hash[String, Array[String]]
-      def member_texts
-        @audit.map.members.to_h { [it.id, @project.member_file(it.path).lines_of(it.locator).map(&:chomp)] }
+                                   assessment_placeholder: Models::MemberAssessments::NAMED_PLACEHOLDER,
+                                   carrier_checks: carrier_checks(@audit.map))
       end
 
       # The map's file and every member's file, which the base commit is judged over.
       #: (Models::Principle) -> Array[String]
       def audited_files(map) = @principles.audited_files(@id, map.members)
-
-      # The request, with a notice when the last audit's record was left uncommitted: a completed one to commit, or an
-      # open one, which its correction completes, never to commit.
-      #: (Hash[String, untyped]) -> Hash[String, untyped]
-      def with_record_notice(output)
-        return output unless @base && uncommitted_record?
-
-        file = @audit_records.file(@id)
-        record = @audit_records.find(@id)
-        left_open = record && !record.completed?
-        notice = left_open ? audit_result.open_record_notice(file) : audit_result.uncommitted_record_notice(file)
-        output.merge("notice" => notice)
-      end
-
-      # Whether the last audit's record exists but differs from the last commit, so it may be left behind.
-      #: () -> bool
-      def uncommitted_record?
-        @audit_records.exist?(@id) && @history.uncommitted([@audit_records.file(@id)]).any?
-      end
     end
   end
 end

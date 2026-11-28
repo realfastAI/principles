@@ -4,6 +4,7 @@
 require_relative "../error"
 require_relative "locator"
 require_relative "meta_principle"
+require_relative "plugin_reference"
 require_relative "report_hooks"
 
 module Principles
@@ -31,7 +32,8 @@ module Principles
       # A new member field that changes what an audit asks or records gets the next format, and
       # Data::MapFiles::NEWEST_FORMAT moves with it.
       FIELD_FORMATS = { "path" => 1, "section" => 1, "starting_at" => 1, "ending_at" => 1, "role" => 1,
-                        "key" => 1, "check" => 2, "query" => 2 }.freeze #: Hash[String, Integer]
+                        "key" => 1, "check" => 2, "query" => 2,
+                        "pinned" => 4 }.freeze #: Hash[String, Integer]
 
       # The fields that say where a member's text is; a move replaces them whole.
       LOCATORS = %w[path section starting_at ending_at query].freeze #: [String, String, String, String, String]
@@ -110,6 +112,17 @@ module Principles
       def role
         @fields["role"]
       end
+
+      # What add-member read of a plugin's file when it mapped it, its version and the hash of its text, which no
+      # commit holds; nil for a project file.
+      #: () -> Hash[String, String]?
+      def pinned
+        @fields["pinned"]
+      end
+
+      # The installed plugin's file the member is in, which git holds no history of; nil for a project file.
+      #: () -> PluginReference?
+      def plugin_reference = PluginReference.in(path)
 
       # The command that enforces the member, which an audit asks the agent to run; nil when it has none.
       #: () -> String?

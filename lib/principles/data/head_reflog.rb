@@ -7,8 +7,9 @@ module Principles
   # Every file and process this tool reads or writes. data/CLAUDE.md owns the boundary.
   module Data
     # What git says of HEAD in the repository holding one directory, as report-after-commit asks it after each shell
-    # call: the repository's root, whether this tool mapped it, when its HEAD reflog was last written and the subject
-    # of that move, HEAD's committer time, and the full sha of a revision. Each is nil where git cannot say.
+    # call: the repository's root and git folder, whether this tool mapped it, when its HEAD reflog was last written
+    # and the subject of that move, HEAD's committer time, and the full sha of a revision. Each is nil where git cannot
+    # say.
     class HeadReflog
       # The folders a mapped project holds its maps in: the folder's name now, and its earlier one.
       MAPS_FOLDERS = %w[.principles .memeplex].freeze #: Array[String]
@@ -24,6 +25,16 @@ module Principles
       # The root of the work tree holding the directory, or nil outside git.
       #: () -> String?
       def toplevel = read(["rev-parse", "--show-toplevel"])
+
+      # The repository's git folder, which each of its worktrees shares and a clone does not, with every symbolic link
+      # resolved, or nil outside git.
+      #: () -> String?
+      def common_dir
+        folder = read(["rev-parse", "--path-format=absolute", "--git-common-dir"]) or return
+        File.realpath(folder)
+      rescue SystemCallError
+        nil
+      end
 
       # Whether this tool's folder is at the root.
       #: () -> bool

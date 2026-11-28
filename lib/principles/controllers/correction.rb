@@ -85,6 +85,7 @@ module Principles
       def dispositions(response, findings, start, audit)
         samples = Views::CorrectionRequest.answer_guide(Models::DispositionPlaceholders::PLACEHOLDERS.fetch("reason"))
                                           .fetch("disposition")
+        start.check_plugin_members_unchanged(now: audit.now)
         Models::CorrectionAnswer.new(response, findings, samples:) { |locator| snapshot(locator) }
                                 .dispositions(changed: start.changed(now: audit.now))
       end
@@ -103,17 +104,26 @@ module Principles
         principle_history(id).map_at(base)
       end
 
-      # Each member's hash when the audit began, checked against the request id: from the map it started from at the
-      # base commit in git, after the declared changes are checked against that map, or from the open record outside
-      # git.
+      # Each member's hash when the audit began, checked against the request id, from the map it started from, after
+      # the declared changes are checked against that map.
       #: (Models::RequestId, Models::CorrectionBasis, Models::Audit, Models::DeclaredMapChanges) -> Hash[String, String]
       def confirmed_start(request_id, basis, audit, changes)
-        map = started_from(basis, audit, changes)
         base = basis.base_commit
-        found = base ? committed(base, map) : @audit_records.find(audit.id)&.base_members
+        found = hashes_started_with(base, started_from(basis, audit, changes))
         checked = audit.confirmed_start(request_id, basis, found)
         principle_history(audit.id).confirm_current_id_since(base)
         checked
+      end
+
+      # Each member's hash when the audit of map began: at the base commit in git, beside each plugin member's from
+      # the open record, since no commit holds a plugin's file; or all from the open record outside git; nil when
+      # they cannot be found.
+      #: (String?, Models::Principle) -> Hash[String, String]?
+      def hashes_started_with(base, map)
+        record = @audit_records.find(map.id)
+        return record&.base_members unless base
+
+        committed(base, map)&.merge(record&.members&.plugin_hashes(map.members) || {})
       end
 
       # The completion of a correction, which read its assessment back from the audit's record: the open one or, for

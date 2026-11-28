@@ -15,6 +15,10 @@ module Principles
     # The JSON results of reading principles, show-principle and list-principles, with commands for the invocation
     # running now. They change with what a read reports, such as freshness and repairs; MapResult prints the writes.
     class PrincipleReadResult
+      # The fields of a kept assessment show-principle --member prints: the judgement and its sighting, not what it
+      # was judged on.
+      ASSESSMENT_SHOWN = %w[assessed_at assessment delivery observation observed_at].freeze
+
       #: (Invocation) -> void
       def initialize(invocation)
         @invocation = invocation
@@ -25,14 +29,36 @@ module Principles
       # an audit would refuse, with its repair_with commands, from the moves repairs gives it.
       # hook_settings_not_read names each project settings file whose hooks this tool could not read.
       # loaded_files lists each file the members load once, with the total of those loading at session start.
+      # unresolved names each plugin member no installed plugin gives, which no repair is offered for.
       #: (PrintedPrinciple, repairs: Hash[String, Array[MemberRepairs::Move]],
-      #|  ?hook_settings_not_read: Array[Hash[String, String]], ?loaded_files: Hash[String, untyped])
-      #|  -> Hash[String, untyped]
-      def shown(principle, repairs:, hook_settings_not_read: [], loaded_files: {})
+      #|  ?hook_settings_not_read: Array[Hash[String, String]], ?loaded_files: Hash[String, untyped],
+      #|  ?unresolved: Array[String]) -> Hash[String, untyped]
+      def shown(principle, repairs:, hook_settings_not_read: [], loaded_files: {}, unresolved: [])
         unread = hook_settings_not_read.empty? ? {} : { "hook_settings_not_read" => hook_settings_not_read }
         { "id" => principle.id, "map_file" => principle.file, **principle.declared,
           "members" => principle.members.map { |member| repaired(principle.id, member, repairs) },
-          **loaded_files, **unread, "next_action" => shown_next_action(principle, repairs.keys) }
+          **loaded_files, **unread, "next_action" => shown_next_action(principle, repairs.keys, unresolved) }
+      end
+
+      # show-principle --member: one member of principle_id, where it is now and how fresh, beside the assessment the
+      # last completed audit kept for it and the last acknowledgement since, without what either was judged on, and
+      # nothing of the other members.
+      #: (String, Hash[String, untyped], Hash[String, untyped]?, Hash[String, untyped]?) -> Hash[String, untyped]
+      def one_member(principle_id, member, assessment, acknowledgement)
+        judged = { "last_assessment" => assessment&.slice(*ASSESSMENT_SHOWN),
+                   "last_acknowledgement" => acknowledgement&.slice("acknowledged_at", "reason", "commit") }
+        { "id" => principle_id, "member" => member.merge(judged.compact),
+          "next_action" => "To see every member of #{principle_id}: " \
+                           "#{@invocation.in_project("show-principle", principle_id)}" }
+      end
+
+      # shown, show-principle's result for principle_id printed without when each member's file loads, its next_action
+      # naming --loads, which prints that too.
+      #: (Hash[String, untyped], String) -> Hash[String, untyped]
+      def without_loads(shown, principle_id)
+        asked = @invocation.in_project("show-principle", principle_id, usage: "--loads")
+        shown.merge("next_action" => "#{shown.fetch("next_action")}\nTo see when each member's file loads, and its " \
+                                     "size: #{asked}")
       end
 
       # list-principles: each entry is { "id", "description", "members_by_freshness" }. waiting is each principle whose
@@ -97,16 +123,31 @@ module Principles
         MemberRepairs.new(@invocation).beside(id, member, repairs[member.fetch("id")])
       end
 
-      # Repair each member in broken, the ids of those an audit would refuse; otherwise audit when one changed or was
-      # never assessed.
-      #: (PrintedPrinciple, Array[String]) -> String
-      def shown_next_action(principle, broken)
-        unless broken.empty?
-          return "Repair each member that cannot be found or read before auditing, with one of the commands in " \
-                 "its repair_with: #{broken.join(", ")}."
+      # Repair each member in broken, the ids of those an audit would refuse, and say which plugin members in
+      # unresolved no installed plugin gives; otherwise audit when one changed or was never assessed.
+      #: (PrintedPrinciple, Array[String], Array[String]) -> String
+      def shown_next_action(principle, broken, unresolved)
+        unless broken.empty? && unresolved.empty?
+          return [repair_broken(broken), unresolved_plugin_members(unresolved)].compact.join(" ")
         end
 
         "Audit when a member is changed or unassessed: #{@invocation.in_project("start-audit", principle.id)}"
+      end
+
+      #: (Array[String]) -> String?
+      def repair_broken(broken)
+        return if broken.empty?
+
+        "Repair each member that cannot be found or read before auditing, with one of the commands in its " \
+          "repair_with: #{broken.join(", ")}."
+      end
+
+      #: (Array[String]) -> String?
+      def unresolved_plugin_members(unresolved)
+        return if unresolved.empty?
+
+        "No plugin installed for this project gives #{ProseList.new(unresolved)}; each one's error says why and " \
+          "how to resolve it."
       end
     end
   end

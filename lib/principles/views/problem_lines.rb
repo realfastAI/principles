@@ -13,9 +13,9 @@ module Principles
     Lines = Struct.new(:stdout, :stderr, :status, keyword_init: true)
 
     # list-member-problems --short, for a commit hook or heartbeat that acts on an exit status and short lines
-    # alone: one tab-separated line per changed member on stdout, then one per principle counting its members
-    # no audit has assessed, exit 3 when there is any line to act on, and on stderr what to do next and
-    # anything an empty stdout would hide.
+    # alone: one tab-separated line per changed member on stdout, then one per plugin member no installed plugin
+    # gives, then one per principle counting its members no audit has assessed, exit 3 when a changed member's row
+    # or a count asks for action, and on stderr what to do next and anything an empty stdout would hide.
     class ProblemLines
       # The exit status that says a member's own text changed since an audit or acknowledgement assessed it, or that
       # no audit has assessed a member; 1 and 2 already mean refused and usage error.
@@ -36,11 +36,20 @@ module Principles
       #: (Hash[String, untyped], nothing_changed: String, assessed_change: bool,
       #|  never_assessed: Hash[String, Integer], names_a_command: bool) -> Lines
       def short(report, nothing_changed:, assessed_change:, never_assessed:, names_a_command:)
-        rows = report.fetch("members").map { MemberRow.new(it).short } +
-               never_assessed.map { |id, count| counted(id, count) }
-        Lines.new(stdout: rows.map { "#{it}\n" }.join,
+        Lines.new(stdout: rows(report, never_assessed).map { "#{it}\n" }.join,
                   stderr: notes(report, nothing_changed, names_a_command).map { |note| "#{note}\n" }.join,
                   status: assessed_change || !never_assessed.empty? ? CHANGED : 0)
+      end
+
+      # short's lines, or when they are empty, one stderr line saying nothing changed among members, so an agent can
+      # tell a clean project from a run that printed nothing; stdout stays empty for a trigger acting on its rows. The
+      # session-start lines never carry it, since that output is spent in every session.
+      #: (Lines, members: Integer) -> Lines
+      def saying_nothing_changed(short, members:)
+        return short unless short.stdout.empty? && short.stderr.empty?
+
+        Lines.new(stdout: "", stderr: "Nothing changed (#{members} member#{"s" unless members == 1}).\n",
+                  status: short.status)
       end
 
       # short's lines for a session-start hook: on stdout, one line for each principle with a changed member an
@@ -66,6 +75,23 @@ module Principles
       end
 
       private
+
+      # short's stdout rows: each changed member's, then each plugin member's no installed plugin gives, then each
+      # principle's count of members no audit has assessed.
+      #: (Hash[String, untyped], Hash[String, Integer]) -> Array[String]
+      def rows(report, never_assessed)
+        report.fetch("members").map { MemberRow.new(it).short } +
+          report.fetch("plugin_unresolved", []).map { unresolved(it) } +
+          never_assessed.map { |id, count| counted(id, count) }
+      end
+
+      # The row of a plugin member no installed plugin gives, in a changed member's fields: its principle, id, that it
+      # is unresolved and why. It moves no count or exit status: a session without the plugin has nothing to act on.
+      #: (Hash[String, untyped]) -> String
+      def unresolved(member)
+        [member.fetch("principle"), member.fetch("id"), "plugin_unresolved", member.fetch("reason")]
+          .map { VisibleText.new(it).to_s }.join("\t")
+      end
 
       # The session-start line on principle id's count of changed audited members.
       #: (String, Integer) -> String

@@ -5,6 +5,7 @@ require_relative "command"
 require_relative "../models/carried_member"
 require_relative "../models/check_since_last_audit"
 require_relative "../models/open_findings_elsewhere"
+require_relative "../models/whole_file_member_read"
 require_relative "../views/acknowledged_since_last_audit"
 require_relative "../views/read_the_change"
 
@@ -113,10 +114,12 @@ module Principles
                                         open_here: @record&.open_ids_on(member.key) || []).shown
       end
 
-      # Whether member's file changed since the last full audit's base commit; nil with no such commit, as outside git.
+      # Whether member's file changed since the last full audit's base commit; nil with no such commit, as outside git,
+      # and for a plugin member, whose file git holds no history of.
       #: (Models::Member) -> bool?
       def file_changed_outside(member)
         base = @completed&.base_commit or return
+        return if member.plugin_reference
 
         @history.commits_since(base, member.path).any?
       end
@@ -129,26 +132,40 @@ module Principles
         true
       end
 
-      # The member as the request names and locates it: id, role, evidence and its lines now.
+      # The member as the request names and locates it: id, role, evidence and its lines now, and for a plugin
+      # member, where it comes from, read-only, at the version installed now.
       #: (Models::Member, Models::MemberSnapshots) -> Hash[String, untyped]
       def located(member, current)
+        source = @project.installed_plugins.source_of(member)
         { "id" => member.id, "role" => member.role, "evidence" => [member.reference] }
-          .merge(current.of(member.id).lines)
+          .merge(current.of(member.id).lines, source ? { "source" => source } : {})
       end
 
       # The command that shows the edits to a member judged again since the last full audit's base commit: to its
       # own lines, where current locates them, for part of a file at the same path then and now; else to its file,
       # over its path then and now. Nothing for a member carried forward, or with no such commit, as outside git or
-      # before any full audit.
+      # before any full audit, or for a plugin member, whose file git holds no history of.
       #: (Hash[String, untyped], Hash[String, untyped], Models::MemberSnapshots) -> Hash[String, untyped]
       def changed_since(fields, judged, current)
         base = @completed&.base_commit
-        return {} unless judged["judge_because"] && base
-
         member = Models::Member.new(fields)
+        return {} unless judged["judge_because"] && base && !member.plugin_reference
+
         paths = principle_history(@principle_id).paths_from(base, member.key, fields)
         lines = member.traced_lines(paths, current.of(member.id).lines)
-        { "read_the_change" => Views::ReadTheChange.new(since: base, paths:, lines:).to_s }
+        { "read_the_change" => Views::ReadTheChange.new(since: base, paths:, lines:).to_s,
+          **changed_lines(member, judged, base) }
+      end
+
+      # The changed lines of a whole-file member judged for its text changing since base, with no context, as
+      # WholeFileMemberRead says, beside the text it reads apart; nothing for another member, or one whose lines at
+      # base cannot be found.
+      #: (Models::Member, Hash[String, untyped], String) -> Hash[String, untyped]
+      def changed_lines(member, judged, base)
+        return {} unless Models::WholeFileMemberRead.new(whole_file: member.whole_file?, listed: judged).changed_lines?
+
+        lines = @project.member_lines(member.locator, since: base) or return {}
+        { "changed_lines" => lines.regions(context: 0) }
       end
 
       # The edits to member acknowledged since the last full audit, which this audit judges together, with

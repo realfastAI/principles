@@ -51,6 +51,13 @@ module Principles
                            waiting:)
       end
 
+      # The hash the record assessed for each plugin member of members, by id, which no commit holds; a member it
+      # assessed no hash for is left out.
+      #: (PrincipleMembers) -> Hash[String, String]
+      def plugin_hashes(members)
+        members.select(&:plugin_reference).to_h { [it.id, hash_for(it.key)] }.compact
+      end
+
       # The hash the record assessed for the member known by key, or nil when it assessed no such member.
       #: (String) -> String?
       def hash_for(key)

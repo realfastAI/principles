@@ -4,6 +4,7 @@
 require_relative "assessment_report"
 require_relative "json_digest"
 require_relative "principle"
+require_relative "stale_request"
 
 module Principles
   # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
@@ -85,6 +86,14 @@ module Principles
       # missing (T69).
       #: (now: Hash[String, String]) -> Array[String]
       def added(now:) = now.keys.reject { |id| began_with?(id) }
+
+      # Refuses an answer to this audit as stale once the text of a plugin member in now differs from the text the
+      # audit began with: an update to the installed plugin, which no fix can claim.
+      #: (now: Hash[String, String]) -> void
+      def check_plugin_members_unchanged(now:)
+        updated = changed(now:).select { @map.members.with_id(it)&.plugin_reference }
+        raise StaleRequest.plugin_updated(id, updated) if updated.any?
+      end
 
       # The members whose hash in now differs from their hash when the audit began.
       #: (now: Hash[String, String]) -> Array[String]

@@ -22,6 +22,15 @@ module Principles
       #: () -> Array[Instruction]
       def instructions = @parts.flat_map(&:instructions)
 
+      # Why the index gives no bytes, by the name of each part this read left unfilled.
+      #: () -> Hash[String, String]
+      def bytes_unknown
+        @parts.each_with_object({}) do |part, unknown|
+          reason = part.bytes_unknown or next
+          part.shown.each_key { unknown[it] = reason }
+        end
+      end
+
       # template, with each part's slots added after its own entries, in order.
       #: (Hash[String, untyped]) -> Hash[String, untyped]
       def slotted_after(template) = @parts.reduce(template) { |all, part| all.merge(part.slots) }

@@ -3,6 +3,8 @@
 
 require_relative "assessment_report"
 require_relative "project_history"
+require_relative "installed_plugins"
+require_relative "plugin_reference"
 
 module Principles
   # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
@@ -31,9 +33,16 @@ module Principles
         changed.uniq.sort
       end
 
-      # Each cited file that no longer exists, in git or outside it.
-      #: () -> Array[String]
-      def missing = @paths - @history.existing(@paths)
+      # Each cited file that no longer exists, in git or outside it; a plugin's file, which is not in the project,
+      # when the plugin installed now does not hold it.
+      #: (InstalledPlugins) -> Array[String]
+      def missing(plugins)
+        existing = @history.existing(@paths)
+        @paths.reject do |path|
+          reference = PluginReference.in(path)
+          reference ? plugins.holds?(reference) : existing.include?(path)
+        end
+      end
     end
   end
 end

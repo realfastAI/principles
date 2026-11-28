@@ -15,8 +15,8 @@ which files to commit, or the audit to run when every file is committed already.
 baseline, so that line would repeat at every session, and is left out. Then a line for each principle whose audit record
 a later release of principles wrote: this copy does not check its members, so none of them is counted, and the line says
 how to update. Then, while any principle awaits its first full audit, one line counting them, naming none, asks the
-agent to tell the user and start one background subagent to follow `show-first-audit-brief`, or to offer the audit at
-its next pause if it cannot. At resume and compact, when one may be running already, it gives the count alone and asks
+agent to start one background subagent to follow `show-first-audit-brief`, tell the user, and relay its result. At
+resume and compact, when one may be running already, it gives the count alone and asks
 for no second one. Last, while any finding an audit deferred or accepted is open, the one line `list-open-findings
 --short` prints, worded for the session's start, and short on resume, whose conversation holds the whole line already.
 

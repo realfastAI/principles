@@ -10,39 +10,85 @@ module Principles
   # Each runs one command: reads models, applies their rules and prints through a view.
   # controllers/CLAUDE.md owns the boundary.
   module Controllers
-    # The reads that show what a project has mapped: its principles, and each member and how fresh it is against the
-    # last audit. None changes anything on disk. Survey runs the survey of candidate files.
+    # show-principle: each member of one principle and how fresh it is against the last audit. It changes nothing on
+    # disk. PrincipleListing lists every principle, and Survey runs the survey of candidate files.
     class Inventory < Command
       #: (String, String?, Hash[String, untyped]) -> untyped
       def call(command, id, options)
         naming_the_executable do
           case command
-          when "list-principles" then listed(options)
-          when "show-principle" then members(required_id(id)).merge("wrote" => [])
+          when "show-principle" then shown(required_id(id), options).merge("wrote" => [])
           else unknown(command)
           end
         end
       end
 
-      # Each principle id names as list-principles lists it: its description and its members by freshness, or the
-      # refusal that kept its map from being read.
-      #: (Array[String]) -> Array[Hash[String, untyped]]
-      def rows(ids) = ids.map { entry(it) }
-
       private
 
-      #: (String) -> untyped
-      def members(id)
+      # The principle id names as show-principle prints it, or only the member --member names, refused when its map
+      # lacks it.
+      #: (String, Hash[String, untyped]) -> untyped
+      def shown(id, options)
+        member_id = options["member"]&.first
+        return members(id, loads: options["loads"]) unless member_id
+
+        one_member(@principles.find(id), member_id)
+      end
+
+      # The member of principle with member_id, where it is now, how fresh against the last audit, and the last
+      # judgements the last completed audit's record keeps of it: its assessment and the last acknowledgement since.
+      #: (Models::Principle, String) -> Hash[String, untyped]
+      def one_member(principle, member_id)
+        member = principle.member(member_id)
+        audit = @audit_records.find(principle.id)
+        now = fresh(member, audit&.members&.hashes || Models::RecordedHashes::NONE)
+        span = now.fetch("snapshot", {}).slice("first_line", "last_line")
+        read_result.one_member(principle.id, { "id" => member_id, **member, **span, **now.except("snapshot") },
+                               *judgements(audit, Models::Member.new(member).key))
+      end
+
+      # The assessment the last completed audit in audit kept for the member known by key, and the last
+      # acknowledgement made of it since, each none when the record keeps none.
+      #: (Models::AuditRecord?, String) -> [Hash[String, untyped]?, Hash[String, untyped]?]
+      def judgements(audit, key)
+        completed = audit&.last_completed or return [nil, nil]
+        [completed.members.recorded(key)&.assessment, completed.members.acknowledgements_for(key).last]
+      end
+
+      # The principle id names as show-principle prints it, with when each member's file loads only when loads asks.
+      #: (String, loads: bool?) -> untyped
+      def members(id, loads:)
         principle = @principles.find(id)
         audit = @audit_records.find(id)
-        hooks = @project.hook_commands
-        members = shown_members(principle, audit, hooks)
-        shown = read_result.shown(printed_principle(principle, members: members),
-                                  repairs: repairs(principle, members), hook_settings_not_read: hooks.not_read,
-                                  loaded_files: @project.loaded_files(principle.members, hooks).to_h)
+        shown = principle_shown(principle, audit, loads: loads)
         return shown unless audit
 
         shown.merge("last_audit" => audit.last_audit(map_version: principle.version))
+      end
+
+      # The principle with each member and its repairs, and with loads also when each member's file loads, the files
+      # they load and the hook settings not read; without, its next_action names --loads.
+      #: (Models::Principle, Models::AuditRecord?, loads: bool?) -> Hash[String, untyped]
+      def principle_shown(principle, audit, loads:)
+        hooks = @project.hook_commands
+        members = shown_members(principle, audit, hooks)
+        if loads
+          return members_listed(principle, members, hook_settings_not_read: hooks.not_read,
+                                                    loaded_files: @project.loaded_files(principle.members, hooks).to_h)
+        end
+
+        read_result.without_loads(members_listed(principle, members.map { it.except("loads") }), principle.id)
+      end
+
+      # The principle with members, their repairs and the plugin members no installed plugin gives, beside what
+      # show-principle --loads adds: the hook settings not read and the files the members load.
+      #: (Models::Principle, Array[Hash[String, untyped]], ?hook_settings_not_read: Array[Hash[String, String]],
+      #|  ?loaded_files: Hash[String, untyped]) -> Hash[String, untyped]
+      def members_listed(principle, members, hook_settings_not_read: [], loaded_files: {})
+        unresolved = members.select { unresolved?(it) }.map { it.fetch("id") }
+        read_result.shown(printed_principle(principle, members: members), repairs: repairs(principle, members),
+                                                                          hook_settings_not_read:, loaded_files:,
+                                                                          unresolved:)
       end
 
       # Each member as show-principle prints it, with its loads read once for the whole map, from hooks.
@@ -60,8 +106,22 @@ module Principles
       def shown_member(member, audit, loads)
         now = fresh(member, audit&.members&.hashes || Models::RecordedHashes::NONE)
         member.merge(now.fetch("snapshot", {}).slice("first_line", "last_line"), now,
-                     "loads" => loads.to_h)
+                     "loads" => loads.to_h, **plugin_source(member, now))
       end
+
+      # Where a plugin member found now comes from, at the version installed now, read-only; nothing for a project
+      # file, or for a plugin member now says no installed plugin gives.
+      #: (Hash[String, untyped], Hash[String, untyped]) -> Hash[String, untyped]
+      def plugin_source(member, now)
+        return {} if unresolved?(now)
+
+        source = @project.installed_plugins.source_of(Models::Member.new(member))
+        source ? { "source" => source } : {}
+      end
+
+      # Whether a member shown is a plugin member no installed plugin gives.
+      #: (Hash[String, untyped]) -> bool
+      def unresolved?(shown) = shown.fetch("freshness") == "plugin_unresolved"
 
       # The moves that may repair each shown member whose reference is broken, so an audit would refuse it, by id in the
       # map's order.
@@ -86,63 +146,9 @@ module Principles
         {}
       end
 
-      # Where the member is now and whether it changed since the record holding hashes assessed it.
-      #: (Hash[String, untyped], Models::RecordedHashes) -> Hash[String, untyped]
-      def fresh(member, hashes)
-        found = Models::Member.new(member)
-        @project.freshness(found.locator) { |sha| hashes.freshness(found.key, sha) }
-      end
-
       #: () -> Views::PrincipleReadResult
       def read_result
         Views::PrincipleReadResult.new(invocation)
-      end
-
-      # list-principles as options ask: each id on a line with --lines, else the rows as JSON.
-      #: (Hash[String, untyped]) -> untyped
-      def listed(options)
-        return read_result.ids(@principles.ids) if options["lines"]
-
-        listing(open_findings: options["open_findings"]).merge("wrote" => [])
-      end
-
-      # Its next_action offers an audit while one principle's audits do not wait on an upgrade; a map listed with its
-      # refusal counts, since repairing it leaves it to audit. With open_findings, each row lists its open findings.
-      #: (open_findings: bool?) -> untyped
-      def listing(open_findings:)
-        ids = @principles.ids
-        waiting = ids.filter_map { waiting_on_an_upgrade(it) }
-        listed = open_findings ? read_result.with_open_findings(rows(ids), open_by_principle(ids)) : rows(ids)
-        read_result.listing(listed, waiting: waiting, one_to_audit: waiting.size < ids.size)
-      end
-
-      # Each principle's open findings, from every record this copy can read, as list-open-findings reads them,
-      # aged until now, by principle id.
-      #: (Array[String]) -> Hash[String, Array[Hash[String, untyped]]]
-      def open_by_principle(ids)
-        now = Time.now.utc
-        @audit_records.readable_of(ids).flat_map(&:left_open).map { it.waited_at(now) }
-                      .group_by { it.fetch("principle") }
-      end
-
-      # One map's row; a map this tool cannot read is listed with its refusal, so the others still show, and one
-      # whose record a later copy wrote says its audits wait on an upgrade, as show-audit does.
-      #: (String) -> Hash[String, untyped]
-      def entry(id)
-        map = @principles.find(id)
-        row = map.description_with_id.merge("members_by_freshness" => members_by_freshness(map))
-        row = row.merge(read_result.no_members(@principles.file(id))) if map.unstarted?
-        row.merge(waiting_on_an_upgrade(id)&.marker || {})
-      rescue Error => e
-        { "id" => id, "refusal" => e.payload }
-      end
-
-      # How many of map's members are in each freshness state, against its principle's last audit, or the hashes a
-      # record a later copy wrote holds, read-only, when this copy cannot read the rest of it.
-      #: (Models::Principle) -> Hash[String, Integer]
-      def members_by_freshness(map)
-        hashes = @audit_records.hashes_to_compare(map.id)
-        map.members_shown.map { |member| fresh(member, hashes).fetch("freshness") }.tally.sort.to_h
       end
     end
   end

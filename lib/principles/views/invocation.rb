@@ -60,11 +60,20 @@ module Principles
         in_project("submit-answer", request_id, options: ["--file", file])
       end
 
-      # The file to save the answer name names in, a request id or a principle id, by its full path in temp_directory,
-      # so every shell that runs the printed commands names the same file: a sandboxed and an unsandboxed one
-      # read $TMPDIR as different folders.
-      #: (String) -> String
-      def answer_file(name) = "#{@temp_directory.chomp("/")}/principles-#{name}-answer.json"
+      # The file to save an answer for principle_id in, by its full path in temp_directory, so every shell that runs
+      # the printed commands names the same file: a sandboxed and an unsandboxed one read $TMPDIR as different
+      # folders. An answer to a request in phase is named by the request's principle and phase alone, not its id, so a
+      # request printed again after HEAD moved, with a new id, names the file the first one saved to.
+      #: (String, ?String?) -> String
+      def answer_file(principle_id, phase = nil)
+        "#{@temp_directory.chomp("/")}/#{self.class.answer_name(principle_id, phase)}"
+      end
+
+      # The name of the file an answer for principle_id in phase is saved in, the one owner of its shape.
+      #: (String, ?String?) -> String
+      def self.answer_name(principle_id, phase = nil)
+        "principles-#{[principle_id, phase].compact.join(".")}-answer.json"
+      end
 
       # The same command, its values given as one list, as a refusal's repair command holds them.
       #: (String, Array[String], ?options: Array[String], ?usage: String?) -> String

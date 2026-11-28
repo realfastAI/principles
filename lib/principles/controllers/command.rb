@@ -14,7 +14,9 @@ require_relative "../models/project"
 require_relative "../models/record_format"
 require_relative "../models/record_judged_against"
 require_relative "../views/audit_result"
+require_relative "../views/invocation"
 require_relative "../views/lines_shared_with_member"
+require_relative "../views/carrier_checks"
 require_relative "../views/map_result"
 require_relative "../views/record_waiting_on_an_upgrade"
 require_relative "broken_member_repairs"
@@ -88,6 +90,13 @@ module Principles
                         "To see every command: #{@tool.executable} --help")
       end
 
+      # Where member is now and whether it changed since the record holding hashes assessed it.
+      #: (Hash[String, untyped], Models::RecordedHashes) -> Hash[String, untyped]
+      def fresh(member, hashes)
+        found = Models::Member.new(member)
+        @project.freshness(found.locator) { |sha| hashes.freshness(found.key, sha) }
+      end
+
       # The controller this one hands part of its command to, over the same project and naming the same executable.
       #: [C < Command] (Class[C], **untyped) -> C
       def handed(controller, **)
@@ -98,7 +107,8 @@ module Principles
       # each run and never stored.
       #: () -> Views::Invocation
       def invocation
-        @tool.invocation(@project.root, answer_folder: @history.ignored_tmp_folder)
+        answer_folder = @history.ignored_tmp_folder(Views::Invocation.answer_name("ID", "phase"))
+        @tool.invocation(@project.root, answer_folder:)
       end
 
       # Principle id as waiting on an upgrade, when a later copy wrote its record.
@@ -145,12 +155,29 @@ module Principles
 
       # Each member's hash at base, or nil outside git.
       #: (String?, Models::Principle) -> Hash[String, String]?
-      def committed(base, map) = base ? @history.at(base).hashes(map.members) : nil
+      def committed(base, map) = base ? @history.at(base).hashes(map.members.in_project) : nil
+
+      # basis, its assessment id digesting the last commit that changed the map's file or a member's file at its base,
+      # so a commit elsewhere leaves the id as it was.
+      #: (Models::AssessmentBasis, Models::Principle) -> Models::AssessmentBasis
+      def audited_basis(basis, map)
+        base = basis.base or return basis
+        basis.audited_at(@history.last_change(@principles.audited_files(map.id, map.members.in_project), at: base))
+      end
 
       # When each of the map's members loads, by id, which a full audit's request lists against the activation and
       # show-principle prints, from the project's hooks as hooks read them.
       #: (Models::Principle, ?Models::HookCommands) -> Hash[String, Models::MemberLoads]
       def member_loads(map, hooks = @project.hook_commands) = @project.member_loads(map.members, hooks)
+
+      # The check for each carrier kind the map's members are in, or only those ids names, in the order given, once
+      # each, for a request where the agent judges or edits them.
+      #: (Models::Principle, ?Array[String]?) -> Hash[String, untyped]
+      def carrier_checks(map, ids = nil)
+        kinds = member_loads(map).transform_values { it.carrier_kind.name }
+        named = ids&.filter_map { |id| [id, kinds.fetch(id)] if kinds.key?(id) }&.to_h
+        Views::CarrierChecks.new(named || kinds, invocation).to_h
+      end
 
       # The members a full audit lists to check against its activation, each with the decision its last completed
       # audit, whose record is given or read now, accepted on the member's loading.

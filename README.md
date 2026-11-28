@@ -6,26 +6,30 @@
 
 **Tighter harness, longer running agents: trust the principles, loosen the supervision.**
 
-Built for Claude Code. Codex is partly supported already, with full support coming soon, and Pi after that. Your principles are portable across harnesses that share the same context management vectors: Codex has no monitors, but shares almost every other vector with Claude Code, including `AGENTS.md`, skills and hooks.
+Every time your agent goes off the rails, you add a line somewhere. A rule in `CLAUDE.md`. A note in a skill. A check in a hook. A few days in, the same rule lives in five places, worded five slightly different ways, and nobody, not you and not your agent, knows which one wins.
+
+So you're forced to always watch your agent, because you can't trust it. That's harness drift.
 
 https://github.com/user-attachments/assets/8bd9d6cb-893e-4422-86f0-ecad91af5aa9
 
-## Who is this for?
+`principles` gives your agent a map of every place each of its operating principles lives: `CLAUDE.md` and `AGENTS.md`, rule files, skills, subagents and hooks. When any of those places changes, it tells your agent which principle is affected and has it read them together, settle what disagrees and record the result. The CLI keeps the books; your agent does the judging. You do less babysitting.
 
-Principles is based on a dead simple idea - an easy to use CLI that helps an agent create and manage a map of all the snippets of text across the harness that work together to create its _operating principles_.
+## Who is this for?
 
 You'll get the most from it when:
 
-- a team of people and their agents use the same harness and repo to do their work and need to establish shared SoPs.
-- your agents _need_ to run for long stretches, and need their operating principles reinforced consistently across CLAUDE.md/AGENTS.md, skills, hooks and all the rest of the context management vectors a harness provides.
+- a team of people and their agents use the same harness and repo to do their work, and need to establish shared SOPs that all of them follow;
+- your agents _need_ to run for long stretches, and need their operating principles reinforced consistently across `CLAUDE.md`/`AGENTS.md`, rules, skills, subagents, hooks and all the rest of the context management vectors a harness provides.
 
-If your project has a single `CLAUDE.md` at its root, `principles` is overkill. You can read that one file and keep it consistent yourself. Come back when your rules start to spread.
+If your project has a single `CLAUDE.md` or `AGENTS.md` at its root, `principles` is overkill. You can read that one file and keep it consistent yourself. Come back when your rules start to spread.
 
 Here is one of *realfast*'s projects, where an agent answers which principles are in place, how many places carry each, and which findings are still open:
 
 ![An agent in Claude Code answering "what principles are in place already?" with a table of six mapped principles, the number of files carrying each, and their open findings](https://raw.githubusercontent.com/realfastAI/principles/main/images/principles-in-use.webp)
 
 ## Install
+
+Claude Code is fully supported. Codex is mostly supported and Pi is coming soon.
 
 In Claude Code, add this repository as a plugin marketplace, install the plugin, reload your plugins, and start:
 

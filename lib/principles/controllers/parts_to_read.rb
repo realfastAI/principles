@@ -3,10 +3,13 @@
 
 require_relative "command"
 require_relative "../models/evidence_lines_since"
+require_relative "../models/feature"
+require_relative "../models/members_in_logged_requests"
 require_relative "../models/loading_decision"
 require_relative "../models/other_principles"
 require_relative "../models/prior_decision_fields"
 require_relative "../models/uncommitted_outside_the_map"
+require_relative "../views/logged_requests_evidence"
 require_relative "../views/loads_to_check_result"
 require_relative "../views/open_findings_elsewhere_result"
 require_relative "../views/other_principles_unjudged_result"
@@ -43,18 +46,56 @@ module Principles
       # What the agent reads beside the members, in order: the files outside the map that differ from the
       # base commit, which a check and the answer's evidence read as they are now; the prior findings;
       # the findings other principles leave open on members sharing these lines; and the members to
-      # check against the activation; each when it lists any; and, on the meta-principle's audit, the release
-      # since its last audit and the other principles with members no audit has judged.
-      #: (Models::PriorFindings, Hash[String, untyped]?) -> Array[Views::RequestPart]
-      def listed(prior, loads)
+      # check against the activation; each when it lists any; on the meta-principle's audit, the release
+      # since its last audit and the other principles with members no audit has judged; and what the logged
+      # requests show of the members, unless scanned is false, for a read that prints none of it.
+      #: (Models::PriorFindings, Hash[String, untyped]?, ?scanned: bool) -> Array[Views::RequestPart]
+      def listed(prior, loads, scanned: true)
         map = @audit.map
         [outside_the_map, prior_findings_part(prior),
          Views::OpenFindingsElsewhereResult.new(@listing.open_findings_elsewhere).part,
          loads_part(loads), package_since_last_audit(map),
-         other_principles_unjudged(map)].compact
+         other_principles_unjudged(map), logged_requests_part(scanned)].compact
       end
 
       private
+
+      # The part saying how far the listed members' text reached the logged requests, or why
+      # nothing shows it: the folder unguarded, which is asked first since every other read of it refuses then; none
+      # captured; or a tool the scan runs missing. Unless scanned, the scan itself does not run, and the part holds
+      # nothing.
+      #: (bool) -> Views::RequestPart
+      def logged_requests_part(scanned)
+        logging = @project.request_logging
+        evidence = Views::LoggedRequestsEvidence.new(invocation)
+        refusal = logging.unguarded_refusal
+        return evidence.unread(refusal.payload) if refusal
+        return evidence.none_captured if logging.none_captured?
+
+        scanned_part(logging, evidence, scanned)
+      end
+
+      # The part from the scan of the captured requests for the listed members, or why the scan cannot run; unless
+      # scanned, the part holding nothing.
+      #: (Models::RequestLogging, Views::LoggedRequestsEvidence, bool) -> Views::RequestPart
+      def scanned_part(logging, evidence, scanned)
+        off = @tool.feature(Models::Feature::LOGGED_REQUEST_SCAN).off_refusal
+        return evidence.unread(off.payload) if off
+        return evidence.not_scanned unless scanned
+
+        evidence.reached(logging.reach(measured_members, carried: carried_ids).to_h)
+      end
+
+      # The members whose reach the part shows: every one the request lists, carried ones too, each named as it is
+      # listed there.
+      #: () -> Models::MembersInLoggedRequests
+      def measured_members
+        Models::MembersInLoggedRequests.listed_in(@project, @audit.map, @listing.members.map { it.fetch("id") })
+      end
+
+      # The ids of the members the audit carries forward, which the part marks.
+      #: () -> Array[String]
+      def carried_ids = @listing.members.select { it["carried_forward"] }.map { it.fetch("id") }
 
       # The part listing the members to check against the activation, each decision's template printing the
       # placeholders an answer leaves as printed to give none; nil when none is listed.

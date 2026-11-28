@@ -4,9 +4,13 @@
 require_relative "command"
 require_relative "../models/member"
 require_relative "../models/members_in_consecutive_sections"
+require_relative "../models/maps_holding_file_whole"
+require_relative "../models/nearly_matching_maps"
 require_relative "../models/member_loading_scopes"
 require_relative "../views/map_added_to"
 require_relative "../views/consecutive_sections_elsewhere"
+require_relative "../views/whole_file_elsewhere"
+require_relative "../views/member_sets_overlap"
 require_relative "../views/new_loading_scope"
 
 module Principles
@@ -27,12 +31,23 @@ module Principles
         added = located_member
         shared = lines_shared(@member, @map)
         joined = joined_for(added_to)
-        sections = Models::MembersInConsecutiveSections.new(@project, @member).elsewhere(except: @map.id)
-        consecutive = Views::ConsecutiveSectionsElsewhere.new(sections)
-        map_result.member_added(principle, added: added, shared: shared, joined: joined, consecutive: consecutive)
+        map_result.member_added(principle, added: added, shared: shared, joined: joined,
+                                           other_maps: other_maps(added_to))
       end
 
       private
+
+      # What other maps hold of the new member that the agent judges: consecutive complete sections, its file held
+      # whole, and a member set nearly matching the one it joined, added_to.
+      #: (Models::Principle)
+      #|  -> Array[Views::ConsecutiveSectionsElsewhere | Views::WholeFileElsewhere | Views::MemberSetsOverlap]
+      def other_maps(added_to)
+        sections = Models::MembersInConsecutiveSections.new(@project, @member).elsewhere(except: @map.id)
+        whole = Models::MapsHoldingFileWhole.new(@project, @member).elsewhere(except: @map.id)
+        near = Models::NearlyMatchingMaps.new(@project, added_to, @member).elsewhere
+        [Views::ConsecutiveSectionsElsewhere.new(sections), Views::WholeFileElsewhere.new(whole),
+         Views::MemberSetsOverlap.new(near)]
+      end
 
       # The updated map's after-save context, keeping the reminder facts captured before the write.
       #: (Models::Principle) -> Views::MapAddedTo
@@ -59,7 +74,7 @@ module Principles
       #: () -> Views::MapAddedTo
       def joined
         history = principle_history(@map.id)
-        Views::MapAddedTo.new(keeps_others_held: @map.keeps_others_held?,
+        Views::MapAddedTo.new(keeps_held: (@principles.ids - [@map.id] if @map.keeps_others_held?),
                               correction_may_be_open: history.startable_at_head?,
                               reminded: history.first_add_since_commit?(@map))
       end

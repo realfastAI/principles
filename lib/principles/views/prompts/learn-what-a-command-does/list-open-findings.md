@@ -63,14 +63,13 @@ design, and `open N days` since first raised, with no script over this JSON. It 
 
 `--short` is for a session-start hook, where an open finding would otherwise wait unseen until its principle's next full
 audit. It prints one line instead of JSON, and nothing at all when no deferred finding is open, exiting 0 either way:
-how many deferred findings have a `waits_on`, the oldest of them by principle and id with its `waits_on`, cut at a word
-within 80 characters with a parenthesis left open closed, how many have none, and git's `user.name`; then to raise in
-the first reply each that waits on the agent's user, or on no one, since nothing else will, and the command that lists
-them, which one finding's own line needs no command for. The agent judges whether that user is the one named. While
-any open finding's `write_up_opening_reason` is `unavailable`, the line also names that write-up, or the first of them
-with their count, so a pointer that no longer resolves is seen at session start. With `--session-start SOURCE`, one of
-`startup`, `resume`, `clear` and `compact` as Claude Code's SessionStart hook names them, the line for `clear` or
-`compact` asks for the next reply; without it the line is worded for `startup`. For `resume`, whose conversation holds
-the line already, it gives only how many are open, how many whole days the oldest has waited since its
-`first_raised_at`, not `waits_on_since`, which dates only the ask, and the command that prints the line whole. The
-principles plugin's session-start hook prints this line, passing its source.
+first, while any finding has a `waits_on`, to act on each that waits on the agent itself, then to raise in the first
+reply each that waits on a person, or on no one, since nothing else will; then how many deferred findings have a
+`waits_on`, how many have none, how many whole days the oldest has waited, and the `--lines` command that lists whom
+each waits on. The agent judges from each `waits_on` whether it names itself or a person. While any open finding's `write_up_opening_reason` is `unavailable`, the line also names that write-up, or the
+first of them with their count, so a pointer that no longer resolves is seen at session start. With `--session-start
+SOURCE`, one of `startup`, `resume`, `clear` and `compact` as Claude Code's SessionStart hook names them, the line for
+`clear` or `compact` asks for the next reply; without it the line is worded for `startup`. For `resume`, whose
+conversation holds the line already, it gives only how many deferred findings are open, the oldest by principle and id,
+how many whole days it has waited since its `first_raised_at`, not `waits_on_since`, which dates only the ask, and the
+command that prints the line whole. The principles plugin's session-start hook prints this line, passing its source.

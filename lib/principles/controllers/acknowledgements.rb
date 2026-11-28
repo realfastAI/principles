@@ -20,11 +20,13 @@ module Principles
       def several(id, member_ids, to_fill:)
         naming_the_executable(rerun: one_member_audit(id)) do
           members = member_ids.map { of(id, it) }
-          request_id = several_of(id, members).request_id.to_s
+          request = several_of(id, members).request_id
+          request_id = request.to_s
           asked = members.map(&:asked)
-          next view.several_to_fill(request_id:, members: asked) if to_fill
+          file = answer_file(request)
+          next alone.of(view.several_to_fill(request_id:, members: asked), asked, answer_file: file) if to_fill
 
-          view.several_request(request_id:, principle_id: id, members: asked).merge("wrote" => [])
+          view.several_request(request_id:, principle_id: id, members: asked, answer_file: file).merge("wrote" => [])
         end
       end
 
@@ -34,11 +36,12 @@ module Principles
       def across(ids, member_ids, to_fill:)
         naming_the_executable(rerun: across_audit(ids, member_ids)) do
           by_principle = members_by_principle(ids, member_ids)
-          request_id = across_of(by_principle).request_id.to_s
+          request = across_of(by_principle).request_id
           principles = by_principle.transform_values { it.map(&:asked) }
-          next view.across_to_fill(request_id:, principles:) if to_fill
+          next across_to_fill(request, principles) if to_fill
 
-          view.across_request(request_id:, principles:, keeping_deferred: keeping_deferred(by_principle))
+          view.across_request(request_id: request.to_s, principles:, answer_file: answer_file(request),
+                              keeping_deferred: keeping_deferred(by_principle))
               .merge("wrote" => [])
         end
       end
@@ -49,14 +52,27 @@ module Principles
       def answered(submitted)
         return across_answered(submitted) if submitted.response.fetch("basis").key?("principle_ids")
 
-        id = submitted.request_id.principle_id
-        several, members = answering_several(submitted)
-        [accepted_view.several_acknowledged(principle_id: id, member_ids: members.map { it.member.id },
-                                            file: @audit_records.file(id)),
-         [all_accepted(several, members, submitted.response)]]
+        several_answered(submitted)
       end
 
       private
+
+      # The answer alone to request, for principles' members, as start-audit --as template prints it.
+      #: (Models::RequestId, Hash[String, Array[Hash[Symbol, untyped]]]) -> Hash[String, untyped]
+      def across_to_fill(request, principles)
+        alone.across(view.across_to_fill(request_id: request.to_s, principles:), principles,
+                     answer_file: answer_file(request))
+      end
+
+      # The result of answering a request for several of one principle's members, and its record.
+      #: (Models::SubmittedAnswer) -> [Views::AnsweredRequest, Array[Models::AuditRecord]]
+      def several_answered(submitted)
+        id = submitted.request_id.principle_id
+        several, members = answering_several(submitted)
+        [accepted_view.several_acknowledged(principle_id: id, member_ids: members.map { it.member.id },
+                                            file: @audit_records.file(id), open_findings: open_findings(members)),
+         [all_accepted(several, members, submitted.response)]]
+      end
 
       # The principles in by_principle with a member whose acknowledgement keeps a deferred finding.
       #: (Hash[String, Array[MemberAcknowledgement]]) -> Array[String]
@@ -69,12 +85,27 @@ module Principles
       #: (Models::SubmittedAnswer) -> [Views::AnsweredRequest, Array[Models::AuditRecord]]
       def across_answered(submitted)
         across, by_principle = answering_across(submitted.response.fetch("basis"), submitted.request_id)
-        records = across.accepted(submitted.response) do |id, several, answer|
+        records = across_records(across, by_principle, submitted.response)
+        files = by_principle.keys.to_h { [it, @audit_records.file(it)] }
+        [accepted_view.across_acknowledged(member_ids: across.member_ids, files:,
+                                           open_findings: by_principle.transform_values { open_findings(it) }),
+         records]
+      end
+
+      # Each principle's record with the acknowledgements response gives its members in by_principle, once the answer
+      # holds for every one of them.
+      #: (Models::AcknowledgementsAcross, Hash[String, Array[MemberAcknowledgement]], untyped)
+      #|   -> Array[Models::AuditRecord]
+      def across_records(across, by_principle, response)
+        across.accepted(response) do |id, several, answer|
           all_accepted(several, by_principle.fetch(id), answer, acknowledging: across.acknowledging)
         end
-        files = by_principle.keys.to_h { [it, @audit_records.file(it)] }
-        [accepted_view.across_acknowledged(member_ids: across.member_ids, files:), records]
       end
+
+      # The ids of the findings the last audit left open on members, which accepting their acknowledgements leaves
+      # open, each once, since a finding may name several of them.
+      #: (Array[MemberAcknowledgement]) -> Array[String]
+      def open_findings(members) = members.flat_map { it.acknowledgement.open_finding_ids }.uniq
 
       # The members each principle basis names maps, refused when a later copy wrote any of their records, or as stale
       # unless their request is still the one request_id names.

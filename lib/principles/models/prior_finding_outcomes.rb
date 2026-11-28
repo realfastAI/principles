@@ -26,7 +26,8 @@ module Principles
         holding = of(["still_holds"]).map(&:kept)
         DecidedPriorFindings.new(
           { "kept" => holding.map(&:to_h), "closed" => of(PriorFindingDecision::CLOSING).map(&:closed),
-            "inherited" => first_raised(of(["raised_again"])), **changed(holding) }
+            "inherited" => first_raised(of(["raised_again"])),
+            "deferrals_raised_again" => deferrals(of(["raised_again"])), **changed(holding) }
         )
       end
 
@@ -51,6 +52,16 @@ module Principles
         raised.group_by(&:raised_as).to_h do |as, same|
           raised_once(as, same.map { |decision| decision.finding.id })
           [as, same.fetch(0).finding.first_raised_at]
+        end
+      end
+
+      # Where each deferral raised again was written up and whom it waited on, by the id of the new finding it became,
+      # so that finding's correction starts from them rather than from nothing.
+      #: (Array[PriorFindingDecision]) -> Hash[String, Hash[String, untyped]]
+      def deferrals(raised)
+        raised.select { |decision| decision.finding.action == "deferred" }.to_h do |decision|
+          [decision.raised_as, { "recorded_at" => decision.finding.recorded_at&.to_h,
+                                 "waits_on" => decision.finding.waits_on }]
         end
       end
 

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "acknowledgements-answer.schema.json",
   "title": "Acknowledgements answer",
-  "description": "What an agent answers a request to acknowledge several members of one principle, or the members several principles map, holding: the request's id, its basis naming each member, and under members one entry per member, keyed by its id, holding what a one-member answer holds beside its head. Fields this tool does not read are refused. Models::Acknowledgements refuses an answer whose members differ from its basis, and each entry is checked as Models::Acknowledgement checks a one-member answer.",
+  "description": "What an agent answers a request to acknowledge several members of one principle, or the members several principles map, holding: the request's id, its basis naming each member, and under members one entry per member, keyed by its id, holding what a one-member answer holds beside its head. Fields this tool does not read are refused, but for answer_with and each entry's role, or roles across principles, which the template printed alone carries for the agent to read and which are read as nothing. Models::Acknowledgements refuses an answer whose members differ from its basis, and each entry is checked as Models::Acknowledgement checks a one-member answer.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -13,6 +13,10 @@
   "properties": {
     "request_id": {
       "type": "string"
+    },
+    "answer_with": {
+      "type": "string",
+      "description": "The command that submits this answer from the file it is saved in, as the template printed alone carries it. Sent back, it is read as nothing."
     },
     "basis": {
       "type": "object",
@@ -47,6 +51,17 @@
           "reason"
         ],
         "properties": {
+          "roles": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "The member's role by each principle that maps it, which the template printed alone across principles carries beside meaning_kept for the agent judging it. Sent back, it is read as nothing."
+          },
+          "role": {
+            "type": "string",
+            "description": "The member's role as its map names it, which the template printed alone carries beside meaning_kept for the agent judging it. Sent back, it is read as nothing."
+          },
           "meaning_kept": {
             "type": "boolean"
           },

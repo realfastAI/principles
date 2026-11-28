@@ -124,7 +124,7 @@ module Principles
       #: () -> bot
       def unrecorded_deferral
         invalid("deferring it needs recorded_at, or null when it is written up nowhere",
-                "Set recorded_at to where #{@id} is written up, as {\"path\": ..., \"heading\": ...}, or to null.")
+                "Set recorded_at to where #{@id} is written up, as #{AnswerFields::WRITE_UP_FORMS}; or to null.")
       end
 
       # The action the finding keeps once decided, or nil when the decision closes it or raises it again.

@@ -241,6 +241,20 @@
           "waits_on": {
             "type": ["string", "null"],
             "description": "On a deferral, one line saying whom it waits on and to decide what; null on any disposition. Models::CorrectionAnswer refuses a value on another action, or one not one line."
+          },
+          "unfixed_part": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "problem", "action", "reason"],
+            "description": "On a fix that settles only part of its finding, the part left unfixed, raised as a new finding of the finding's members under its own id, deferred or accepted as a disposition is. Models::Disposition refuses it on any other action.",
+            "properties": {
+              "id": { "type": "string" },
+              "problem": { "type": "string" },
+              "action": { "type": ["string", "null"] },
+              "reason": { "type": "string" },
+              "recorded_at": {"x-type-refusal-advice":{"keys":["path","url","heading","starting_at","ending_at","query"],"says":"with path, plus starting_at (or heading) when the file holds more than this finding, or with url alone, a whole https link, for a write-up outside the project such as an issue"},"type":["object","null"],"additionalProperties":false,"properties":{"path":{"type":"string"},"url":{"type":"string"},"heading":{"type":"string"},"starting_at":{"type":"string"},"ending_at":{"type":"string"},"query":{"type":"string"}}},
+              "waits_on": {"type":["string","null"]}
+            }
           }
         }
       }

@@ -72,6 +72,11 @@ module Principles
         inherited.key?(id) ? { "first_raised_at" => inherited.fetch(id) } : {}
       end
 
+      # Where each deferral raised again was written up and whom it waited on, by the id of the new finding it became;
+      # none in a basis printed before they were carried.
+      #: () -> Hash[String, Hash[String, untyped]]
+      def deferrals_raised_again = @fields.fetch("deferrals_raised_again", {})
+
       # These decisions with each kept finding filed under its members' ids after moves.
       #: (MemberMoves) -> DecidedPriorFindings
       def moved(moves)

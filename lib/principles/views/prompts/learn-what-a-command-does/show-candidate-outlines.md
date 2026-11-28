@@ -11,8 +11,14 @@ on ignored links or targets. Their contents are not read. No success is inferred
 
 `inventory.files` uses the survey's entries: `path`, `characters`, and `symlink_to` when linked. Markdown gives
 `outline`, with its headings and top-level list items, and any `description` and `opening_line` as in
-list-candidate-files. Explicitly requested test-data files and skill references receive outlines too: you chose
-them, and you judge relevance. Non-Markdown text gives path and size alone; open it only if needed.
+list-candidate-files. Explicitly requested test-data files and skill references receive outlines too: you chose them,
+and you judge relevance. A CI workflow in `.github/workflows/` gives each job, `job ID: NAME`, followed by its steps,
+each by its name or else what it runs or uses; one whose YAML does not parse gives path and size alone. Other text, such
+as a script or a hook, gives its whole-line `#` comments as its `outline`, where such a file states the rule it
+enforces, its shebang and Ruby magic comments (`frozen_string_literal`, `typed`, `encoding`, `coding`, `warn_indent`,
+`shareable_constant_value`) left out; text with none gives path and size alone. Past 20 items under one heading, or 20
+comments, `(N more, lines A-B)` gives the lines from the first left out to the section's end. Open a file only if
+needed.
 
 The full rendered result uses the survey's byte budget. `outlines_cut` names shortened outlines, whose line-range
 markers show where to read needed items. `outlines_left_out` names files whose outlines were omitted: request

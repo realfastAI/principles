@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require_relative "../error"
+require_relative "acknowledgements_to_offer"
 require_relative "member_problems"
 require_relative "missing_files"
 
@@ -52,7 +53,8 @@ module Principles
 
         { "members" => changed(&),
           "counts" => @maps.flat_map(&:entries).map { |each| each.fetch("state") }.tally.sort.to_h,
-          "compared_with" => compared_with, **no_baseline_because, **awaiting_first_audit_field, **mapping_facts }
+          "compared_with" => compared_with, **no_baseline_because, **awaiting_first_audit_field, **mapping_facts,
+          **plugin_unresolved }
       end
 
       # The principles that await their first full audit, in map order, which list-member-problems names in one
@@ -74,22 +76,10 @@ module Principles
       #: () -> Hash[String, Integer]
       def never_assessed = @maps.to_h { [it.principle_id, it.never_assessed] }.reject { |_, count| count.zero? }
 
-      # For each map with a changed member a one-member audit may judge, the ids of those members, which
-      # list-member-problems offers that audit for, one command per principle.
-      #: () -> Hash[String, Array[String]]
-      def acknowledgeable
-        @maps.to_h { |map| [map.principle_id, map.acknowledgeable_member_ids] }.reject { |_, ids| ids.empty? }
-      end
-
-      # The acknowledgeable members, those of principles that share one joined in one acknowledgement across them:
-      # each set of principle ids, in id order, with the members they acknowledge together, leaving out the
-      # principles in except, whose records wait on an upgrade.
-      #: (?except: Array[String]) -> Hash[Array[String], Array[String]]
-      def acknowledgeable_together(except: [])
-        acknowledgeable.reduce({}) do |groups, (id, members)|
-          except.include?(id) ? groups : joining(groups, id, members)
-        end
-      end
+      # The one-member audits list-member-problems offers, but for the principles in except, whose records wait on an
+      # upgrade.
+      #: (?except: Array[String]) -> AcknowledgementsToOffer
+      def acknowledgements(except: []) = AcknowledgementsToOffer.new(@maps, except:)
 
       # For each map with members no baseline holds, its map file and the files those members are in, and in git
       # only those of them that differ from HEAD or are untracked, since committing an unchanged file does nothing.
@@ -161,6 +151,13 @@ module Principles
           "empty_maps" => @maps.select(&:empty_map?).map(&:principle_id) }.reject { |_key, ids| ids.empty? }
       end
 
+      # Each plugin member no installed plugin gives, with why, which refuses nothing; none when every one resolves.
+      #: () -> Hash[String, Array[Hash[String, untyped]]]
+      def plugin_unresolved
+        unresolved = @maps.flat_map(&:entries).select { it.fetch("state") == "plugin_unresolved" }
+        unresolved.empty? ? {} : { "plugin_unresolved" => unresolved.map { it.slice("principle", "id", "reason") } }
+      end
+
       #: (Array[Hash[String, untyped]]) -> bot
       def refuse(broken)
         named = broken.map { |each| [each["principle"], each["id"]].compact.join(" ") }
@@ -168,14 +165,6 @@ module Principles
         raise missing.refusal("#{broken.length} members cannot be found or read: #{named.join(", ")}",
                               rerun: "#{Error::EXECUTABLE} list-member-problems",
                               note: "A map listed as unreadable_map needs its own refusal's repair. ")
-      end
-
-      # groups with principle id's members joined into each group that shares one of them, as one group.
-      #: (Hash[Array[String], Array[String]], String, Array[String]) -> Hash[Array[String], Array[String]]
-      def joining(groups, id, members)
-        joined = groups.select { |_ids, others| others.intersect?(members) }
-        rest = groups.reject { |ids, _others| joined.key?(ids) }
-        rest.merge([*joined.keys.flatten, id].sort => [*joined.values.flatten, *members].uniq)
       end
     end
   end

@@ -22,18 +22,18 @@ text is not judged. An evidence/`recorded_at` location refusal (such as `ambiguo
 (`invalid_check_result`) retains its code, any `path` and repair, names whose evidence/check failed, and gives `fields`
 with each `problem` and JSON `pointer` into your answer. `invalid_answer` names fields ending in another template's
 placeholder; use this template or reword the ending. Set correction `action` to fixed, deferred, accepted or disagreed;
-else `invalid_disposition` names the finding. A deferred disposition may give `waits_on`, one line naming whom it waits
-on and to decide what, printed by `list-open-findings`. Null is allowed on any action; text on another action or
-multiple lines causes `invalid_disposition`. The tool records when it was asked; never send that time. For a legacy
+only a deferral may give `waits_on` text, one line naming whom it waits on to decide what, which `list-open-findings`
+prints; null is allowed on any action. Never send when it was asked. A partial fix may give `unfixed_part`: the rest,
+raised as a new finding. Else `invalid_disposition` names the finding. For a legacy
 prior finding, `still_holds` may supply `first_raised_at` (that audit's `audited_at`) and `raised_in` (full commit sha)
 together. Only that commit's `.principles/audits/ID.json` or earlier `.memeplex/audits/ID.json` is read; it must leave
 the same finding deferred/accepted. Judge identity yourself. Refusals explain repairs: `raised_in_not_found` (also
 outside git), `raised_in_unreadable`, `raised_in_lacks_finding`, `raised_in_time_differs`, `first_raised_not_earlier`
-(date must precede stored time). Completed full audits list own/kept deferred or accepted IDs in `open_findings`,
-fixed/resolved IDs in `resolved_findings`, and each closed prior finding's decision/reason in `prior_findings_closed`.
-Disagreed/withdrawn findings are in neither open nor resolved. In git, `commits_since_base` lists commits touching each
-member's file; uncommitted fixes have an empty list. `files_to_commit` lists their files; `commit_with` commits only
-those, stopping during an unfinished merge. Replace its `-m` default as `commit_message_to_replace` says.
+(date must precede stored time). Completed full audits list own/kept IDs in `deferred_findings` and
+`accepted_findings`, fixed/resolved IDs in `resolved_findings`, each closed prior finding's decision/reason in
+`prior_findings_closed`, and none disagreed/withdrawn. In git, `commits_since_base` lists commits touching each member's
+file; uncommitted fixes have an empty list. `files_to_commit` lists their files; `commit_with` commits only those,
+stopping during an unfinished merge. Replace its `-m` default as `commit_message_to_replace` says.
 `cited_files_missing` lists missing cited files excluded from `files_to_commit`; record references remain. If HEAD moved
 without touching a member, `head_moved_past_base` gives `base_commit` and `head`. If its fixes changed a file another
 principle also maps, `other_principles_with_changed_members` names each such principle and its members in fixed
@@ -46,8 +46,8 @@ what to retain; `show-answer-check --help` covers `carried_assessments_citing_de
 
 In git, this tool reads the map at the audit base: fixed dispositions declare roles/checks in `changed_map_entries`,
 text/additions in `changed_members`, removals in `removed_members`. `invalid_removed_members` rejects invalid removal
-claims; `empty_correction_map` requires a survivor/replacement. Source files stay intact.
-`claimed_change_missing` rejects unchanged entries; `members_added_awaiting_assessment` lack baselines.
+claims; `empty_correction_map` requires a survivor/replacement. Source files stay intact. `claimed_change_missing`
+rejects unchanged entries, `plugin_member_read_only` plugin members; `members_added_awaiting_assessment` lack baselines.
 Role/removal claims require git (`map_entries_need_git`). Full rules: correction question, `show-answer-check --help`.
 
 For a `start-audit --member` request, `quote_not_found` refuses an `old_line` or `new_line` not a line only its side

@@ -16,7 +16,11 @@ module Principles
     class MapFiles
       # The newest map format ordinary current-map reads accept. Models::Principle says which member fields need which
       # format, and a spec ties the two together.
-      NEWEST_FORMAT = 2
+      NEWEST_FORMAT = 4
+
+      # The formats up to NEWEST_FORMAT a current read still refuses: 3 is an earlier map's history link, which only
+      # parse_history reads.
+      HISTORY_ONLY_FORMATS = [3].freeze #: Array[Integer]
 
       #: (PrinciplesSubfolder) -> void
       def initialize(directory)
@@ -111,13 +115,23 @@ module Principles
       #: (String, untyped, String?) -> void
       def refuse_newer(id, map, commit)
         format = map.is_a?(Hash) ? map["format"] : nil
-        return unless format.is_a?(Integer) && format > NEWEST_FORMAT
+        return unless format.is_a?(Integer)
+        return unless format > NEWEST_FORMAT || HISTORY_ONLY_FORMATS.include?(format)
 
-        raise Error.new("newer_format", "#{where(id, commit)} is format #{format}, written by a newer version " \
-                                        "than this one; this one reads up to format #{NEWEST_FORMAT}",
+        raise Error.new("newer_format", "#{where(id, commit)} is format #{format}, #{unread_because(format)}",
                         "Update the installed principles plugin or gem, then run the command again. " \
                         "Leave the map as it is: it is not broken.",
                         relative(id))
+      end
+
+      # Why a current read cannot read a map at format.
+      #: (Integer) -> String
+      def unread_because(format)
+        if format > NEWEST_FORMAT
+          "written by a newer version than this one; this one reads up to format #{NEWEST_FORMAT}"
+        else
+          "which this version reads only as an earlier map's history"
+        end
       end
 
       #: (String, String?) -> String

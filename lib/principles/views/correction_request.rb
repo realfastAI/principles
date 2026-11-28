@@ -3,6 +3,7 @@
 
 require_relative "answer_head"
 require_relative "answer_in_a_file"
+require_relative "disposition_template"
 require_relative "invocation"
 require_relative "prompts"
 require_relative "shell_word"
@@ -14,14 +15,16 @@ module Principles
     # every disposition's shape, and what submitting the assessment stored.
     class CorrectionRequest
       # head is what the answer hands back unchanged, the request's id and the basis the correction depends on;
-      # placeholders is the text the template leaves in each field the agent writes, with %<id>s where each
-      # disposition names its finding.
-      #: (head: AnswerHead, principle_id: String, findings: Array[untyped], placeholders: Hash[String, String]) -> void
-      def initialize(head:, principle_id:, findings:, placeholders:)
+      # disposition is what the template starts each finding's disposition with; carrier_checks is the check for each
+      # carrier kind the findings' members are in, as CarrierChecks prints them.
+      #: (head: AnswerHead, principle_id: String, findings: Array[untyped], disposition: DispositionTemplate,
+      #|  ?carrier_checks: Hash[String, untyped]) -> void
+      def initialize(head:, principle_id:, findings:, disposition:, carrier_checks: {})
         @head = head
+        @carrier_checks = carrier_checks
         @principle_id = principle_id
         @findings = findings
-        @placeholders = placeholders
+        @disposition = disposition
         freeze
       end
 
@@ -29,12 +32,14 @@ module Principles
       #: () -> String
       def request_id = @head.request_id
 
-      # The findings to dispose of, the question and a guide to every disposition's shape.
+      # The findings to dispose of, the check for each carrier their members are in, the question and a guide to every
+      # disposition's shape.
       #: () -> Hash[String, untyped]
       def context
         { "principle_id" => @principle_id, "findings" => @findings,
+          **({ "carrier_checks" => @carrier_checks } unless @carrier_checks.empty?),
           "question" => Prompts.text("dispose-of-each-finding/fix-or-record-each-finding"),
-          "answer_guide" => self.class.answer_guide(@placeholders.fetch("reason")) }
+          "answer_guide" => self.class.answer_guide(@disposition.reason) }
       end
 
       # The guide to every disposition's shape, whose deferred sample's reason is reason_placeholder, the template's,
@@ -50,13 +55,7 @@ module Principles
       # both print one template.
       #: () -> Hash[String, untyped]
       def template
-        @head.leading("dispositions" => @findings.map do |finding|
-          named = @placeholders.transform_values { format(it, id: finding["id"]) }
-          { "finding_id" => finding["id"], "action" => named.fetch("action"),
-            "reason" => named.fetch("reason"), "changed_members" => [], "removed_members" => [],
-            "evidence" => [],
-            "reassessment" => nil, "recorded_at" => nil, "waits_on" => nil }
-        end)
+        @head.leading("dispositions" => @findings.map { @disposition.for(it) })
       end
 
       # The correction's answer alone, as show-answer-check --as template prints it.
@@ -74,7 +73,7 @@ module Principles
       #: (Hash[String, untyped], Invocation, String) -> Hash[String, untyped]
       def with_correction_to_fill(acceptable, invocation, answer_file)
         assessment_id = acceptable.fetch("request_id")
-        file = invocation.answer_file(request_id)
+        file = correction_file(invocation)
         save = "Once this answer is submitted with the last line's command, save the correction's answer it leads " \
                "to in a file kept out of git, at this full path, the same from every shell, from this command's " \
                "output: #{alone(assessment_id, answer_file, invocation)} > #{ShellWord.new(file)}\nFill only its " \
@@ -86,7 +85,13 @@ module Principles
       # How to fill the correction by hand: save its answer alone, which show-open-correction prints bare from the
       # open record, to a file, fill only its dispositions there with a file-edit tool, and submit that file.
       #: (Invocation) -> String
-      def to_fill_by_hand(invocation) = AnswerInAFile.new(invocation).correction(@principle_id, request_id:)
+      def to_fill_by_hand(invocation)
+        AnswerInAFile.new(invocation).correction(@principle_id, request_id:, file: correction_file(invocation))
+      end
+
+      # The file the correction's answer is saved in, named by its principle and phase.
+      #: (Invocation) -> String
+      def correction_file(invocation) = invocation.answer_file(@principle_id, "correction")
 
       # What to keep while the correction is open, and the read-only command that prints its answer again from the
       # open record, in git or outside it.

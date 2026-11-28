@@ -18,9 +18,9 @@ module Principles
       end
 
       # The step after adding members, since the next add-member remains the command to answer with.
-      #: (String, ?keeps_others_held: bool) -> String
-      def after_mapping(id, keeps_others_held: false)
-        return after_keeping_mapping(id) if keeps_others_held
+      #: (String, ?keeps_held: Array[String]?) -> String
+      def after_mapping(id, keeps_held: nil)
+        return after_keeping_mapping(id, keeps_held) if keeps_held
 
         if @in_git
           return "When the map lists every member, commit it: list-member-problems then reports any change to a " \
@@ -41,25 +41,39 @@ module Principles
                  "To find the first of them: #{@invocation.in_project("list-candidate-files")}"
         end
 
-        "This principle's first full audit judges whether the keeping works for the principles under " \
-          "existing_principles.\n" \
-          "To start it: #{@invocation.in_project("start-audit", id)}"
+        keeping_audit(id, principles: "the principles under existing_principles")
       end
 
       private
 
-      # Adding the keeping passage retains setup's first-own-principle prerequisite.
-      #: (String) -> String
-      def after_keeping_mapping(id)
-        baseline = if @in_git
-                     "When the map lists every member, commit it: that commit is the members' baseline until an audit."
-                   else
-                     "Outside git, the first full audit gives each member its baseline."
-                   end
+      # The keeping audit, for the principles it keeps held, as the command that printed them names them.
+      #: (String, principles: String) -> String
+      def keeping_audit(id, principles:)
+        "This principle's first full audit judges whether the keeping works for #{principles}.\n" \
+          "To start it: #{start_audit(id)}"
+      end
+
+      # Adding the keeping passage retains setup's first-own-principle prerequisite while it holds none.
+      #: (String, Array[String]) -> String
+      def after_keeping_mapping(id, keeps_held)
+        if keeps_held.any?
+          return "#{keeping_baseline}\n#{keeping_audit(id, principles: "the principles list-principles lists")}"
+        end
+
         Prompts.text("set-principles-up/first-keeping-audit-after-own-principle",
-                     baseline: baseline,
+                     baseline: keeping_baseline,
                      find: @invocation.in_project("list-candidate-files"),
                      audit: start_audit(id))
+      end
+
+      # What gives the keeping map's members their baseline until its first full audit.
+      #: () -> String
+      def keeping_baseline
+        if @in_git
+          "When the map lists every member, commit it: that commit is the members' baseline until an audit."
+        else
+          "Outside git, the first full audit gives each member its baseline."
+        end
       end
 
       #: (String) -> String

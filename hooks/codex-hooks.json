@@ -6,7 +6,19 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/bin/principles report-at-session-start 2>/dev/null || echo \"principles: no supported Ruby was found to run principles. Read $CLAUDE_PLUGIN_ROOT/skills/setup-ruby/SKILL.md and follow it, asking the user before installing anything.\"",
+            "command": "{ e=$( { \"${CLAUDE_PLUGIN_ROOT}\"/bin/principles report-at-session-start 2>&1 1>&3 3>&-; } ); s=$?; } 3>&1; [ \"$s\" -eq 0 ] && exit 0; case \"$s:$e\" in 127:*|*'\"code\":\"unsupported_ruby\"'*) echo \"principles: no supported Ruby was found to run principles. Read $CLAUDE_PLUGIN_ROOT/skills/setup-ruby/SKILL.md and follow it, asking the user before installing anything.\";; *) echo \"principles: the session-start report failed with exit status $s. To see why, run: echo '{\\\"source\\\":\\\"startup\\\"}' | principles report-at-session-start\";; esac",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "j=$(cat); i=${j#*\\\"tool_use_id\\\":\\\"}; [ \"$i\" != \"$j\" ] || i=${j#*\\\"tool_use_id\\\": \\\"}; i=${i%%\\\"*}; case $i in ''|*[!A-Za-z0-9_-]*) exit 0;; esac; d=\"${TMPDIR:-/tmp}/principles-calls\"; { [ -d \"$d\" ] || mkdir -p \"$d\"; } 2>/dev/null && : 2>/dev/null > \"$d/$i\"; exit 0",
             "timeout": 15
           }
         ]
@@ -18,7 +30,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/bin/principles report-after-commit 2>/dev/null || true",
+            "command": "j=$(cat); i=${j#*\\\"tool_use_id\\\":\\\"}; [ \"$i\" != \"$j\" ] || i=${j#*\\\"tool_use_id\\\": \\\"}; i=${i%%\\\"*}; case $i in ''|*[!A-Za-z0-9_-]*) i=;; esac; m=\"${TMPDIR:-/tmp}/principles-calls/$i\"; p=\"${CLAUDE_PROJECT_DIR:-.}\"; c=; if [ -d \"$p/.git\" ]; then c=\"$p/.git\"; elif read -r g 2>/dev/null < \"$p/.git\"; then g=${g#gitdir: }; case $g in /*) ;; *) g=\"$p/$g\";; esac; read -r c 2>/dev/null < \"$g/commondir\" && case $c in /*) ;; *) c=\"$g/$c\";; esac; else c=$(git -C \"$p\" rev-parse --path-format=absolute --git-common-dir 2>/dev/null); fi; if [ -n \"$i\" ] && [ -f \"$m\" ] && [ -f \"$c/logs/HEAD\" ]; then set --; for r in \"$c/logs/HEAD\" \"$c\"/worktrees/*/logs/HEAD; do [ -f \"$r\" ] && set -- \"$@\" -newer \"$r\"; done; o=$(find \"$m\" \"$@\" 2>/dev/null); rm -f \"$m\"; [ -z \"$o\" ] || exit 0; fi; printf '%s\\n' \"$j\" | \"${CLAUDE_PLUGIN_ROOT}\"/bin/principles report-after-commit 2>/dev/null || true",
             "timeout": 15
           }
         ]

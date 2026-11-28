@@ -1,6 +1,7 @@
 # typed: strict
 # frozen_string_literal: true
 
+require_relative "../models/feature"
 require_relative "../models/meta_principle"
 require_relative "../models/principles_package"
 require_relative "../models/principles_on_path"
@@ -35,20 +36,41 @@ module Principles
         end
       end
 
+      # What PATH says of this run, as Launch reads it, each read only when a command needs it: other gives the path
+      # and printed version of another principles earlier on PATH than this one, and which of the commands it is
+      # asked about that copy does not run, or nil, since reading it starts that copy; launched says whether this run
+      # was launched as the first principles on PATH, as a RubyGems binstub is, so a bare principles runs this same
+      # copy; tool says whether PATH holds a fast standard tool, such as rg, which a feature runs. Nothing is on PATH
+      # unless Launch says so, so a feature that needs a tool is off by default.
+      class OnPath
+        #: (?other: ^(Array[String]) -> [String, String, Array[String]]?, ?launched: ^() -> bool,
+        #|  ?tool: ^(String) -> bool) -> void
+        def initialize(other: ->(_) {}, launched: -> { false }, tool: ->(_) { false })
+          @other = other
+          @launched = launched
+          @tool = tool
+          freeze
+        end
+
+        # The feature command runs, on only while PATH holds every fast standard tool it needs.
+        #: (String) -> Models::Feature
+        def feature(command) = Models::Feature.new(command, on_path: @tool)
+
+        # Another principles earlier on PATH, asked about the commands of asking, or nil.
+        #: (Array[String]) -> [String, String, Array[String]]?
+        def other(asking) = @other.call(asking)
+
+        #: () -> bool
+        def launched? = @launched.call
+      end
+
       # version gives the version running, read only when a command needs it, since in a checkout reading it
-      # asks git; other_on_path gives the path and printed version of another principles earlier on PATH than this
-      # one, and which of the commands it is asked about that copy does not run, or nil, read only when a command
-      # needs it, since reading it starts that copy; launched_on_path says
-      # whether this run was launched as the first principles on PATH, as a RubyGems binstub is, so a bare
-      # principles runs this same copy; folders are the folders the process was given.
-      #: (executable: String, version: ^() -> String,
-      #|  ?other_on_path: ^(Array[String]) -> [String, String, Array[String]]?, ?launched_on_path: ^() -> bool,
-      #|  folders: Folders) -> void
-      def initialize(executable:, version:, folders:, other_on_path: ->(_) {}, launched_on_path: -> { false })
+      # asks git; on_path is what PATH says of this run; folders are the folders the process was given.
+      #: (executable: String, version: ^() -> String, folders: Folders, ?on_path: OnPath) -> void
+      def initialize(executable:, version:, folders:, on_path: OnPath.new)
         @executable = executable
         @version = version
-        @other_on_path = other_on_path
-        @launched_on_path = launched_on_path
+        @on_path = on_path
         @folders = folders
         freeze
       end
@@ -63,7 +85,7 @@ module Principles
 
       # Whether this run was launched as the first principles on PATH, so a bare principles runs this same copy.
       #: () -> bool
-      def launched_on_path? = @launched_on_path.call
+      def launched_on_path? = @on_path.launched?
 
       # Where this run comes from, by the entry point it was invoked through, whatever its commands are printed as.
       #: () -> Models::RunsFrom
@@ -85,9 +107,13 @@ module Principles
       # whether it runs each command of asking, or nil.
       #: (?asking: Array[String]) -> Models::PrinciplesOnPath?
       def other_on_path(asking: [])
-        path, version, lacking = @other_on_path.call(asking)
+        path, version, lacking = @on_path.other(asking)
         path && version ? Models::PrinciplesOnPath.new(path, version, lacking: lacking || []) : nil
       end
+
+      # The feature command runs, on only while PATH holds every fast standard tool it needs.
+      #: (String) -> Models::Feature
+      def feature(command) = @on_path.feature(command)
 
       # The release of principles this run comes from, as the audit of map's principle keeps it: the version running
       # and the passage as setup prints it, which only a view holds; nil for a principle whose audit keeps none.

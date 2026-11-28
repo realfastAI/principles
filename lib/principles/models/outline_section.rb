@@ -1,6 +1,8 @@
 # typed: strict
 # frozen_string_literal: true
 
+require_relative "outline_item"
+
 module Principles
   # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
@@ -9,6 +11,8 @@ module Principles
     class OutlineSection
       # The most items printed under one heading; a longer list says how many more it holds.
       MOST_ITEMS = 20
+      # The most characters of an item printed, cut back to a whole word.
+      ITEM_CHARACTERS = 60
       # A heading's marks, as many as its level.
       MARKS = /\A#+/
 
@@ -27,7 +31,7 @@ module Principles
       #: Integer
       attr_reader :level
 
-      #: (heading: String?, items: Array[String], first_line: Integer, last_line: Integer) -> void
+      #: (heading: String?, items: Array[OutlineItem], first_line: Integer, last_line: Integer) -> void
       def initialize(heading:, items:, first_line:, last_line:)
         @heading = heading
         @level = heading.to_s[MARKS].to_s.length #: Integer
@@ -37,11 +41,14 @@ module Principles
         freeze
       end
 
-      # The section as the outline prints it: its heading, its items up to MOST_ITEMS, then how many more.
+      # The section as the outline prints it: its heading, its items up to MOST_ITEMS, then how many more and the lines
+      # from the first of them to the section's end, so the agent reads just those back.
       #: () -> Array[String]
       def lines
-        more = @items.length - MOST_ITEMS
-        [*@heading, *@items.first(MOST_ITEMS), *("(#{more} more)" if more.positive?)]
+        left_out = @items.drop(MOST_ITEMS)
+        first = left_out.first
+        [*@heading, *@items.first(MOST_ITEMS).map(&:text),
+         *("(#{left_out.length} more, lines #{first.line}-#{@last_line})" if first)]
       end
 
       # The section as a cut outline prints it: its heading, then, if it holds items, how many and the lines of the file
@@ -51,6 +58,10 @@ module Principles
 
       #: () -> Integer
       def item_count = @items.length
+
+      # Whether the outline prints fewer of its items than it holds, past MOST_ITEMS.
+      #: () -> bool
+      def leaves_items_out? = @items.length > MOST_ITEMS
     end
   end
 end

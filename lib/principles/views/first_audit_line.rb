@@ -24,7 +24,7 @@ module Principles
         return [] if count.zero?
 
         counted = count == 1 ? "1 principle has" : "#{count} principles have"
-        [%w[resume compact].include?(source) ? started_already(counted, count) : asked(counted, count)]
+        [%w[resume compact].include?(source) ? started_already(counted, count) : asked(counted)]
       end
 
       private
@@ -34,11 +34,10 @@ module Principles
         Prompts.text("start-a-session/start-no-second-first-audit", counted:, them: count == 1 ? "it" : "one")
       end
 
-      #: (String, Integer) -> String
-      def asked(counted, count)
+      #: (String) -> String
+      def asked(counted)
         Prompts.text("start-a-session/hand-the-first-audit-to-a-subagent",
-                     counted:, them: count == 1 ? "it" : "them",
-                     command: @invocation.in_project("show-first-audit-brief"))
+                     counted:, command: @invocation.in_project("show-first-audit-brief"))
       end
     end
   end

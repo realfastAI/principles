@@ -16,6 +16,7 @@ require_relative "carried_assessments"
 require_relative "prior_findings"
 require_relative "decided_prior_findings"
 require_relative "disposition"
+require_relative "finding_outcomes"
 require_relative "stale_request"
 require_relative "map_change"
 
@@ -69,7 +70,7 @@ module Principles
       def check_assessment_request(request_id, basis:, committed:, record:, loads:, &started_from)
         prior = prior_findings(record)
         now_id = assessment_id(basis, prior.digested, loads.listed)
-        return prior if now_id == request_id && (basis.base.nil? || committed == @now)
+        return prior if now_id == request_id && (basis.base.nil? || committed == in_project_now)
 
         raise StaleRequest.new(id, changed_since(committed), correction_open: record&.open? || false,
                                                              map_change: map_change(request_id, basis, record, loads,
@@ -149,16 +150,10 @@ module Principles
         before
       end
 
-      # Each finding's outcome: its members and its disposition's action, where it is recorded, if anywhere, and
-      # what a deferral says it waits on, if anything.
-      # Then each prior finding kept; a new finding that raises one again keeps when it was first raised.
+      # The findings the completed audit records, as FindingOutcomes gives them.
       #: (Array[untyped], Array[Disposition], ?DecidedPriorFindings) -> Array[untyped]
       def outcomes(findings, dispositions, prior = DecidedPriorFindings::NONE)
-        findings.map do |finding|
-          id = finding.fetch("id")
-          disposition = dispositions.find { |each| each.finding_id == id } or raise KeyError, id
-          finding.slice(*RecordedFinding::RAISED_FIELDS).merge(disposition.recorded_outcome, prior.first_raised(id))
-        end + prior.kept
+        FindingOutcomes.new(findings, dispositions, prior).recorded
       end
 
       # What each member's assessment is judged on beside its text, from each member's loads: its map entry and when
@@ -217,7 +212,12 @@ module Principles
       # The ids of the members whose hash now differs from the one committed, the base commit's, gives; none
       # outside git.
       #: (Hash[String, String]?) -> Array[String]
-      def changed_since(committed) = committed ? @now.reject { |member_id, sha| committed[member_id] == sha }.keys : []
+      def changed_since(committed) = committed ? in_project_now.reject { |id, sha| committed[id] == sha }.keys : []
+
+      # Each hash now of a member in the project's own files, which a commit can hold, by id; a plugin's member,
+      # outside git, is compared only through the request id.
+      #: () -> Hash[String, String]
+      def in_project_now = members.in_project.ids.to_h { [it, @now.fetch(it)] }
 
       #: () -> Error
       def stale_request = StaleRequest.new(id).refusal

@@ -13,6 +13,126 @@ The agent's mechanics are the means, never the lead: do not open with "An agent 
 
 ## Unreleased
 
+## [0.1.4] - 2026-11-28
+
+### Added
+
+- **Request logging gets a folder git ignores before anything is written there, so a captured request, which holds the session's whole context, cannot be committed by mistake.** `principles turn-on-request-logging` sets up `.principles/request-logging/`, refusing and leaving nothing behind when git cannot confirm it ignores that folder, writes the launch file that asks Claude Code to write each request it sends there, and prints the `claude --settings` line to start it with, and the same line with `--resume` to keep your conversation; `principles turn-off-request-logging` empties it again and keeps every logged request. `principles show-logged-requests` shows each captured session's requests, files and bytes, the request files its index does not name, and when the newest request was written. A logged request holds your account email as well as the session's context. Claude Code writes each file readable by other local users, so the folder is made readable only by you. The result includes `explain_to_user`, a paragraph your agent gives you before you relaunch: what is logged, who can read it, its disk use, and how to clean up or turn it off. Known limit: scanning the logged requests takes longer as the log grows, about 17 s for one audit part at 3,300 requests, so prune it with `principles remove-logged-requests`.
+
+- **Filling in a full audit's recent decision costs a few hundred bytes of context, not the whole audit record.** `principles show-audit ID --findings` prints the record's findings with its status, base commit and date, and those of the last completed audit an open record keeps, leaving out every member's assessment: 714 bytes instead of 17,826 for one record in this project.
+
+- **A finding your agent fixes only in part is recorded as fixed, with the rest kept open, so the next audit does not judge the fixed half again.** In a correction, a fixed disposition may give `unfixed_part`: the problem still left, deferred or accepted with its reason. The audit record keeps the finding fixed and raises that part as a new finding of the same members, where before the whole finding had to be deferred. An unfixed part whose problem or reason is blank, or left as the correction's question prints it, is refused with the field to write, so no empty finding is recorded.
+
+- **The members a large audit must judge are listed in one call, with no script to write.** `principles start-audit ID --part judged_members` prints the id of each member the audit judges, one a line, rather than leaving the agent to pull them out of the index, where each one's verdict sits on the line after its part.
+
+- **See which of your principles' text actually reached the agent, rather than what was predicted to.** `principles show-members-in-logged-requests` scans the logged requests with `jq` and `rg`, opens with how many members have each status and what each status means, then gives each mapped member's reach: how many requests held its lines, its most bytes in one and the segments they were in, within a tool result on this project's 2,464 requests (`--short` prints one line a member). A member moved since it was mapped is named where it is now, beside the key it was mapped under. While requests are logged, `principles list-member-problems` names each member too short to find in one, with the `move-member` that widens it, so no member stays unmeasurable unnoticed. `--places`, or `--member KEY` for chosen members, reports where its lines were seen: the request, its `query_source`, the place in the request, the share of the member's lines there and their bytes. It prints no text from a request, refuses while the request-logging folder is not ignored by git, and asks you to install `jq` or `rg` when either is missing. A request it cannot read through is named with its reason rather than read in part or counted as holding nothing, and an empty string in a request no longer hides every string after it from the scan. A member that is a skill's frontmatter description is measured by its value, as the host lists it, so it no longer reads `absent` beside the host's own listing of that skill. It also says whether it read every captured request through, how many requests were `captured`, unreadable ones included, and how many strings it read, so a member reported absent is trusted only when the scan is complete; a full audit's `requests` and each `seen_in` count only the requests read through. Each place counts every occurrence of a member's lines and gives the byte offset of each, so text sent twice in one request shows its cost twice. The scan runs in well under half the time it took: 18 s instead of 42 s on this project's 971 captured requests.
+
+- **A full audit now shows whether each of a principle's members reached the agent, and what it cost there. A principle whose text never loads, or loads into every request, is caught at the audit.** Once requests are logged, `principles start-audit ID` prints, for each member its request lists, those carried forward from the last audit marked `carried_forward`, how many captured requests held its text and the most bytes one request held, and asks your agent to weigh both. Until any is captured, it names `principles turn-on-request-logging`. The project's first completed full audit names it too, for your agent to offer you. A missing `jq` or `rg`, or a request-logging folder git might commit, is stated without stopping the audit. The part costs about 600 bytes plus about 120 per member, measured on this project's largest audit request. Its `detail_with` leads to one member's places with `show-members-in-logged-requests --member KEY`.
+
+- **Old logged requests stop filling the disk and keeping stale copies of whole sessions' context.** `principles remove-logged-requests` deletes the request and response files the request index names for every captured session but the newest five, or as many as `--keep-sessions N` says. It also deletes request files the index does not name once they are older than every kept session's files. It keeps the index, the launch file and any file a kept session also names, and refuses before deleting anything while git does not ignore the folder.
+
+- **Fixes to a `CLAUDE.md`, rule, skill, subagent or hook follow that kind of file's own practices, so a fix can leave the file leaner rather than heavier: in this project, one rule that loads on every code read fell from 917 to 544 bytes.** `principles show-carrier-practices KIND` prints a page of a few kilobytes for one kind of carrier, distilled from realfast's guides and marked by the host each point holds for, and nothing else: no note of its source guide or version, which an agent reading it could not act on. A full audit's `start-audit` request names, once for each kind its members are in, a short check of that kind's practices and its page's size, and once for them all the command that prints a page, beside the question rather than in it, so carried assessments still carry. The correction request that follows an assessment with findings names the checks for its findings' members' kinds, before the edit.
+
+- **A rule your project carries in CI, a script or a hook is found by the survey, not only those under Markdown headings.** `principles show-candidate-outlines PATH...` outlines a requested GitHub Actions workflow by its jobs and steps, and a script by its `#` comment lines, where each says the rule it enforces, within the survey's byte budget.
+
+- **A hub file mapped whole into several principles is caught as it is mapped, not after every edit to it has reopened each one.** When `principles add-member` maps a whole file that other principles already hold whole, by its path or a link, or makes two maps' members nearly the same (two or more shared, and at least two thirds of all their members), it names them and asks whether each should hold only the passages that carry it or the principles are one, to be joined.
+
+- **One member can be recalled in one call.** `principles show-principle ID --member M` prints that member alone: its role, place, check, lines, freshness, last assessment and any acknowledgement since, about a sixteenth of the whole principle's output on a large one.
+
+- **A rule your project relies on from an installed Claude Code plugin is now held with your own, so a plugin update that changes it is caught and audited instead of drifting unseen.** `principles add-member ID PATH --plugin NAME@MARKETPLACE --role ROLE` maps a file inside an installed plugin, read-only, pinning the text it had. `list-member-problems` lists it as changed only when its text changes, not on every version bump, and a full audit then judges it with the project's own members; a fix is made on the project's side, never in the plugin. Where a teammate lacks the plugin, its members are reported as unresolved with the reason and the rest of the project's principles still report. After a commit, the report counts such a member apart, as one no commit changes. `add-member --plugin` maps a whole file and refuses `--query`, `--section`, `--starting-at` and `--ending-at`; only a user-scope plugin install is read outside its own project.
+
+### Changed
+
+- **A completed audit's result and default commit subject now say which findings wait on a decision and which the owner accepted.** `principles submit-answer` lists them as `deferred_findings` and `accepted_findings`, and its default commit subject reads "N resolved, N deferred, N accepted", where both were counted together as open. **Breaking:** anything reading `open_findings` from a completed result reads those two fields instead.
+
+- **Deciding whether an earlier finding still holds takes one read, not two.** A full audit's `principles start-audit ID` now gives each prior finding's reason beside its action, which for an accepted finding is the owner's ruling, where before the agent ran `principles show-audit ID --findings` to find it. It costs the reason's own bytes: 292 on a request of about 29 KB with two accepted findings in this project.
+
+- **For contributors: a command that deletes files cannot ship without naming them.** The build now fails when any `remove-` command leaves a file it deleted out of its `removed` list, so your agent can check what was deleted rather than trust the command's name.
+
+- **A full audit no longer prints the whole text of a large file it is not judging.** `principles start-audit ID --part members/ID` gives a whole-file member the audit carries forward a `text_part` instead: the command that prints its text and that text's size, so the agent reads it only if it chooses to, or, when a fact says to judge it again, reads it whole if it does. On this project's largest member that part fell from about 52 KB to under 6 KB. A whole file the audit judges names the same part and says to read it whole as a step of the judgement; when its text changed, its part shows only the changed lines, not the whole file again, and leaves even those out once they would pass half the file.
+
+- **A deferral raised again keeps where it waits.** A correction template for a finding raised again from an earlier deferral starts with that deferral's recorded time and who it waits on, so they are not retyped.
+
+- **Editing a map prints only what changed.** `principles move-member` and `principles change-member-role` print the changed member, not the whole map, about a tenth of what they printed on a large principle. `principles remove-member` prints the id it removed and how many members are left, where it printed every remaining member: 7.9 KB on a 17-member principle.
+
+- **An acknowledgement's repair is the step that clears it.** A `check_result` on a member with no check is refused with a repair that removes it, and `principles list-member-problems --short` says to acknowledge last a member whose check is that command itself, naming only the members to settle first.
+
+- **An open correction is resumed, not started over.** `principles start-audit ID` on a principle whose correction is still open names `principles show-open-correction ID` as the way back to it.
+
+- **An acknowledgement can be filled with no script.** `principles start-audit ID --member M --as template` shows each member's role beside its slot and the exact `submit-answer` command for the answer.
+
+- **A session with the plugin runs the member check once, not twice.** The passage `principles show-meta-principle-passage` proposes for CLAUDE.md and AGENTS.md now says it is for installs without the principles hooks.
+
+- **A shell call that commits nothing no longer starts Ruby.** The plugin marks each Bash call before it runs, and after it checks in the shell alone whether HEAD moved, in about 10 ms, starting `principles` only when it did.
+
+- **A member whose file is only on another local branch is not pushed toward removal.** When a missing file is on a local branch not yet merged, `principles list-member-problems` names that branch and offers to keep the member until it merges.
+
+- **A deferral recorded with no write-up learns it may point at an issue.** Its repair names both forms, `{"url": …}` and `{"path": …, "heading": …}`.
+
+- **A prior finding can be decided from the audit template alone.** `principles start-audit ID --as template` shows each prior finding's problem beside its decision.
+
+- **An acknowledgement says which findings it leaves open.** After one is accepted, for one member, several, or one across principles, its result names the open findings on those members and the full audit that decides them.
+
+- **`principles add-member --help` says what a check's exit status means:** a `--check` passes when it exits 0 and fails on any other exit.
+
+- **`principles add-member --help` gives its flags right after what the command does,** not after four thousand bytes of explanation.
+
+- **`principles show-principle` leaves out when each member file loads unless asked with `--loads`,** about a sixth shorter on a large principle.
+
+- **No hook setup is offered before a principle is mapped.** `principles show-meta-principle-passage` makes that offer only once a map exists.
+
+- **A missing file costs its repair once.** `principles list-member-problems` gives a missing file's repair beside the file, not again on every member it held.
+
+- **Each session starts with shorter, clearer lines from `principles`, each with one thing to do, and your agent stops raising at every session start open audit findings it could act on itself.** The open-findings line `principles report-at-session-start` prints says to act on each finding that waits on the agent, such as its own session, a task or a ticket, and to raise in its first reply only those that wait on a person or on no one; it counts the same findings after a resume as at startup, and no longer prints git's `user.name`. The first-audit line asks once to hand the audit to a background subagent, at about two thirds of its length, and the after-commit line names only `principles list-member-problems --short` to run before the next commit.
+
+- **Mapping a file other principles' members already share costs nearly a quarter less context.** `principles add-member` says once what an edit reaches when members elsewhere span or lie within the new member's lines, rather than once for each of them, since `mapped_elsewhere` already names each: mapping a script eleven other members share printed 7,367 bytes instead of 9,625. When one add both maps a file other principles hold whole and makes two maps' members nearly the same, it asks whether to scope or join them once, not twice in a row.
+
+- **The commands that log each request name what they do: Claude Code logs the requests, and `principles` only switches its logging and reads what it wrote.** They are `principles turn-on-request-logging`, `turn-off-request-logging`, `show-logged-requests`, `show-members-in-logged-requests` and `remove-logged-requests`, and they write only in `.principles/request-logging/`, whose launch file is `settings.json`. No release shipped their earlier context-snapshot names. **Breaking:** if you turned capture on running `principles` from source, run `principles turn-on-request-logging` again and relaunch with the `claude --settings` line it prints, which names the new settings path; to keep earlier captures, first `mv .principles/context-snapshots .principles/request-logging` and rename `capture-settings.json` in it to `settings.json`. **Breaking** for a reader of `show-members-in-logged-requests`' JSON from source: its completeness count `requests` is now `captured`, and by default it prints each member's reach, with places only under `--places` or `--member KEY`.
+
+- **A full audit's request, part by part, and submit-answer no longer wait on the scan of captured requests.** Only the whole request, its `logged_requests` part and its index read them; `start-audit ID --part question`, `--as template` and `submit-answer` take about a second here instead of five.
+
+### Fixed
+
+- **A completed audit that changed nothing no longer sends your agent into a second full audit.** The result of `principles submit-answer` asks for the principle's audit again only when one of its members changed during the audit, where before every completed result ended with that request.
+
+- **Adding the first keeping member to a project that already maps its own principles now leads straight to the keeping audit, instead of sending your agent back to find a first principle.** `principles add-member sticking-to-your-principles` ends with the `start-audit` command for it whenever another principle is mapped, as `show-meta-principle-passage` already did; a project with no other principle still hears to map one first.
+
+- **An answer saved where a request said still submits after a commit lands in between.** The file `start-audit` and `show-open-correction` name for an answer is now named by its principle and phase alone, so a request printed again after HEAD moved, with a new request id, saves to and submits from the same file as the first.
+
+- **The after-commit report no longer says a shell call made commits it did not make.** It now says the members it names changed since their last record, which stays true when it repeats a commit made just before a call that committed nothing.
+
+- **Two members checked by `list-member-problems --short` in different principles no longer block each other.** It offers them as one acknowledgement across their principles, last, which can pass.
+
+- **A crash at session start is no longer reported as a missing Ruby.** The session-start hook names the exit status and the command that shows the error, and asks for Ruby only when none was found or it is too old.
+
+- **A commit in a scratch clone no longer raises a member notice.** The after-commit hook reports only commits in the session's project and its worktrees, not in any other repository a shell call commits in.
+
+- **A large audit read part by part keeps one request and one answer file while other work lands.** The request id of `principles start-audit ID` and its `--part` calls now changes only when a commit changes the map or a file the audit reads, not on every commit.
+
+- **A part name copied from the audit index works as printed.** `principles start-audit ID --part NAME` now accepts a name exactly as `--part index` prints it, quotes and all, so a name with spaces is no longer refused.
+
+- **The `principles` skill no longer asks to be loaded after every commit to a mapped file.** Its always-loaded description drops that trigger, leaving `principles list-member-problems --short` as the one step after a commit, and is 41 bytes shorter.
+
+- **One command to start a principle's first audit, not two.** Before a principle's first full audit, `principles list-member-problems --short` no longer also prints a second line asking for a full audit of its changed members.
+
+- **A passage of a YAML file mapped by an indented key gets an id you can type and read.** `principles add-member --starting-at` quoted with a leading indent, such as `"  gate:"`, stores the opening without it when the rest still names one place, so the member's id is `ci.yml@gate:` rather than one with two hidden spaces; members already mapped keep their ids.
+
+- **A rule written as a script's comment can be mapped from its outline in one step.** `principles show-candidate-outlines` prints each whole-line comment of a script or hook in full, where it cut each at about 60 characters, so a line could not be quoted as `--starting-at` without opening the file. Its question no longer says such files show their path and size alone, and a Ruby file's magic comments, such as `frozen_string_literal`, are left out. Past 20 comments or list items under a heading, the outline says which lines hold the rest, as it already did for the outlines the byte budget cut, so the agent reads only those lines instead of the whole file. Such an outline is named under `outlines_cut` too, where before only an outline the byte budget cut was, so a shortened outline is never taken for the whole.
+
+- **`principles move-member --help` says that `--ending-at` alone is refused, so your agent gives the passage's opening again instead of learning it from the refusal.**
+
+- **Audit answers land in your project's ignored `tmp/` folder whenever git ignores what is saved there, not only when it ignores the folder itself.** A project whose `.gitignore` ignores `tmp/`'s contents but tracks a file inside it, such as `/tmp/*` beside a tracked note, had its answers sent to the system temporary folder; `principles` now asks git about the answer file's own path.
+
+- **An acknowledgement's answer file keeps one path, so a saved answer is not left behind under another name.** `principles start-audit ID --member …` names it `principles-ID.acknowledgement-answer.json` for one member or several, where several members' requests said `acknowledgements`.
+
+- **An agent filling a full audit's answer on its own knows why each member is judged afresh rather than carried.** `principles start-audit ID --as template` now names each fresh member's `judge_because`, such as `text_changed` or `not_assessed_before`, in its slot, as the whole request already did: about 30 bytes a judged member. The answer may send it back or drop it.
+
+- **A fix to a member's role or check is declared on the first try, not after a refusal.** The correction that `principles submit-answer` prints now shows `changed_map_entries` in its answer guide and in each finding's template, the field the refusal of an undeclared map change asks for.
+
+- **A clean check now says so, so your agent no longer mistakes silence for a run that failed to print.** When `principles list-member-problems --short` has nothing to report, it prints one line on stderr, such as `Nothing changed (131 members).`, about 30 bytes instead of none; stdout stays empty for a hook or script that acts on its rows, and the session-start output is unchanged.
+
+- **`principles list-member-problems --help` states that it exits 0 while a newly added member waits for its first commit,** as when a change waits on an upgrade or its plugin is unresolved, so a hook or script reading its exit status knows what 0 means.
+
 ## [0.1.3] - 2026-11-24
 
 ### Changed

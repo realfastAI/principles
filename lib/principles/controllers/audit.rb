@@ -4,6 +4,7 @@
 require_relative "command"
 require_relative "../models/findings_left_open"
 require_relative "../models/finding_write_ups"
+require_relative "../views/audit_findings"
 require_relative "../views/findings_result"
 require_relative "../views/open_findings_line"
 require_relative "acknowledgement"
@@ -24,7 +25,7 @@ module Principles
 
         naming_the_executable do
           case command
-          when "show-audit" then shown_audit(required_id(id))
+          when "show-audit" then shown_audit(required_id(id), findings: options["findings"])
           when "list-open-findings" then listed_open_findings(id, options)
           else unknown(command)
           end
@@ -40,7 +41,7 @@ module Principles
         waiting = Models::FindingsLeftOpen.of(records).waiting_at(Time.now.utc)
         not_found = Models::FindingWriteUps.of(@project, records).not_found
         Views::OpenFindingsLine.new(invocation.without_project)
-                               .lines(waiting, not_found, source:, user_name: @project.git_user_name)
+                               .lines(waiting, not_found, source:)
       end
 
       private
@@ -90,11 +91,20 @@ module Principles
 
       # id's committed record. With none, an id no map has is refused as show-principle refuses it, since
       # starting its audit would be refused too; a record kept after its map was removed still shows. One a
-      # later copy wrote says its audits wait on an upgrade.
-      #: (String) -> Hash[String, untyped]
-      def shown_audit(id)
+      # later copy wrote says its audits wait on an upgrade. With --findings, only its findings and those of the
+      # last completed audit it keeps.
+      #: (String, findings: bool?) -> Hash[String, untyped]
+      def shown_audit(id, findings:)
         @principles.find(id) unless @audit_records.exist?(id)
-        @audit_records.fetch(id).shown.merge(waiting_beside(id), "wrote" => [])
+        record = @audit_records.fetch(id)
+        (findings ? findings_of(record) : record.shown).merge(waiting_beside(id), "wrote" => [])
+      end
+
+      # The findings of record, and of the last completed record it keeps while open.
+      #: (Models::AuditRecord) -> Hash[String, untyped]
+      def findings_of(record)
+        kept = record.open? ? record.last_completed&.shown : nil
+        Views::AuditFindings.new(record.shown, kept).to_h
       end
 
       # A one-member audit of the member --member names, or of several members in one request, or of the
@@ -148,8 +158,7 @@ module Principles
         records = open_records(id)
         waiting = Models::FindingsLeftOpen.of(records).waiting_at(Time.now.utc)
         Views::OpenFindingsLine.new(invocation).short(waiting, Models::FindingWriteUps.of(@project, records).not_found,
-                                                      source: options["session_start"] || "startup",
-                                                      user_name: @project.git_user_name)
+                                                      source: options["session_start"] || "startup")
       end
 
       # The records whose open findings list-open-findings reads: id's, refused when a later copy wrote it in a

@@ -8,6 +8,8 @@
       "writes": "Removes only `.principles/maps/ID.json`, listed under `removed`; `wrote` is empty. Commit the removal if the map was tracked. Retains member files and audit entries." },
     { "id": "write-guidance-search-paths", "heading": "Write the recorded guidance search paths, which the project commits",
       "writes": "Writes `.principles/guidance-search-paths.json`; commit it as it changes. Never a map, audit or guidance file." },
+    { "id": "write-request-logging", "heading": "Switch request logging; these write only inside `.principles/request-logging/`, which git ignores",
+      "writes": "Writes only inside `.principles/request-logging/`, listed under `wrote`, and refuses unless git confirms it ignores that folder. Never commit it: a logged request holds a session's whole context." },
     { "id": "write-audit-record", "heading": "Audit; these write only the audit record, `.principles/audits/ID.json`, which the project commits",
       "writes": "Writes `.principles/audits/ID.json`, listed under `wrote` when it does; commit it. Never the map or a member's file." }
   ],
@@ -16,9 +18,10 @@
     "read-map": ["principles_folder_not_moved", "both_principles_folders", "symlinked_directory", "unknown_principle", "unparseable_map", "invalid_map", "newer_format", "duplicate_member"],
     "read-audit": ["principles_folder_not_moved", "both_principles_folders", "symlinked_directory", "unparseable_audit", "invalid_audit_record"],
     "rewrite-audit": ["newer_audit_record"],
+    "read-plugin-registry": ["unreadable_plugin_registry", "unsupported_plugin_registry"],
     "locate-text": ["outside_project", "not_a_file", "unreadable_file", "renamed_in_case", "invalid_encoding", "section_needs_markdown", "query_needs_frontmatter", "query_with_other_locators", "unsupported_query", "unsupported_frontmatter", "duplicate_frontmatter_key", "field_not_found", "section_not_found",
                     "ambiguous_heading", "passage_not_found", "ambiguous_passage", "passage_end_not_found",
-                    "broken_members"]
+                    "broken_members", "plugin_members_unresolved"]
   },
   "commands": [
     {
@@ -84,7 +87,8 @@
       ]
     },
     {
-      "name": "show-principle", "usage": "show-principle ID", "group": "read", "options": [],
+      "name": "show-principle", "usage": "show-principle ID [--loads] [--member MEMBER_ID]", "group": "read",
+      "options": ["loads", "member"],
       "summary": "Each member, where it is and whether it changed.",
       "help": "learn-what-a-command-does/show-principle",
       "steps": [
@@ -94,12 +98,12 @@
       ]
     },
     {
-      "name": "show-audit", "usage": "show-audit ID", "group": "read", "options": [],
+      "name": "show-audit", "usage": "show-audit ID [--findings]", "group": "read", "options": ["findings"],
       "summary": "The record of a principle's last audit.",
       "help": "learn-what-a-command-does/show-audit",
       "steps": [
         { "id": "show-record", "actor": "cli",
-          "does": "Prints the audit record: its status, base commit, each member's hash and each finding's members and disposition.",
+          "does": "Prints the audit record: its status, base commit, each member's hash and each finding's members and disposition; with --findings, its findings alone.",
           "refuses": ["unknown_principle", "unknown_audit"], "refuses_like": ["read-audit"] }
       ]
     },
@@ -109,7 +113,7 @@
       "help": "learn-what-a-command-does/list-open-findings",
       "steps": [
         { "id": "read-open-findings", "actor": "cli",
-          "does": "Reads the last audit record of principle ID, or of every principle, and lists each deferred or accepted finding with its action, its members, its recorded_at pointer and when the audit was made. Says that an earlier audit's open findings are only in git. With --lines, prints each open finding on a line with its principle, id and waits_on. With --short, prints one line saying how many deferred findings wait on someone named or no one, whom the oldest waits on and git's user.name, and to raise each that waits on the user in the first reply, and nothing when none is open; --session-start clear or compact asks for the next reply, and resume shortens it to the facts, since a resumed conversation holds the whole line already.",
+          "does": "Reads the last audit record of principle ID, or of every principle, and lists each deferred or accepted finding with its action, its members, its recorded_at pointer and when the audit was made. Says that an earlier audit's open findings are only in git. With --lines, prints each open finding on a line with its principle, id and waits_on. With --short, prints one line saying first to act on each deferred finding that waits on the agent and to raise in the first reply each that waits on a person or on no one, then how many wait on someone named or no one and how long the oldest has, and nothing when none is open; --session-start clear or compact asks for the next reply, and resume shortens it to the facts, since a resumed conversation holds the whole line already.",
           "refuses_like": ["read-map", "read-audit"] },
         { "id": "follow-up-each-finding", "actor": "agent",
           "does": "Read each finding where its recorded_at points, and decide each one at its principle's next full audit.",
@@ -132,7 +136,7 @@
       "help": "learn-what-a-command-does/report-at-session-start",
       "steps": [
         { "id": "report-at-session-start", "actor": "cli",
-          "does": "Reads the SessionStart hook's JSON on stdin and always exits 0, since the host adds a SessionStart hook's output to the context only then. Prints nothing in a project with no maps. Otherwise prints, each line marked principles:, for one principle whose members an audit assessed changed since, a line with its count, that its audit no longer covers them, and the list-member-problems ID command to run before the user's task, which offers acknowledging them or auditing again, or for several, one line counting them with the list-member-problems --short command that lists them, then, in git, what gives each principle's members with no baseline one, then each principle whose audit record a later release wrote, whose audits wait on an upgrade, then, while any principle awaits its first full audit, one line counting them that asks for one background subagent to follow show-first-audit-brief, or to offer the audit at the next pause if none can be started, and at resume and compact only the count, asking for no second subagent, then, while any audit finding is left open, the one line list-open-findings --short prints, worded for the session's start. When list-member-problems refuses, prints instead its code and the command that shows its repair; input it cannot read is read as a startup." }
+          "does": "Reads the SessionStart hook's JSON on stdin and always exits 0, since the host adds a SessionStart hook's output to the context only then. Prints nothing in a project with no maps. Otherwise prints, each line marked principles:, for one principle whose members an audit assessed changed since, a line with its count, that its audit no longer covers them, and the list-member-problems ID command to run before the user's task, which offers acknowledging them or auditing again, or for several, one line counting them with the list-member-problems --short command that lists them, then, in git, what gives each principle's members with no baseline one, then each principle whose audit record a later release wrote, whose audits wait on an upgrade, then, while any principle awaits its first full audit, one line counting them that asks the agent to start one background subagent to follow show-first-audit-brief, tell the user, and relay its result, and at resume and compact only the count, asking for no second subagent, then, while any audit finding is left open, the one line list-open-findings --short prints, worded for the session's start. When list-member-problems refuses, prints instead its code and the command that shows its repair; input it cannot read is read as a startup." }
       ]
     },
     {
@@ -144,7 +148,7 @@
           "does": "Runs every check submit-answer would and prints the same refusal, or names the files submitting would write. Writes nothing.",
           "refuses": ["unparseable_json", "unreadable_file", "request_mismatch", "unknown_request", "stale_request", "stale_map", "undeclared_move", "moves_need_git", "map_entries_need_git", "invalid_removed_members", "empty_correction_map",
                       "incomplete_coverage", "invalid_delivery", "observation_repeats_last_audit", "invalid_check_result", "invalid_answer", "unknown_member", "duplicate_finding",
-                      "incomplete_dispositions", "invalid_disposition", "claimed_change_missing", "unassessed_changes", "git_history_unavailable",
+                      "incomplete_dispositions", "invalid_disposition", "claimed_change_missing", "plugin_member_read_only", "unassessed_changes", "git_history_unavailable",
                       "no_correction_to_fill"],
           "refuses_like": ["read-map", "read-audit", "locate-text", "rewrite-audit"] },
         { "id": "submit-the-checked-answer", "actor": "agent",
@@ -203,6 +207,78 @@
       ]
     },
     {
+      "name": "show-logged-requests", "usage": "show-logged-requests", "group": "read", "options": [],
+      "summary": "Show each session the host captured, with its requests, files and bytes.",
+      "help": "learn-what-a-command-does/show-logged-requests",
+      "steps": [
+        { "id": "tally-captured-sessions", "actor": "cli",
+          "does": "Writes nothing. Refuses while the folder exists without its `.gitignore`, or git does not ignore every file there. Otherwise lists, from the host's `requests/index.jsonl`, each session's requests, the files they and their responses fill and those files' bytes, counts the request files no index line names, and names when the newest request file was written and the session of the index's newest line. Never says whether a session is capturing now.",
+          "refuses": ["request_logging_unguarded", "request_logging_not_ignored"] },
+        { "id": "judge-what-was-captured", "actor": "agent",
+          "does": "Judge from the sessions and their sizes whether capture is running as the user meant, and tell the user how much the folder holds.",
+          "cannot_check": "whether the session you run in is capturing, since the host's telemetry variables never reach your shell." }
+      ]
+    },
+    {
+      "name": "show-carrier-practices", "usage": "show-carrier-practices KIND", "group": "read", "options": [],
+      "summary": "Show the practices for judging and editing one kind of carrier, such as a rule file or a skill.",
+      "help": "learn-what-a-command-does/show-carrier-practices",
+      "steps": [
+        { "id": "show-carrier-page", "actor": "cli",
+          "does": "Writes nothing. Prints, for carrier kind KIND, the page of its practices under practices, and under source the guide it was distilled from and the plugin version it was reconciled at. Refuses a kind it has no page for, naming each it has.",
+          "refuses": ["unknown_carrier_kind"] },
+        { "id": "judge-and-edit-by-the-page", "actor": "agent",
+          "does": "Judge or edit the member of that kind by the page, and say in your answer which of its points the edit or finding rests on.",
+          "cannot_check": "whether the agent read the page or followed it." }
+      ]
+    },
+    {
+      "name": "turn-on-request-logging", "usage": "turn-on-request-logging", "group": "write-request-logging", "options": [],
+      "summary": "Set up the git-ignored folder where the host can write each request it sends.",
+      "help": "learn-what-a-command-does/turn-on-request-logging",
+      "steps": [
+        { "id": "write-ignored-request-logging-folder", "actor": "cli",
+          "does": "Writes `.principles/request-logging/.gitignore`, holding `*`, unless it is there, then asks git whether it ignores the folder, its files and every file already in it. Refuses outside git, or when git tracks a file there, and removes what it wrote. Once git confirms it, writes the launch file `settings.json`, whose `env` asks the host to write each request's body under `requests/` with no telemetry exporter, and prints the launch line.",
+          "refuses": ["request_logging_not_ignored"] },
+        { "id": "launch-with-the-line", "actor": "agent",
+          "does": "Give the user the launch line, and say that capture starts only when they relaunch the host with it and that each logged request holds the session's whole working context.",
+          "cannot_check": "whether the user relaunched the host with the line, or whether the host wrote any request." }
+      ]
+    },
+    {
+      "name": "show-members-in-logged-requests", "usage": "show-members-in-logged-requests [--short | --places | --member KEY]", "group": "read", "options": ["short", "places", "member"],
+      "summary": "Show which members' text logged requests hold.",
+      "help": "learn-what-a-command-does/show-members-in-logged-requests",
+      "steps": [
+        { "id": "scan-captured-requests", "actor": "cli",
+          "does": "Writes nothing. Refuses while the request-logging folder exists without its `.gitignore`, or git does not ignore it, and while jq or rg is not on PATH, naming the missing tool and what it does there, and a --member key no map holds. Otherwise prints, for each mapped member, how many captured requests held its lines, its most bytes in one and its segments; with --places or --member, each place its lines were seen, with the share of its lines there and their bytes; and no text from a request.",
+          "refuses": ["request_logging_unguarded", "request_logging_not_ignored", "fast_tools_missing", "unknown_member"] }
+      ]
+    },
+    {
+      "name": "turn-off-request-logging", "usage": "turn-off-request-logging", "group": "write-request-logging", "options": [],
+      "summary": "Stop the host capturing each request it sends, keeping every logged request already captured.",
+      "help": "learn-what-a-command-does/turn-off-request-logging",
+      "steps": [
+        { "id": "empty-launch-file", "actor": "cli",
+          "does": "Refuses while the folder exists without its `.gitignore`, or git does not ignore it. Otherwise empties the launch file's `env`, so a host started with it captures nothing, and writes nothing where request logging was never turned on. Deletes no logged request.",
+          "refuses": ["request_logging_unguarded", "request_logging_not_ignored"] },
+        { "id": "relaunch-the-host", "actor": "agent",
+          "does": "Tell the user the host they started with the launch file keeps capturing until they relaunch it.",
+          "cannot_check": "whether the host was relaunched." }
+      ]
+    },
+    {
+      "name": "remove-logged-requests", "usage": "remove-logged-requests [--keep-sessions N]", "group": "write-request-logging", "options": ["keep-sessions"],
+      "summary": "Delete the logged requests of all but the newest captured sessions.",
+      "help": "learn-what-a-command-does/remove-logged-requests",
+      "steps": [
+        { "id": "remove-older-sessions", "actor": "cli",
+          "does": "Refuses while the folder exists without its `.gitignore`, or git does not ignore it, and a --keep-sessions that is not a whole number, before deleting anything. Then ranks the sessions by their newest index line and deletes, under `requests/`, each file the index names for a session older than the newest N, keeping any file a kept session also names, and each request file the index does not name that was written before every kept session's file.",
+          "refuses": ["request_logging_unguarded", "request_logging_not_ignored", "invalid_keep_sessions"] }
+      ]
+    },
+    {
       "name": "create-principle", "usage": "create-principle ID --description TEXT", "group": "write-map", "options": ["description"],
       "summary": "Map a new principle and say what it is.",
       "help": "learn-what-a-command-does/create-principle",
@@ -249,15 +325,15 @@
       ]
     },
     {
-      "name": "add-member", "usage": "add-member ID PATH [--section HEADING] [--starting-at TEXT [--ending-at TEXT]] [--query QUERY] --role ROLE [--check COMMAND]", "group": "write-map", "options": ["section", "starting-at", "ending-at", "query", "role", "check"],
+      "name": "add-member", "usage": "add-member ID PATH [--section HEADING] [--starting-at TEXT [--ending-at TEXT]] [--query QUERY] [--plugin NAME@MARKETPLACE] --role ROLE [--check COMMAND]", "group": "write-map", "options": ["plugin", "section", "starting-at", "ending-at", "query", "role", "check"],
       "summary": "Add a file, a Markdown section or a passage.",
       "help": "learn-what-a-command-does/add-member",
       "steps": [
         { "id": "locate-new-member", "actor": "cli",
-          "does": "Loads the map, or starts sticking-to-your-principles only after verifying its map path is absent at committed HEAD, requiring any prior removal to be committed. Then finds the member's text, so a locator that matches nothing is refused now rather than at the audit.",
-          "refuses": ["invalid_answer", "ending_without_start", "ambiguous_passage_end", "map_removal_not_committed", "git_history_unavailable"], "refuses_like": ["read-map", "locate-text"] },
+          "does": "Loads the map, or starts sticking-to-your-principles only after verifying its map path is absent at committed HEAD, requiring any prior removal to be committed. Then finds the member's text, so a locator that matches nothing is refused now rather than at the audit. With --plugin, finds the plugin's install in Claude Code's record instead.",
+          "refuses": ["invalid_answer", "ending_without_start", "ambiguous_passage_end", "map_removal_not_committed", "git_history_unavailable", "plugin_component_not_plain", "plugin_member_located", "plugin_not_installed", "plugin_from_directory_marketplace", "plugin_marketplace_unknown", "plugin_component_linked", "plugin_component_not_found"], "refuses_like": ["read-map", "locate-text", "read-plugin-registry"] },
         { "id": "write-member", "actor": "cli",
-          "does": "Refuses a member already in the map, then adds it with its role; the first member of sticking-to-your-principles creates its map.",
+          "does": "Refuses a member already in the map, then adds it with its role; the first member of sticking-to-your-principles creates its map. Reports, without deciding, other maps holding a whole-file member's file whole, and those whose member set nearly matches this one's.",
           "refuses": ["member_exists"] },
         { "id": "add-next-or-audit", "actor": "agent",
           "does": "Add the next member the same way. Once the map lists every member, commit it: in git, that commit is the members' baseline until their first full audit, which judges them and may come later; outside git, the first full audit gives them one.",
@@ -325,7 +401,7 @@
                    { "to": "start-acknowledgement", "when": "you passed --member" },
                    { "to": "start-deciding-open-findings", "when": "you passed --open-findings" }] },
         { "id": "assess-every-member", "actor": "agent",
-          "does": "Assess each member not carried, and any carried one whose sighting is too old to rely on, the set as a whole and one recent decision under it, a finding per problem. Run each check, carried_checks_to_run's too, per shared_check_instructions and check_instructions. Decide each prior finding and listed member to check against the activation.",
+          "does": "Assess each member not carried, or carried on too old a sighting, by carrier_checks and page_command, then the set and one recent decision under it: a finding per problem. Run each check and carried_checks_to_run per shared_check_instructions and check_instructions. Decide each prior finding and listed member to check against the activation.",
           "prompt": "assess-every-member/assess-each-member-and-the-set",
           "checks": "every member is assessed or carried forward once, a marker only where the request carries the member, and each piece of evidence resolves to project text that has not changed since the request.",
           "cannot_check": "whether your assessment is true, a member reached your context, or your findings are the right ones.",
@@ -357,7 +433,7 @@
                    { "to": "recheck-members", "when": "the request was an assessment or a correction" }] },
         { "id": "acknowledge-the-change", "actor": "cli",
           "does": "For a one-member audit, checks the answer's kept meaning, one-line reason, quotes then and now and any check result, then moves the member's hash and check result in the audit record beside the acknowledgement.",
-          "refuses": ["stale_request", "cannot_acknowledge", "quote_not_found"] },
+          "refuses": ["stale_request", "cannot_acknowledge", "invalid_check_result", "quote_not_found"] },
         { "id": "commit-the-acknowledgement", "actor": "agent",
           "does": "Commit the audit record, then check that list-member-problems --short no longer reports the member.",
           "cannot_check": "that you committed, or that the change keeps the meaning.",
@@ -381,14 +457,14 @@
           "next": [{ "to": "complete-audit", "when": "there are no findings" },
                    { "to": "dispose-of-each-finding", "when": "there are findings" }] },
         { "id": "dispose-of-each-finding", "actor": "agent",
-          "does": "Fix each finding and reassess what you changed, or record why it waits: deferred, accepted or disagreed.",
+          "does": "Fix each finding per carrier_checks and reassess it, or record why it waits: deferred, accepted, disagreed.",
           "prompt": "dispose-of-each-finding/fix-or-record-each-finding",
           "checks": "each finding has one disposition, and each fixed finding changed the members it names.",
           "cannot_check": "whether a fix is right or a deferral justified.",
           "answer_with": "submit-answer" },
         { "id": "check-dispositions", "actor": "cli",
           "does": "Checks the original request, basis and hashes and, with a Git base, uninterrupted current-ID map presence on captured HEAD's first-parent line. Refuses unverifiable continuity or undeclared map changes. Checks one disposition per finding, that only fixed members changed since the base, and each recorded_at resolves.",
-          "refuses": ["stale_map", "undeclared_move", "moves_need_git", "map_entries_need_git", "invalid_removed_members", "empty_correction_map", "stale_request", "git_history_unavailable", "audit_completed_since_request", "incomplete_dispositions", "invalid_disposition", "invalid_answer", "claimed_change_missing", "unassessed_changes"],
+          "refuses": ["stale_map", "undeclared_move", "moves_need_git", "map_entries_need_git", "invalid_removed_members", "empty_correction_map", "stale_request", "git_history_unavailable", "audit_completed_since_request", "incomplete_dispositions", "invalid_disposition", "invalid_answer", "claimed_change_missing", "plugin_member_read_only", "unassessed_changes"],
           "refuses_like": ["locate-text"] },
         { "id": "complete-audit", "actor": "cli",
           "does": "Writes the record unless it already says the same, and prints the open and resolved findings and the files to commit, in git only those differing from HEAD, with the commits since the base touching each changed member.",

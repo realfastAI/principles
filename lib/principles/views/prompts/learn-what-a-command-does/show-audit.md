@@ -2,6 +2,13 @@ Shows the record of principle ID's last audit: whether it is open or completed, 
 from, each member's hash and each finding's members and disposition. Run it when a completed result
 points here with `full_record`.
 
+When you need only what the last audit found, as when filling a full audit's `recent_decision`, add
+`--findings`: it prints the record's `principle_id`, `status`, `base_commit`, `audited_at` and `findings`
+alone, without the members it judged, and for an open record the same of the last completed audit it keeps,
+under `last_completed`. `base_commit` is the commit the audit began from, whose text its findings'
+evidence names; the fix of a fixed finding landed after it. A completed record keeps no `last_completed`,
+so an earlier audit's findings are then only in git: git log -p -- .principles/audits/ID.json shows them.
+
 A full audit keeps each member's `assessment` as you gave it: the `assessment`, `delivery`, any
 `observation` and the `evidence`, with `evidence_sha256`, the hash of each evidence item's text then,
 `assessed_at`, and `entry_sha256` and `loads_sha256`, digests of the member's map entry and of when it

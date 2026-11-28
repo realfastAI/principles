@@ -27,11 +27,6 @@ module Principles
       #: () -> bool
       def session_start_hook_in_this_session? = plugin?
 
-      # Whether the principles skill, /principles, is installed for the session this run is part of, which only the
-      # plugin installs; an installed gem or a checkout has none.
-      #: () -> bool
-      def principles_skill_in_this_session? = plugin?
-
       private
 
       #: () -> bool

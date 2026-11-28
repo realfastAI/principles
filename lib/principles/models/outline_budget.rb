@@ -38,7 +38,7 @@ module Principles
       # range changed print, when there are any: they are never left out, and which to drop is the agent's call.
       #: (Hash[String, untyped]) { (Hash[String, untyped]) -> Integer } -> Hash[String, untyped]
       def cut(listing, &printed_bytes)
-        shortest = cut_order(listing).reduce(listing) do |shorter, (path, cuts)|
+        shortest = cut_order(listing).reduce(cut_before_budget(listing)) do |shorter, (path, cuts)|
           return shorter if printed_bytes.call(shorter) <= BYTES
 
           cut_file(shorter, path, cuts)
@@ -47,6 +47,15 @@ module Principles
       end
 
       private
+
+      # The listing naming under outlines_cut each file whose outline leaves items out before any cut is made.
+      #: (Hash[String, untyped]) -> Hash[String, untyped]
+      def cut_before_budget(listing)
+        paths = listing.fetch("files").map { |file| file.fetch("path") }.select do |path|
+          @outlines[path]&.outline_cut?(0)
+        end
+        paths.empty? ? listing : listing.merge("outlines_cut" => paths)
+      end
 
       # The listing every cut left past BYTES, naming what its range's outlines print, when it lists any.
       #: (Hash[String, untyped]) -> Hash[String, untyped]

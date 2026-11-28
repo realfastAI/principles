@@ -5,6 +5,7 @@ require_relative "assessment_request"
 require_relative "answer_in_a_file"
 require_relative "answered_request"
 require_relative "audit_changes"
+require_relative "completed_audit_findings"
 require_relative "completed_audit_next_step"
 require_relative "correction_request"
 require_relative "invocation"
@@ -121,18 +122,17 @@ module Principles
                                                "next_action" => request.to_fill_by_hand(@invocation))
       end
 
-      # A completed audit: its resolved and open findings, the files to commit and, in git, each changed
+      # A completed audit: its findings by what became of them, the files to commit and, in git, each changed
       # member's commits since the base commit and the command that commits those files alone, each prior
       # finding's decision, and the next step. The command's subject states only what the audit did, which the
       # agent rewords to its project's convention.
-      #: (principle_id: String, resolved: Array[untyped], open: Array[untyped], changes: AuditChanges,
+      #: (principle_id: String, findings: CompletedAuditFindings, changes: AuditChanges,
       #|  decisions: PriorFindingDecisionsResult) -> Hash[String, untyped]
-      def completion(principle_id:, resolved:, open:, changes:, decisions:)
+      def completion(principle_id:, findings:, changes:, decisions:)
         changed = changes.to_h
-        commit = changes.commit("Audit #{principle_id}: #{resolved.length} resolved, #{open.length} open",
-                                @invocation.project)
-        output = { "status" => "audit_completed", "principle_id" => principle_id, "resolved_findings" => resolved,
-                   "open_findings" => open, "files_to_commit" => changes.files_to_commit,
+        commit = changes.commit(findings.subject(principle_id), @invocation.project)
+        output = { "status" => "audit_completed", "principle_id" => principle_id, **findings.to_h,
+                   "files_to_commit" => changes.files_to_commit,
                    "limits" => Prompts.text("report-the-completed-audit/what-completion-means"),
                    **changed.except("files_to_commit"), **commit.fields }
         next_action = CompletedAuditNextStep.new(@invocation).to_s(principle_id, changes, commit)
@@ -150,18 +150,13 @@ module Principles
         completed.merge("next_action" => [completed.fetch("next_action"), *offers].join("\n"))
       end
 
-      # The notice start-audit adds when the last audit's record is not committed.
-      #: (String) -> String
-      def uncommitted_record_notice(file)
-        "The last audit's record, #{file}, is not committed. Commit it, so the project keeps it."
-      end
-
-      # The notice start-audit adds, in git, when the last audit's record is open: its correction completes it, so it
-      # is never committed.
-      #: (String) -> String
-      def open_record_notice(file)
-        "The last audit's record, #{file}, holds an open audit, waiting on its correction. Do not commit it: submit " \
-          "that correction, or answer this request, which replaces it, or discard it with `git restore #{file}`."
+      # completed, a completed first full audit's result, with the line after its next_action that names the command
+      # turning request logging on.
+      #: (Hash[String, untyped]) -> Hash[String, untyped]
+      def offering_request_logging(completed)
+        line = Prompts.text("read-what-reached-the-context/see-whether-members-reach-the-agent",
+                            command: @invocation.in_project("turn-on-request-logging"))
+        completed.merge("next_action" => [completed.fetch("next_action"), line].join("\n"))
       end
 
       # Wraps a known judgement request with this run's project and answer command.

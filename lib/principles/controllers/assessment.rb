@@ -83,7 +83,8 @@ module Principles
       # when that explains it.
       #: (Models::RequestId, Models::Audit, Models::AssessmentBasis) -> Models::PriorFindings
       def prior_unless_stale(request_id, audit, basis)
-        audit.check_assessment_request(request_id, basis: basis, committed: committed(basis.base, audit.map),
+        audit.check_assessment_request(request_id, basis: audited_basis(basis, audit.map),
+                                                   committed: committed(basis.base, audit.map),
                                                    record: @audit_records.find(audit.id),
                                                    loads: loads_to_check(audit)) { map_at(audit.id, basis.base) }
       end
@@ -155,8 +156,11 @@ module Principles
       #: (Models::CorrectionBasis, Models::Audit, Array[untyped]) -> Views::CorrectionRequest
       def request_to_correct(basis, audit, findings)
         head = Views::AnswerHead.new(request_id: basis.request_id(audit.id, audit.now).to_s, basis: basis.to_h)
-        Views::CorrectionRequest.new(head: head, principle_id: audit.id, findings: findings,
-                                     placeholders: Models::DispositionPlaceholders::TEMPLATE_PLACEHOLDERS)
+        disposition = Views::DispositionTemplate.new(Models::DispositionPlaceholders::TEMPLATE_PLACEHOLDERS,
+                                                     basis.prior_decided.deferrals_raised_again)
+        checks = carrier_checks(audit.map, findings.flat_map { it.fetch("member_ids") }.uniq)
+        Views::CorrectionRequest.new(head: head, principle_id: audit.id, findings: findings, disposition:,
+                                     carrier_checks: checks)
       end
 
       # The open record that keeps the assessment, and outside git what the audit began from, and the last completed

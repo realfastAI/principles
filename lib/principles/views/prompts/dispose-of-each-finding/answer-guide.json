@@ -4,6 +4,7 @@
       "action": "fixed",
       "reason": "What you changed, in one line",
       "changed_members": ["the id of each member the fix changed"],
+      "changed_map_entries": ["the id of each member whose role or check the fix changed"],
       "removed_members": ["the id of each member the fix removed from the map"],
       "evidence": [{ "path": "a project file", "starting_at": "text that occurs once in the fixed passage" }],
       "reassessment": "How the changed member reads now, and any check you ran on it",

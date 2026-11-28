@@ -22,6 +22,10 @@ module Principles
           "(consecutive_sections_elsewhere). These maps have no completed full audit. " \
           "Do they carry one rule or distinct principles? Location alone does not decide. "
       end
+
+      # Its own question asks whether they carry one rule, so it does not ask AddedMember's scope-or-join question.
+      #: () -> bool
+      def asks_scope_or_join? = false
     end
   end
 end

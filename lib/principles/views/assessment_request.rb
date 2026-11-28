@@ -62,7 +62,8 @@ module Principles
       # What the agent assesses, its other parts, the question and a guide to the answer's shapes.
       #: () -> Hash[String, untyped]
       def context
-        listed = @principle.merge("members" => @members.shown, **@members.shared_check_instructions)
+        listed = @principle.merge("members" => @members.shown, **@members.shared_check_instructions,
+                                  **@members.carrier_checks)
         @parts.shown_after(listed).merge(asked)
       end
 
@@ -74,10 +75,14 @@ module Principles
       # The parts of the context start-audit --part prints alone, each member's with its lines now, by id, from texts,
       # and each instruction field and the answer to fill as the request prints them; optional names each part the
       # context lists only when it holds something.
-      #: (?texts: Hash[String, Array[String]], ?optional: Array[String]) -> ContextParts
-      def context_parts(texts: {}, optional: [])
+      #: (?texts: ContextParts::MemberTexts, ?optional: Array[String]) -> ContextParts
+      def context_parts(texts: ContextParts::MemberTexts.new({}), optional: [])
         ContextParts.new(context, instruction_fields:, template:, texts:, optional:)
       end
+
+      # Why the index gives no bytes, by the name of each part this read left unfilled.
+      #: () -> Hash[String, String]
+      def bytes_unknown = @parts.bytes_unknown
 
       # The principle the request audits.
       #: () -> String

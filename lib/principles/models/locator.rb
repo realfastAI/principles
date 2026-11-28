@@ -50,6 +50,14 @@ module Principles
         !heading.nil? && starting_at.nil? && ending_at.nil? && query.nil?
       end
 
+      # This locator with its passage's opening quoted without its leading whitespace; nil when the opening has none.
+      #: () -> Locator?
+      def with_opening_unindented
+        opening = starting_at or return nil
+        unindented = opening.lstrip
+        Locator.new(@fields.merge("starting_at" => unindented)) unless unindented == opening
+      end
+
       # The locator as it was given.
       #: () -> Hash[String, untyped]
       def to_h = @fields

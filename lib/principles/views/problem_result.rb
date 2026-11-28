@@ -116,25 +116,17 @@ module Principles
       # names members a one-member audit may judge, one acknowledgement for all of them, filled and shell-quoted so
       # the agent types no id, after one lead saying when to audit in full instead; the full audit for a principle
       # with a changed member no acknowledgement may judge, with no condition, as nothing else applies to it. None for
-      # a principle in waits, whose audits wait on an upgrade.
-      #: (Hash[String, untyped], Hash[Array[String], Array[String]], Array[String]) -> String?
+      # a principle in waits, whose audits wait on an upgrade, nor one awaiting its first full audit, whose audit
+      # unaudited_action names already.
+      #: (Hash[String, untyped], AcknowledgementsOffered, Array[String]) -> String?
       def changed_action(report, acknowledgeable, waits)
-        changed = report.fetch("members").group_by { it.fetch("principle") }.except(*waits)
-        acknowledging = acknowledgeable.map { |ids, members| acknowledge_line(ids, members) }
-        full = changed.filter_map { |id, members| full_audit_line(id, members, acknowledged_in(acknowledgeable, id)) }
+        changed = report.fetch("members").group_by { it.fetch("principle") }
+                        .except(*waits, *report.fetch("awaiting_first_audit", []))
+        full = changed.filter_map { |id, members| full_audit_line(id, members, acknowledgeable.members_of(id)) }
+        acknowledging = acknowledgeable.lines(@invocation)
         lines = [*(ACKNOWLEDGE_LEAD unless acknowledging.empty?), *acknowledging, *full]
         lines.empty? ? nil : lines.join("\n")
       end
-
-      # The acknowledgement of every member in members by the principles ids names, each of those it maps.
-      #: (Array[String], Array[String]) -> String
-      def acknowledge_line(ids, members)
-        @invocation.listed_in_project("start-audit", ids, options: members.flat_map { ["--member", it] })
-      end
-
-      # The members an acknowledgement in acknowledgeable takes in for principle id.
-      #: (Hash[Array[String], Array[String]], String) -> Array[String]
-      def acknowledged_in(acknowledgeable, id) = acknowledgeable.select { |ids, _| ids.include?(id) }.values.flatten
 
       # The full audit of principle id, for its changed members no acknowledgement may judge, or nil when the
       # acknowledgement takes in every one.

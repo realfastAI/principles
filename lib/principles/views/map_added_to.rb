@@ -8,16 +8,18 @@ module Principles
   # What this tool prints, from plain values a controller hands it. views/CLAUDE.md owns the boundary.
   module Views
     # What add-member's result needs to know of the map a member joined, beyond the map itself: whether its
-    # principle keeps the others held, which changes the step after mapping, and whether a full audit's
-    # correction may be open on it, so that the member may fix one of its findings, and whether to repeat
-    # what to do after mapping: with a principle's first member, or in git the first since the map's last commit, so
-    # members mapped in one sitting do not each repeat it.
+    # principle keeps the others held, and which mapped principles it holds, which changes the step after mapping,
+    # whether a full audit's correction may be open on it, so that the member may fix one of its findings, and
+    # whether to repeat what to do after mapping: with a principle's first member, or in git the first since the
+    # map's last commit, so members mapped in one sitting do not each repeat it.
     class MapAddedTo
       COMPLETENESS_QUESTION = "Is every carrier of the same rule mapped, and should any member belong to another " \
                               "principle? "
 
-      #: bool
-      attr_reader :keeps_others_held
+      # The ids of the other mapped principles this map keeps held: nil for a map that keeps none held, and empty
+      # for the keeping principle's map while no other principle is mapped.
+      #: Array[String]?
+      attr_reader :keeps_held
 
       #: bool
       attr_reader :correction_may_be_open
@@ -25,11 +27,11 @@ module Principles
       #: bool
       attr_reader :reminded
 
-      #: (?keeps_others_held: bool, ?correction_may_be_open: bool, ?reminded: bool,
+      #: (?keeps_held: Array[String]?, ?correction_may_be_open: bool, ?reminded: bool,
       #|  ?asks_about_completeness: bool, ?new_scope: NewLoadingScope) -> void
-      def initialize(keeps_others_held: false, correction_may_be_open: false, reminded: true,
+      def initialize(keeps_held: nil, correction_may_be_open: false, reminded: true,
                      asks_about_completeness: false, new_scope: NewLoadingScope.new)
-        @keeps_others_held = keeps_others_held
+        @keeps_held = keeps_held
         @correction_may_be_open = correction_may_be_open
         @reminded = reminded
         @asks_about_completeness = asks_about_completeness
@@ -40,14 +42,14 @@ module Principles
       # This immutable reminder context with the model's decision to ask about coverage, not a completeness verdict.
       #: (asks: bool) -> MapAddedTo
       def with_completeness_question(asks:)
-        MapAddedTo.new(keeps_others_held: @keeps_others_held, correction_may_be_open: @correction_may_be_open,
+        MapAddedTo.new(keeps_held: @keeps_held, correction_may_be_open: @correction_may_be_open,
                        reminded: @reminded, asks_about_completeness: asks, new_scope: @new_scope)
       end
 
       # This immutable addition context with the model's new-scope facts, preserving its original reminder flags.
       #: (NewLoadingScope) -> MapAddedTo
       def with_loading_scope(scope)
-        MapAddedTo.new(keeps_others_held: @keeps_others_held, correction_may_be_open: @correction_may_be_open,
+        MapAddedTo.new(keeps_held: @keeps_held, correction_may_be_open: @correction_may_be_open,
                        reminded: @reminded, asks_about_completeness: @asks_about_completeness, new_scope: scope)
       end
 
@@ -78,7 +80,7 @@ module Principles
         "Commit #{principle.file} as it changes, so the project's history shows each change; in git, start-audit " \
           "refuses a map that is not committed.\n" \
           "To see the map so far: #{invocation.in_project("show-principle", principle.id)}\n" \
-          "#{FirstAudit.new(invocation, in_git:).after_mapping(principle.id, keeps_others_held: @keeps_others_held)}"
+          "#{FirstAudit.new(invocation, in_git:).after_mapping(principle.id, keeps_held: @keeps_held)}"
       end
     end
   end

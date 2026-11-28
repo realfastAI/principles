@@ -175,6 +175,11 @@ module Principles
         kept ? AuditRecord.new(kept) : nil
       end
 
+      # Whether it holds a completed audit other than written, a record just completed, so written is not the first
+      # to complete; a retry of written reads written back, so it is the first still.
+      #: (AuditRecord) -> bool
+      def completed_other_than?(written) = last_completed&.then { !it.same_as?(written) } || false
+
       # This record with the member known by key moved to change's to_sha256, and change kept beside it.
       # Nothing else changes: the map version, base commit and findings stay the audit's own.
       # check_result is the result reported for the member's check, which replaces the one the record kept.
@@ -203,6 +208,11 @@ module Principles
       # prior finding kept.
       #: () -> Array[String]
       def open_ids = left_open.map(&:id)
+
+      # The ids of the findings it leaves open whose action is action, deferred or accepted, which a completed
+      # audit's result names apart.
+      #: (String) -> Array[String]
+      def left_open_ids(action) = left_open.select { it.action == action }.map(&:id)
 
       # The ids of the findings it leaves open on the member known by key, which the next full audit decides beside
       # it.

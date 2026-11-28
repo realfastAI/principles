@@ -57,6 +57,10 @@
           "carried_forward": {
             "const": true
           },
+          "judge_because": {
+            "type": "string",
+            "description": "Why the request judges this member afresh, as its template prints it; sent back or not, Models::MemberAssessments keeps nothing from it."
+          },
           "assessment": {
             "type": "string"
           },
@@ -232,6 +236,10 @@
         "required": ["finding_id", "decision"],
         "properties": {
           "finding_id": { "type": "string" },
+          "finding_problem": {
+            "type": "string",
+            "description": "The finding's problem as the template prints it beside its decision, for the agent deciding it to read. Sent back, it is read as nothing; problem restates the finding."
+          },
           "decision": { "type": ["string", "null"] },
           "reason": { "type": "string" },
           "as": { "type": "string" },

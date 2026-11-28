@@ -64,6 +64,17 @@ module Principles
         { **regions.shown, "lines" => counts }
       end
 
+      # Its changed regions with context unchanged lines around each, as a full audit's request shows a whole file
+      # whose text changed beside the text it reads apart; left out once both sides' lines pass half the bytes of
+      # its text now, since the text, read whole, then costs less than the regions beside it.
+      #: (context: Integer) -> Hash[String, untyped]
+      def regions(context:)
+        found = ChangedRegions.new(@at_baseline, @now, hunks: LineDiff.new(@at_baseline, @now).hunks, context:)
+        return { "omitted" => "over_half_the_text" } if 2 * bytes(found.lines) > @now.sum(&:bytesize)
+
+        found.shown
+      end
+
       private
 
       # How many bytes the sides' lines hold together.

@@ -17,11 +17,18 @@ module Principles
         new("base_commit" => base, "last_completed_revision" => record&.last_completed&.revision)
       end
 
-      #: (Hash[String, untyped]) -> void
-      def initialize(fields)
+      # audited_change is the commit that last changed the map's file or a member's file at the base, which the id
+      # digests in place of the base, so a commit elsewhere leaves the id as it was; the base until given.
+      #: (Hash[String, untyped], ?String?) -> void
+      def initialize(fields, audited_change = fields["base_commit"])
         @fields = fields
+        @audited_change = audited_change
         freeze
       end
+
+      # This basis, its id digesting commit, the last change to the files the audit reads at its base, nil outside git.
+      #: (String?) -> AssessmentBasis
+      def audited_at(commit) = AssessmentBasis.new(@fields, commit)
 
       #: () -> Hash[String, untyped]
       def to_h = @fields
@@ -41,7 +48,7 @@ module Principles
 
       # What the request id digests of the basis, in a fixed order, so how the answer orders its keys changes nothing.
       #: () -> Array[String?]
-      def digested = [base, revision]
+      def digested = [@audited_change, revision]
     end
   end
 end

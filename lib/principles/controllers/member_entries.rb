@@ -3,6 +3,8 @@
 
 require_relative "command"
 require_relative "member_addition"
+require_relative "plugin_member_addition"
+require_relative "../models/authored_locator"
 
 module Principles
   # Each runs one command: reads models, applies their rules and prints through a view.
@@ -46,15 +48,32 @@ module Principles
 
       #: (String, Hash[String, untyped]) -> untyped
       def add_member(id, options)
+        return handed(PluginMemberAddition).add(id, options) if options.key?("plugin")
+
+        add_project_member(id, options)
+      end
+
+      # Adds a member from a project file, the map's own or a new one for the keeping principle.
+      #: (String, Hash[String, untyped]) -> untyped
+      def add_project_member(id, options)
         started = !@principles.mapped?(id)
         map = @principles.addable(id)
-        member = located(options, { "path" => text(options["path"], "PATH") }).merge(played(options))
+        member = new_member(options)
         addition = handed(MemberAddition, map: map, member: member)
         updated = map.adding(member)
         write_map(updated) do |printed|
           added = addition.printed(printed, added_to: updated)
           started ? added.merge(map_result.map_created(printed)) : added
         end
+      end
+
+      # The new member the options name: its place in its file, its opening stored as AuthoredLocator says, the part it
+      # plays and any check.
+      #: (Hash[String, untyped]) -> Hash[String, untyped]
+      def new_member(options)
+        member = located(options, { "path" => text(options["path"], "PATH") })
+        opening = Models::AuthoredLocator.new(@project, Models::Member.new(member).locator).stored.starting_at
+        (opening ? member.merge("starting_at" => opening) : member).merge(played(options))
       end
 
       # The part a new member plays, and the check that enforces it when one is named.
@@ -79,7 +98,7 @@ module Principles
         map = @principles.find(id)
         old = map.member(text(options["member"], "MEMBER"))
         member = located(options, { "path" => new_path(options, old) })
-        moved = span(member)
+        moved = span(member).merge(member)
         write_map(map.moving(Models::Member.new(old).id, member)) do |printed|
           map_result.member_moved(printed, from: Models::Member.new(old).id, moved: moved)
         end
@@ -95,8 +114,9 @@ module Principles
       def change_member_role(id, options)
         map = @principles.find(id)
         target = Models::Member.new(map.member(text(options["member"], "MEMBER"))).id
-        write_map(map.changing_role(target, text(options["role"], "--role"))) do |printed|
-          map_result.member_replaced(printed, member: target, done: "Changed the role of #{target}.")
+        role = text(options["role"], "--role")
+        write_map(map.changing_role(target, role)) do |printed|
+          map_result.role_changed(printed, member: target, role: role)
         end
       end
 
@@ -116,8 +136,7 @@ module Principles
         map = @principles.find(id)
         target = Models::Member.new(map.member(text(options["member"], "MEMBER"))).id
         write_map(map.removing_check(target)) do |printed|
-          map_result.member_replaced(printed, member: target,
-                                              done: "Removed the check of #{target}; the audit no longer asks for " \
+          map_result.member_replaced(printed, done: "Removed the check of #{target}; the audit no longer asks for " \
                                                     "its result.")
         end
       end

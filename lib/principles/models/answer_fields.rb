@@ -18,6 +18,9 @@ module Principles
       LINK_REPAIR = "Give recorded_at as {\"url\": \"https://...\"}, the whole link to where it is written up, " \
                     "such as an issue, with no other field; or as {\"path\": ..., \"heading\": ...} for a file in " \
                     "the project."
+      # The two forms a recorded_at takes, which a repair asking for one names.
+      WRITE_UP_FORMS = "{\"path\": ..., \"heading\": ...} for a file in the project, or {\"url\": \"https://...\"} " \
+                       "for a page outside it, such as an issue"
 
       #: (^(Locator) -> void) -> void
       def initialize(locate)

@@ -34,6 +34,10 @@ module Principles
         @member.fetch("id")
       end
 
+      # The member's role as its map names it.
+      #: () -> String
+      def role = @member.fetch("role")
+
       #: () -> String
       def base_commit
         @commits.fetch("base")

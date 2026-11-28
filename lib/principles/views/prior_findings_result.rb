@@ -33,7 +33,8 @@ module Principles
         RequestPart.new(shown: { PART => @prior.map { |finding| shown(finding) } },
                         instructions: [Instruction.new("prior_findings_instruction", instruction)],
                         slots: { "prior_finding_decisions" => @prior.map { |finding| decision(finding) } },
-                        help: { "prior_finding_decisions" => @placeholders })
+                        help: { "prior_finding_decisions" => @placeholders },
+                        alone: { "prior_finding_decisions" => @prior.map { |finding| decision_alone(finding) } })
       end
 
       private
@@ -53,6 +54,13 @@ module Principles
       def decision(finding)
         decision = { "finding_id" => finding.fetch("finding_id"), "decision" => nil }
         evidence_not_kept?(finding) ? decision.merge("problem_evidence" => []) : decision
+      end
+
+      # The decision to fill in on finding in the answer printed alone, which no list of prior findings stands beside,
+      # with the finding's problem after its id, so the agent deciding it can tell what it is.
+      #: (Hash[String, untyped]) -> Hash[String, untyped]
+      def decision_alone(finding)
+        { "finding_id" => nil, "finding_problem" => finding.fetch("problem"), **decision(finding) }
       end
 
       # How to decide the prior findings, naming each one's id, so a new finding is given another, each paragraph with

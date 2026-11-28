@@ -6,6 +6,8 @@ require_relative "command"
 require_relative "../models/audit"
 require_relative "../models/commits_since_base"
 require_relative "../models/other_principles"
+require_relative "../views/completed_audit_findings"
+require_relative "../views/members_changed_during_audit"
 require_relative "../views/prior_finding_decisions_result"
 
 require_relative "../views/answered_request"
@@ -58,18 +60,30 @@ module Principles
 
       private
 
-      # What the completed audit prints: its resolved and open findings, as the record it writes holds them, so they
-      # agree with list-open-findings; what it changed; each prior finding's decision; and, while
+      # What the completed audit prints: its resolved, deferred and accepted findings, as the record it writes holds
+      # them, so they agree with list-open-findings; what it changed; each prior finding's decision; and, while
       # principles is not set up, the offer to set it up.
       #: (Models::AuditStart, Models::Audit, Array[Models::Disposition], Models::DecidedPriorFindings,
       #|  Models::AuditRecord) -> untyped
       def completion_result(start, audit, dispositions, decided, written)
         decisions = Views::PriorFindingDecisionsResult.new(kept_ids: decided.kept_ids, closed: decided.closed,
                                                            changed: decided.changed)
-        completed = audit_result.completion(principle_id: audit.id, resolved: written.resolved_ids(decided),
-                                            open: written.open_ids,
+        findings = Views::CompletedAuditFindings.new(resolved: written.resolved_ids(decided),
+                                                     deferred: written.left_open_ids("deferred"),
+                                                     accepted: written.left_open_ids("accepted"))
+        completed = audit_result.completion(principle_id: audit.id, findings: findings,
                                             changes: changes(start, audit, dispositions, written), decisions: decisions)
-        offering_set_up(completed)
+        offering_set_up(offering_request_logging(completed, written))
+      end
+
+      # completed, naming turn-on-request-logging when written is the project's first full audit and requests are not
+      # logged here, since logged requests show whether members reach the agent at all.
+      #: (Hash[String, untyped], Models::AuditRecord) -> Hash[String, untyped]
+      def offering_request_logging(completed, written)
+        return completed if @project.request_logging.in_use?
+        return completed if @audit_records.of(@principles.ids).any? { it.completed_other_than?(written) }
+
+        audit_result.offering_request_logging(completed)
       end
 
       # completed, with the offer to set principles up while it is not, and outside the plugin, whose hooks report
@@ -88,11 +102,22 @@ module Principles
       def changes(start, audit, dispositions, written)
         changed = audit.changed_files(dispositions)
         added = start.added(now: audit.now)
-        map = @map_changes&.files_to_commit(@principles.file(audit.id), added: added) || []
-        files = @audit_records.files_to_commit(written, changed + map, start.reported)
-        Views::AuditChanges.new(files_to_commit: files, landed: landed_since_base(start, audit), added: added,
+        missing = @audit_records.cited_files_missing(written, @project.installed_plugins)
+        Views::AuditChanges.new(files_to_commit: files_to_commit(start, audit, written, changed, added),
+                                landed: landed_since_base(start, audit),
+                                members_changed: Views::MembersChangedDuringAudit.new(
+                                  added: added, changed: start.changed(now: audit.now)
+                                ),
                                 other_changed: other_changed(audit, changed),
-                                cited_files_missing: @audit_records.cited_files_missing(written))
+                                cited_files_missing: missing)
+      end
+
+      # The files the completed audit commits: its record, the files its fixes changed, which are changed, and the
+      # map when its correction added members to it, which are added.
+      #: (Models::AuditStart, Models::Audit, Models::AuditRecord, Array[String], Array[String]) -> Array[String]
+      def files_to_commit(start, audit, written, changed, added)
+        map = @map_changes&.files_to_commit(@principles.file(audit.id), added: added) || []
+        @audit_records.files_to_commit(written, changed + map, start.reported)
       end
 
       # Each other principle with a member in paths, the files this audit's fixes changed, whose own text now

@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require_relative "../error"
+require_relative "../prose_list"
 require_relative "project_history"
 
 module Principles
@@ -28,41 +29,65 @@ module Principles
         freeze
       end
 
-      # The broken members, each whose file is missing with a repair that points to its missing_files entry, so
-      # a reader of the member alone sees any rename git detected.
+      # The broken members, each whose file is missing without a repair of its own, since the refusal's repair says
+      # once how to repair the members missing_files groups.
       #: () -> Array[Hash[String, untyped]]
-      def members
-        @broken.map do |entry|
-          next entry unless missing?(entry)
-
-          entry.merge("repair" => "Its file, #{entry.fetch("path")}, is missing: see that path in missing_files, " \
-                                  "with any rename git detected, then run a command from repair_with.")
-        end
-      end
+      def members = @broken.map { |entry| missing?(entry) ? entry.except("repair") : entry }
 
       # The broken_members refusal for these members, saying how to repair each. note comes before what
       # missing_files says, and rerun names what to run once they are repaired.
       # rerun is the command to run once the members are repaired, or nil when it is the one the agent ran.
       #: (String, ?rerun: String?, ?note: String) -> Error
       def refusal(message, rerun: nil, note: "")
+        files = to_a
         Error.new("broken_members", message,
                   "For each member listed, say whether it moved or is gone, and run the matching command in its " \
                   "repair_with: the move-member, with its NEW_PATH, HEADING, NEW_OPENING_TEXT, NEW_ENDING_TEXT or " \
                   "QUERY filled in, if it moved, or the remove-member if it is gone. #{note}#{REPAIR}" \
-                  "#{rerun ? "\nThen run it again: #{rerun}" : " Then run the command again."}")
-             .including(**({ "principle" => @principle } if @principle), "members" => members, "missing_files" => to_a)
+                  "#{waiting(files)}#{rerun ? "\nThen run it again: #{rerun}" : " Then run the command again."}")
+             .including(**({ "principle" => @principle } if @principle), "members" => members, "missing_files" => files)
+      end
+
+      # The broken_members refusal of the principle's map, naming each of these members.
+      #: () -> Error
+      def refusal_of_map
+        ids = @broken.map { |member| member.fetch("id") }.join(", ")
+        refusal("#{@broken.length} of #{@principle}'s members cannot be found or read: #{ids}")
       end
 
       # Each missing path, in the order first named, with the members that name it.
       #: () -> Array[Hash[String, untyped]]
       def to_a
-        missing = @broken.select { |entry| missing?(entry) }
-        missing.group_by { |entry| entry.fetch("path") }.map do |path, entries|
-          { "path" => path, "members" => entries.map { |entry| named(entry) } }.merge(renamed(path))
-        end
+        missing = @broken.select { |entry| missing?(entry) }.group_by { |entry| entry.fetch("path") }
+        branches = brought_in(missing.keys)
+        missing.map { |path, entries| file(path, entries, branches[path]) }
       end
 
       private
+
+      # The missing path, with the entries of the members that name it, what git says of it, and on_branches, the
+      # local branches that bring it in, when any does.
+      #: (String, Array[Hash[String, untyped]], Array[String]?) -> Hash[String, untyped]
+      def file(path, entries, branches)
+        waiting_on = branches ? { "on_branches" => branches } : {}
+        { "path" => path, "members" => entries.map { |entry| named(entry) } }.merge(renamed(path), waiting_on)
+      end
+
+      # The local branches that bring in each of paths, asked of git once, and only when a file is missing.
+      #: (Array[String]) -> Hash[String, Array[String]]
+      def brought_in(paths) = (@history&.branches_bringing_in(paths) unless paths.empty?) || {}
+
+      # What the repair says of each of files a local branch brings in: that its members may wait for that branch to
+      # merge, kept as they are, which is the agent's to judge.
+      #: (Array[Hash[String, untyped]]) -> String
+      def waiting(files)
+        files.filter_map do |file|
+          branches = file["on_branches"] or next
+          named = ProseList.new(branches, conjunction: "or").to_s
+          " #{file.fetch("path")} is on local branch #{named}, whose commits not on HEAD bring it in: if its " \
+            "members wait on that branch, keep them as they are, running neither command, until #{named} merges."
+        end.join
+      end
 
       #: (Hash[String, untyped]) -> bool
       def missing?(entry)

@@ -1,6 +1,6 @@
 ---
 name: principles
-description: Keeps a project's principles held: maps the instruction files, skills, hooks and checks that carry each principle, changes a rule everywhere it is carried, and audits whether they still agree. Use when the user mentions principles, asks to change a rule the agent follows, wants a rule to always hold, or asks why guidance keeps drifting; before changing CLAUDE.md, a skill, a hook or any file a map in .principles/maps/ names; after committing an edit to such a file; at the start of a session in a project with a .principles/ folder; when `principles list-member-problems --short` exits 3. Start with `principles list-principles`.
+description: Keeps a project's principles held: maps the instruction files, skills, hooks and checks that carry each principle, changes a rule everywhere it is carried, and audits whether they still agree. Use when the user mentions principles, asks to change a rule the agent follows, wants a rule to always hold, or asks why guidance keeps drifting; before changing CLAUDE.md, a skill, a hook or any file a map in .principles/maps/ names; at the start of a session in a project with a .principles/ folder; when `principles list-member-problems --short` exits 3. Start with `principles list-principles`.
 ---
 
 # Keep a project's principles held

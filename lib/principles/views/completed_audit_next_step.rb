@@ -10,7 +10,7 @@ module Principles
   # What this tool prints, from plain values a controller hands it. views/CLAUDE.md owns the boundary.
   module Views
     # A completed audit's next step, from what it changed and how to commit it: commit and report, re-audit each other
-    # principle its fixes changed, and audit this principle again after its members change.
+    # principle its fixes changed, and, when its members changed during the audit, audit this principle again.
     class CompletedAuditNextStep
       #: (Invocation) -> void
       def initialize(invocation)
@@ -21,12 +21,20 @@ module Principles
       # The next step after principle id's audit completed with changes, committed as commit says.
       #: (String, AuditChanges, AuditCommit | AuditCommit::ByHand) -> String
       def to_s(id, changes, commit)
-        "#{commit.next_step} report the outcome to the project's owner.\n" \
-          "#{others_changed(changes.other_changed)}" \
-          "After members change, audit this principle again: #{@invocation.in_project("start-audit", id)}"
+        ["#{commit.next_step} report the outcome to the project's owner.\n",
+         others_changed(changes.other_changed), again(id, changes.members_changed)].join.chomp
       end
 
       private
+
+      # The line asking for principle id's audit again when its members changed during the audit; nothing when none
+      # did, since nothing then needs a second audit.
+      #: (String, MembersChangedDuringAudit) -> String
+      def again(id, members_changed)
+        return "" unless members_changed.any?
+
+        "After members change, audit this principle again: #{@invocation.in_project("start-audit", id)}"
+      end
 
       # The other principles whose members this audit's fixes changed, each to re-audit, or one member's edit
       # to acknowledge; the agent judges which. Nothing when there are none.

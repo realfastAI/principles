@@ -3,10 +3,9 @@
 
 require_relative "../data/project_files"
 require_relative "../data/project_root"
-require_relative "../data/map_files"
-require_relative "../data/audit_files"
-require_relative "../data/principles_subfolder"
+require_relative "../data/principles_store"
 require_relative "../data/repository"
+require_relative "../data/claude_code_home"
 require_relative "candidate_inventory"
 require_relative "entry_files"
 require_relative "member"
@@ -18,7 +17,6 @@ require_relative "member_loads"
 require_relative "member_lines"
 require_relative "mapped_principles"
 require_relative "member_snapshots"
-require_relative "missing_files"
 require_relative "locate_refusal"
 require_relative "audit_records"
 require_relative "project_history"
@@ -26,15 +24,18 @@ require_relative "principle_history"
 require_relative "principles_folder_move"
 require_relative "sent_answer"
 require_relative "guidance_search_paths"
+require_relative "request_logging"
 require_relative "survey_search_paths"
+require_relative "installed_plugins"
+require_relative "plugin_reference"
 
 module Principles
   # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
   module Models
     # The user's project as this tool reads it: its instruction files, each member's text, the answers an
     # agent hands in, and the maps, audit records and git history kept beside them. Controllers reach the
-    # project only through this model. It is handed its five data adapters, so a spec can hand it stand-ins
-    # that meet the same contracts.
+    # project only through this model. It is handed its data adapters, this tool's own files under .principles as
+    # one store, so a spec can hand it stand-ins that meet the same contracts.
     class Project
       # An implicit invocation reuses its nearest established project; an explicit root uses .at directly.
       #: (String) -> Project
@@ -44,20 +45,20 @@ module Principles
       #: (String) -> Project
       def self.at(root)
         files = Data::ProjectFiles.new(root)
-        new(files: files, maps: Data::MapFiles.new(Data::PrinciplesSubfolder.new(files.root, "maps")),
-            audits: Data::AuditFiles.new(Data::PrinciplesSubfolder.new(files.root, "audits")),
-            repository: Data::Repository.new(files.root),
-            guidance_search_paths: Data::GuidanceSearchPathsFile.new(Data::PrinciplesDirectory.new(files.root)))
+        new(files: files, store: Data::PrinciplesStore.at(files.root), repository: Data::Repository.new(files.root),
+            claude_code: Data::ClaudeCodeHome.from_environment)
       end
 
-      #: (files: Data::ProjectFiles, maps: Data::MapFiles, audits: Data::AuditFiles,
-      #|  repository: Data::Repository, guidance_search_paths: Data::GuidanceSearchPathsFile) -> void
-      def initialize(files:, maps:, audits:, repository:, guidance_search_paths:)
+      #: (files: Data::ProjectFiles, store: Data::PrinciplesStore, repository: Data::Repository,
+      #|  claude_code: Data::ClaudeCodeHome) -> void
+      def initialize(files:, store:, repository:, claude_code:)
         @files = files
-        @maps = maps
-        @audits = audits
+        @maps = store.maps #: Data::MapFiles
+        @audits = store.audits #: Data::AuditFiles
         @repository = repository
-        @guidance_search_paths = guidance_search_paths
+        @guidance_search_paths = store.guidance_search_paths #: Data::GuidanceSearchPathsFile
+        @request_logging = store.request_logging #: Data::RequestLoggingFolder
+        @claude_code = claude_code
         @history = nil #: ProjectHistory?
         @principle_histories = {} #: Hash[[String, PrincipleMappingHistory?], PrincipleHistory]
       end
@@ -86,9 +87,13 @@ module Principles
         GuidanceSearchPaths.read(@guidance_search_paths)
       end
 
-      # The user name git commits as here, or nil when none is set, which the session-start line states as a fact.
-      #: () -> String?
-      def git_user_name = @repository.user_name
+      # The requests the host sent, captured into a folder git must ignore.
+      #: () -> RequestLogging
+      def request_logging = RequestLogging.new(@request_logging, @files)
+
+      # The plugins Claude Code installed that a session in the project loads, as installed for its main checkout.
+      #: () -> InstalledPlugins
+      def installed_plugins = InstalledPlugins.new(@claude_code, main_checkout: @repository.main_checkout_root)
 
       # The project's history, one for the whole command, so every read names the HEAD it first read.
       #: () -> ProjectHistory
@@ -148,10 +153,13 @@ module Principles
         member_lines(locator, since: since) || MemberLinesNotFoundAtLastAudit.new
       end
 
-      # The project file at path as the type that finds a member in it, refused when it cannot be read, or while git
-      # tracks it only in another case.
+      # The file at path as the type that finds a member in it: an installed plugin's file, as InstalledPlugins
+      # refuses it, or the project's, refused when it cannot be read, or while git tracks it only in another case.
       #: (String) -> MemberFile
       def member_file(path)
+        plugin = PluginReference.in(path)
+        return installed_plugins.member_file(plugin) if plugin
+
         MemberFile.for(path: history.tracked_paths.spelt_as_tracked(path), text: @files.read_text(path))
       end
 
@@ -180,21 +188,19 @@ module Principles
         end
       end
 
-      #: (String, Array[Hash[String, untyped]]) -> bot
-      def refuse_broken(map_id, broken)
-        ids = broken.map { |member| member.fetch("id") }.join(", ")
-        missing = MissingFiles.new(broken, principle: map_id, history: history)
-        raise missing.refusal("#{broken.length} of #{map_id}'s members cannot be found or read: #{ids}")
-      end
-
       # A member's text now and how fresh it is, which the block says from its hash. A member whose place
       # in its file is gone is locator_lost; one whose file cannot be read is unavailable. Both keep the
-      # refusal.
+      # refusal. A plugin member no installed plugin gives, for any reason, is plugin_unresolved with that reason, a
+      # quiet state and not a broken one, as list-member-problems lists it, so nothing offers to move or remove it.
       #: (Locator) { (String) -> String } -> Hash[String, untyped]
       def freshness(locator, &)
         now = located_text(locator)
         { "snapshot" => now.to_h, "freshness" => yield(now.sha256) }
       rescue Error => e
+        if PluginReference.in(locator.path)
+          return { "freshness" => "plugin_unresolved", "reason" => e.payload.fetch("code"), "error" => e.payload }
+        end
+
         { "freshness" => LocateRefusal.new(e.payload).member_state, "error" => e.payload }
       end
 

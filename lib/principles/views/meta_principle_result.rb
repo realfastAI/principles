@@ -104,11 +104,14 @@ module Principles
       class MapInProject
         #: bool
         attr_reader :set_up
+        #: bool
+        attr_reader :already_mapped
 
         #: (already_mapped: bool, members_in_entry_files: Array[Hash[String, String]], set_up: bool) -> void
         def initialize(already_mapped:, members_in_entry_files:, set_up:)
           @fields = { "already_mapped" => already_mapped,
                       "members_in_entry_files" => members_in_entry_files }.freeze #: Hash[String, untyped]
+          @already_mapped = already_mapped
           @set_up = set_up
           freeze
         end
@@ -122,15 +125,24 @@ module Principles
       #: (PrintedPrinciple, Placement, MapInProject, existing_principles: Array[Hash[String, untyped]])
       #|  -> Hash[String, untyped]
       def proposal(principle, placement, map_in_project, existing_principles:)
-        hook_setup = placement.hooks_run? ? {} : { "hook_setup" => ReportHooksOffer.new(@invocation).to_s }
         { "status" => "question", "principle_id" => principle.id, "map_file" => principle.file,
-          "map" => principle.map, **map_in_project.to_h, **placement.to_h, **hook_setup,
+          "map" => principle.map, **map_in_project.to_h, **placement.to_h,
+          **hook_setup(placement, mapped: map_in_project.already_mapped || existing_principles.any?),
           "existing_principles" => existing_principles,
           "question" => map_in_project.set_up ? steps_lacking(principle, placement) : question(principle.id),
           "answer_with" => add_member(principle.id), "next_action" => next_action(principle.id, existing_principles) }
       end
 
       private
+
+      # The hook entries that report changed members, offered only while the plugin's hooks do not run and once a map
+      # exists, since before any map they report nothing.
+      #: (Placement, mapped: bool) -> Hash[String, String]
+      def hook_setup(placement, mapped:)
+        return {} if placement.hooks_run? || !mapped
+
+        { "hook_setup" => ReportHooksOffer.new(@invocation).to_s }
+      end
 
       # What to agree with the user and place, with the command that maps a passage the project has in a step's
       # place, and the one that maps the passage once it is placed.

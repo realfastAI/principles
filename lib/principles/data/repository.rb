@@ -5,6 +5,8 @@ require_relative "git_command"
 require_relative "verified_head"
 require_relative "first_parent_log"
 require_relative "working_tree_changes"
+require_relative "changes_since"
+require_relative "branches_bringing_in"
 require_relative "committed_texts"
 
 module Principles
@@ -29,6 +31,8 @@ module Principles
         @texts = CommittedTexts.new(root, ->(name) { show(name) }) #: CommittedTexts
         @log = FirstParentLog.new(@git) #: FirstParentLog
         @changes = WorkingTreeChanges.new(@git) #: WorkingTreeChanges
+        @since = ChangesSince.new(@git) #: ChangesSince
+        @branches = BranchesBringingIn.new(@git) #: BranchesBringingIn
       end
 
       # A strict permission snapshot; legacy best-effort readers keep their existing behavior.
@@ -42,17 +46,30 @@ module Principles
         ok && output.strip == "true"
       end
 
-      # The user name git commits as here, or nil when none is set.
-      #: () -> String?
-      def user_name
-        name, ok = git(["config", "user.name"])
-        ok && !name.strip.empty? ? name.strip : nil
+      # The project's root at its place in the repository's main checkout, which a worktree shares its history with;
+      # in the main checkout, or outside git, the project's own root.
+      #: () -> String
+      def main_checkout_root
+        top, = git(["rev-parse", "--path-format=absolute", "--show-toplevel"])
+        common, ok = git(["rev-parse", "--path-format=absolute", "--git-common-dir"])
+        return @root unless ok
+
+        inside = File.realpath(@root).delete_prefix(File.realpath(top.strip))
+        File.join(File.realpath(File.dirname(common.strip)), inside)
       end
 
       # The full sha of the last commit that changed path, or nil outside git or when no commit has.
       #: (String) -> String?
       def last_commit(path)
         sha, ok = git(["log", "-1", "--format=%H", "--", path])
+        ok && !sha.strip.empty? ? sha.strip : nil
+      end
+
+      # The full sha of the newest commit on at's first-parent line that changed any of paths, nil when none did. git
+      # stops at the first it finds, so this reads no further back than that commit.
+      #: (Array[String], at: String) -> String?
+      def last_change(paths, at:)
+        sha, ok = git(["log", "-1", "--first-parent", "--format=%H", "--end-of-options", revision(at), "--", *paths])
         ok && !sha.strip.empty? ? sha.strip : nil
       end
 
@@ -65,16 +82,12 @@ module Principles
       # Each rename git detects between commit and the working tree, as {"from", "to", "similarity"}, with paths
       # relative to the project; none outside git or when commit is not there, as in a shallow clone.
       #: (String) -> Array[Hash[String, untyped]]
-      def renames_since(commit)
-        output, ok = git(["diff", "-M", "-z", "--name-status", "--relative", "--diff-filter=R", revision(commit), "--"])
-        return [] unless ok
+      def renames_since(commit) = @since.renames(revision(commit))
 
-        output.force_encoding("UTF-8").split("\0").each_slice(3).filter_map do |status, from, to|
-          next unless status.to_s.start_with?("R") && from && to
-
-          { "from" => from, "to" => to, "similarity" => status.to_s.delete_prefix("R").to_i }
-        end
-      end
+      # Each of paths that a local branch's commits not on HEAD bring in, with the branches that do, as
+      # BranchesBringingIn reads them.
+      #: (Array[String]) -> Hash[String, Array[String]]
+      def branches_bringing_in(paths) = @branches.of(paths)
 
       # The full sha at HEAD, or nil outside git or before the first commit.
       #: () -> String?
@@ -95,10 +108,7 @@ module Principles
       # deleted, and a rename by both its names, since git is asked to detect none. commit is a full sha, as commit_of
       # gives it, so git cannot read it as an option.
       #: (String) -> Array[String]
-      def changed_since(commit)
-        output, ok = git(["diff", "--name-only", "-z", "--relative", "--no-renames", revision(commit), "HEAD", "--"])
-        ok ? output.force_encoding("UTF-8").split("\0").sort : []
-      end
+      def changed_since(commit) = @since.paths(revision(commit))
 
       # Which of paths, relative to the project, are untracked or ignored, or differ from HEAD in the index
       # or the working tree. Before the first commit, every path does.
@@ -143,15 +153,7 @@ module Principles
       # The commits after commit, up to HEAD, that changed any of paths, newest first, each as its short sha and
       # subject line.
       #: (String, Array[String]) -> Array[Hash[String, String]]
-      def commits_since(commit, paths)
-        output, ok = git(["log", "--format=%h%x00%s", "--end-of-options", "#{revision(commit)}..HEAD", "--", *paths])
-        return [] unless ok
-
-        output.force_encoding("UTF-8").lines.map do |line|
-          sha, subject = line.chomp.split("\0", 2)
-          { "commit" => sha.to_s, "subject" => subject.to_s }
-        end
-      end
+      def commits_since(commit, paths) = @since.commits(revision(commit), paths)
 
       # Every commit on up_to's first-parent line, HEAD's unless given, that changed any of paths, newest first, each
       # as its full and short sha, subject line, author date and whether it is a root commit ("true" or "false"); none

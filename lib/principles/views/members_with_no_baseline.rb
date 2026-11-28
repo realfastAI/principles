@@ -39,18 +39,18 @@ module Principles
       #: () -> bool
       def committing? = @because == "not_committed" && !@files.empty?
 
-      # What gives the members a baseline: a completed audit outside git, or in git committing the files that
-      # differ from HEAD, or an audit again when none does, since every file is committed already. The
-      # audit command starts a line of its own, after its purpose.
+      # What the agent does to give the members a baseline, as one imperative: complete an audit outside git, or
+      # in git commit the files that differ from HEAD, or audit again when none does, since every file is
+      # committed already. The audit command starts a line of its own, after its purpose.
       #: () -> String
       def remedy
-        return " Committing #{ProseList.new(@files)} #{gives}." if committing?
+        return " Commit #{ProseList.new(@files)} #{to_give}." if committing?
 
-        "#{all_committed if @because == "not_committed"}\nA completed audit #{gives}: #{@audit}"
+        "#{all_committed if @because == "not_committed"}\nRun this audit #{to_give}: #{@audit}"
       end
 
       #: () -> String
-      def gives = "gives #{one? ? "it" : "each"} one"
+      def to_give = "to give #{one? ? "it" : "each"} one"
 
       #: () -> String
       def all_committed

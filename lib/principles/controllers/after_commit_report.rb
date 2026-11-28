@@ -14,6 +14,19 @@ module Principles
     # in the order Models::HeadMoves names them, whose commits changed a mapped member, the hook's JSON naming them,
     # as list-member-problems --commits-after prints it; or nothing. It exits 0 whatever it finds.
     class AfterCommitReport < Command
+      # The project at a repository's root on this machine.
+      PROJECT_AT = ->(root) { Models::Project.at(root) } #: ^(String) -> Models::Project
+
+      # git_at gives what git says of a directory, as Models::HeadMoves asks it, and project_at the project at a
+      # repository's root.
+      #: (Models::Project, tool: RunningTool, ?git_at: ^(String) -> untyped,
+      #|  ?project_at: ^(String) -> Models::Project) -> void
+      def initialize(project, tool:, git_at: Models::HeadMoves::GIT_AT, project_at: PROJECT_AT)
+        super(project, tool:)
+        @git_at = git_at
+        @project_at = project_at
+      end
+
       #: (String, String?, Hash[String, untyped]) -> untyped
       def call(command, _id, options)
         naming_the_executable do
@@ -22,7 +35,7 @@ module Principles
           input = Models::AfterCommitInput.read(options["stdin"].to_s, ENV.to_h, clock: Time.now.to_i, home: Dir.home,
                                                                                  pwd: Dir.pwd)
           event = input.event
-          event ? reported(event, Models::HeadMoves.new(input).to_a) : Views::MembersACommitChanged::NOTHING
+          event ? reported(event, Models::HeadMoves.new(input, @git_at).to_a) : Views::MembersACommitChanged::NOTHING
         end
       end
 
@@ -32,7 +45,7 @@ module Principles
       #: (String, Array[Models::HeadMoves::Move]) -> Views::Lines
       def reported(event, moves)
         moves.each do |move|
-          lines = MemberProblemsReport.new(Models::Project.at(move.root), tool: @tool)
+          lines = MemberProblemsReport.new(@project_at.call(move.root), tool: @tool)
                                       .call("list-member-problems", nil,
                                             { "hook_event" => event, "commits_after" => move.before })
           return lines unless lines.stdout.empty?

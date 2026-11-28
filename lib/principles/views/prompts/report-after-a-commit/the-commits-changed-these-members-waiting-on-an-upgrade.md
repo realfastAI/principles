@@ -1,2 +1,2 @@
-principles: the commits this Bash call brought in changed these mapped members, whose audits wait on an upgrade,
-so this copy cannot audit them:
+principles: these mapped members changed since their last record, and their audits wait on an upgrade, so
+this copy cannot audit them:

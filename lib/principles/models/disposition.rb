@@ -8,6 +8,8 @@ require_relative "answer_text"
 require_relative "disposition_placeholders"
 require_relative "disposition_text_field"
 require_relative "fix_only_fields"
+require_relative "plugin_reference"
+require_relative "unfixed_part"
 require_relative "unfinished_field"
 require_relative "waits_on"
 require_relative "write_up_pointer"
@@ -24,13 +26,14 @@ module Principles
       ACTIONS = %w[fixed deferred accepted disagreed].freeze #: Array[String]
 
       # at is the disposition's place in the answer, such as /dispositions/0, which a refusal about its pointers names.
-      # samples is the answer guide's disposition for each action, whose text illustrates each field.
-      #: (untyped, AnswerFields, at: String, samples: Hash[String, untyped]) -> void
-      def initialize(disposition, fields, at:, samples:)
+      # samples is the answer guide's disposition for each action, whose text illustrates each field. subject is whose
+      # disposition a refusal names it as: its finding's, or the unfixed part's of the fix that gives it.
+      #: (untyped, AnswerFields, at: String, samples: Hash[String, untyped], ?subject: String) -> void
+      def initialize(disposition, fields, at:, samples:, subject: "Finding #{disposition["finding_id"]}")
         @disposition = disposition
         @fields = fields
         @samples = samples
-        @place = AnswerPlace.new(at, "Finding #{disposition["finding_id"]}") #: AnswerPlace
+        @place = AnswerPlace.new(at, subject) #: AnswerPlace
         freeze
       end
 
@@ -75,7 +78,19 @@ module Principles
       # left empty, as the template's placeholder or as the answer guide's sample, and so a fix's reassessment,
       # which applies to no other action, and a waits_on left as the guide's sample.
       #: () -> Array[UnfinishedField]
-      def unfinished = [*unchosen_action, *unwritten_text, *waits_on_left_as_sample]
+      def unfinished = [*unchosen_action, *unwritten_text, *waits_on_left_as_sample, *unfixed_part&.unfinished]
+
+      # The part of its finding a fix leaves unfixed, as the agent gave it, or nil when it gives none.
+      #: () -> UnfixedPart?
+      def unfixed_part
+        part = @disposition["unfixed_part"]
+        return unless part
+
+        place = AnswerPlace.new(@place.child("unfixed_part").pointer, "Finding #{finding_id} unfixed_part")
+        own = Disposition.new(part.except("id", "problem").merge("finding_id" => part["id"]), @fields,
+                              at: place.pointer, samples: @samples, subject: place.subject)
+        UnfixedPart.new(part, of: self, outcome: own, place:)
+      end
 
       # The members this disposition claims it changed, refusing it unless its other fields are sound: only a fix
       # claims any, and each must be among the members that changed. CorrectionAnswer has checked its action and
@@ -84,6 +99,7 @@ module Principles
       def claimed_members(changed)
         action = @disposition["action"]
         checked_fields
+        unfixed_part&.check
         members = @fields.array(fix_fields.list("changed_members"), "changed_members")
         entries = @disposition.fetch("changed_map_entries", []) + @disposition.fetch("removed_members", [])
         action == "fixed" ? fixed_members(members, entries, changed) : fix_fields.unclaimed(members, entries)
@@ -131,11 +147,26 @@ module Principles
       # claims a map entry instead, which DeclaredMapChanges has checked changed.
       #: (Array[untyped], Array[untyped], Array[String]) -> Array[untyped]
       def fixed_members(members, entries, changed)
+        refuse_plugin_members(members)
         return members unless (members.empty? && entries.empty?) || (members - changed).any?
 
         raise Error.new("claimed_change_missing",
                         "Finding #{finding_id} claims changes its members do not show: #{members.join(", ")}",
                         "Make the authorised change and reassess it, or record a deferral.")
+      end
+
+      # A fix never claims a plugin's member changed, whatever its text did: principles never edits an installed
+      # plugin's files, which the plugin's next update replaces.
+      #: (Array[untyped]) -> void
+      def refuse_plugin_members(members)
+        plugin = members.select { |id| id.is_a?(String) && PluginReference.in(id) }
+        return if plugin.empty?
+
+        raise Error.new("plugin_member_read_only",
+                        "Finding #{finding_id} claims a fix to #{plugin.join(", ")}, read from an installed plugin, " \
+                        "which principles never edits",
+                        "Settle it another way: fix it in the project's own files and claim those; or set its action " \
+                        "to deferred, with recorded_at {\"url\": ...} where it is raised upstream; or to accepted.")
       end
 
       # The disposition's evidence and recorded_at, which a deferral must give, if only as null, and the
@@ -168,7 +199,7 @@ module Principles
       #: () -> bot
       def unrecorded_deferral
         raise Error.new("invalid_disposition", "Deferred finding #{finding_id} has no recorded_at",
-                        "Set recorded_at to where the finding is written up, as {\"path\": ..., \"heading\": ...}, " \
+                        "Set recorded_at to where the finding is written up, as #{AnswerFields::WRITE_UP_FORMS}; " \
                         "or to null when it is written up nowhere.")
       end
     end

@@ -19,14 +19,16 @@ module Principles
 
       # listed is what the agent reads of this part before its instructions. help is, by slot, the placeholder text
       # each of its entries carries in the answer printed alone, where no instruction is printed beside it to say
-      # what each field takes.
+      # what each field takes. alone is, by slot, its entries as the answer printed alone gives them before their
+      # help, where they show what the list beside the request's answer would.
       #: (shown: Hash[String, untyped], slots: Hash[String, untyped], ?instructions: Array[Instruction],
-      #|  ?help: Hash[String, Hash[String, untyped]]) -> void
-      def initialize(shown:, slots:, instructions: [], help: {})
+      #|  ?help: Hash[String, Hash[String, untyped]], ?alone: Hash[String, untyped]) -> void
+      def initialize(shown:, slots:, instructions: [], help: {}, alone: {})
         @listed = shown
         @slots = slots
         @instructions = instructions
         @help = help
+        @alone = alone
         freeze
       end
 
@@ -34,11 +36,15 @@ module Principles
       #: () -> Hash[String, untyped]
       def shown = @instructions.reduce(@listed) { |all, instruction| all.merge(instruction.printed) }
 
+      # Why the index gives no bytes for this part, when this read left it unfilled; nil, as here, when it is filled.
+      #: () -> String?
+      def bytes_unknown = nil
+
       # The slots, each entry with its help in place of the fields the agent fills.
       #: () -> Hash[String, untyped]
       def slots_to_fill
         @slots.to_h do |name, entries|
-          [name, entries.map { |entry| entry.merge(@help.fetch(name, {})) }]
+          [name, @alone.fetch(name, entries).map { |entry| entry.merge(@help.fetch(name, {})) }]
         end
       end
     end

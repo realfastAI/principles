@@ -7,7 +7,9 @@ require_relative "frontmatter_fields"
 require_relative "member_file"
 require_relative "text_size"
 require_relative "agent_loads"
+require_relative "carrier_kind"
 require_relative "hook_commands"
+require_relative "plugin_reference"
 require_relative "skill_loads"
 
 module Principles
@@ -44,6 +46,12 @@ module Principles
       # A rule in a .claude/rules folder below the project root, whose loading this tool does not derive yet.
       NESTED_RULE = {
         "when" => "not_determined", "not_derived" => "a rules folder below the project root"
+      }.freeze #: Hash[String, String]
+
+      # A file of an installed plugin, which reaches a session by the plugin's own means, such as its hooks or
+      # skills, which this tool does not derive.
+      PLUGIN_FILE = {
+        "when" => "not_determined", "not_derived" => "a file of an installed plugin"
       }.freeze #: Hash[String, String]
 
       # The member's loads, from its whole file as files hold it and its own lines in it; a file that cannot be
@@ -88,6 +96,11 @@ module Principles
         { "claude_code" => named.empty? ? claude_code : claude_code.merge("named_in_hooks" => named) }
       end
 
+      # The kind of carrier the member's file is, whose practices a request names for judging and editing it; kept out
+      # of to_h, so what each assessment was judged on stays as it was.
+      #: () -> CarrierKind
+      def carrier_kind = CarrierKind.new(@path, named_in_hooks: @hooks.naming(@path).any?)
+
       # The moments Claude Code loads the member's file at, as to_h names them.
       #: () -> Array[String]
       def moments
@@ -109,7 +122,9 @@ module Principles
       # When Claude Code loads the file, by its facility, with the size of what loads.
       #: () -> Hash[String, untyped]
       def claude_code
-        found = carrier
+        return PLUGIN_FILE if PluginReference.in(@path)
+
+        found = loads_by_path
         return { "when" => "no_known_carrier" } unless found
 
         # A skill's description member costs its description at start, not the file, so it has only its own size.
@@ -157,7 +172,7 @@ module Principles
       # When Claude Code loads the file, by the facility its path makes it, or nil for a path it does not load
       # by itself.
       #: () -> Hash[String, untyped]?
-      def carrier
+      def loads_by_path
         if @path.end_with?(".md")
           facility_loads = facility&.to_h
           return facility_loads if facility_loads

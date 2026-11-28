@@ -31,6 +31,10 @@ module Principles
       #: Integer
       attr_reader :started
 
+      # The session's directory, whose project and its worktrees are the only repositories reported on.
+      #: String
+      attr_reader :session_directory
+
       # The hook's input as the process it runs in reads it, the one owner of that reading for the executable, before
       # the rest of this tool loads, and for the command: started at clock, unless environment's PRINCIPLES_HOOK_NOW,
       # a test seam no session sets, gives the second; with home as ~; and for input naming no cwd, the session's
@@ -48,6 +52,7 @@ module Principles
         given = parsed(text)
         @event = EVENTS.find { it == given["hook_event_name"] } #: String?
         @started = started_before(now, given["duration_ms"]) #: Integer
+        @session_directory = fallback
         @cwd = text(given["cwd"]) || fallback #: String
         tool_input = given["tool_input"]
         @command = (text(tool_input["command"]) if tool_input.is_a?(Hash)) || "" #: String

@@ -51,7 +51,7 @@ characters, lines A-B)`; then list items; then headings below the second level f
 The root CLAUDE.md and AGENTS.md go after every other file, and keep their outlines. `outlines_cut` names each file
 whose outline lines were cut; a file whose only cut is its description is not named, since its text says so. Under
 each heading of a cut file, `(N more, lines A-B)`, or `(N more under M headings, lines A-B)`, says how many items
-its section held and which lines of the file hold it, so read just those lines where the survey needs them, not the
+it leaves out and which lines of the file hold them, so read just those lines where the survey needs them, not the
 whole file. `outlines_left_out` names files at path and size alone. Run `show-candidate-outlines PATH...` for needed
 outlines; request fewer paths if it omits any. In git, `untracked` names each listed file git does not track, and
 each file a listed link leads to that git does not track: it loads into context all the same, but start-audit

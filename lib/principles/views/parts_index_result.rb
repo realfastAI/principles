@@ -31,7 +31,7 @@ module Principles
                "unless you judge it again. --as template prints the same answer long, with each slot's help. " \
                "Then fill in the answer the response_template part prints"
         fill = AnswerInAFile.new(@invocation).assessment(request.principle_id, request_id:)
-        listed(index, request.principle_id)
+        listed(index, request.principle_id, request.bytes_unknown)
           .merge(TrimmedInstructionsNote.new(request.trimmed_instruction_fields).to_h)
           .merge("answer_with" => @invocation.submit_answer(request_id),
                  "next_action" => "#{read}, #{carried(request)}. #{fill}")
@@ -49,10 +49,14 @@ module Principles
       # The index under its request id, after the command that prints a part named after it, each entry's part as a
       # shell reads it, quoted where a shell would split or expand it, so it runs as printed; the answer's template
       # names each member by its id unquoted. One command rather than one an entry, since an entry's would repeat it
-      # and cost more than reading the whole request.
-      #: (Hash[String, untyped], String) -> Hash[String, untyped]
-      def listed(index, principle_id)
-        entries = index.fetch("index").map { it.merge("part" => ShellWord.new(it.fetch("part")).to_s) }
+      # and cost more than reading the whole request. Each part bytes_unknown names gives why it has no bytes instead.
+      #: (Hash[String, untyped], String, Hash[String, String]) -> Hash[String, untyped]
+      def listed(index, principle_id, bytes_unknown)
+        entries = index.fetch("index").map do |entry|
+          part = entry.fetch("part")
+          sized = bytes_unknown.key?(part) ? entry.except("bytes").merge("bytes_unknown" => bytes_unknown[part]) : entry
+          sized.merge("part" => ShellWord.new(part).to_s)
+        end
         { "request_id" => index.fetch("request_id"),
           "part_command" => @invocation.in_project("start-audit", principle_id, options: ["--part"]),
           "index" => entries }

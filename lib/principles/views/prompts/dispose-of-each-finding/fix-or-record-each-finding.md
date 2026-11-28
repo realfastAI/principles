@@ -11,6 +11,11 @@ or a notes file, set its `recorded_at` to that place, as `{"path": ..., "heading
 When a deferral waits on someone, set its `waits_on` to one line saying whom it waits on and to decide what, such as
 "<person>, to approve a CI change", and keep the reason in the write-up. Leave it null when it waits on no one in
 particular. Only a deferral may give one, and this tool records when it was asked.
+If a fix settles only part of a finding, keep it fixed and give the rest as its `unfixed_part`, rather than deferring
+the whole finding:
+`{"id": NEW_ID, "problem": ..., "action": "deferred", "reason": ..., "recorded_at": ..., "waits_on": ...}`, or
+`"action": "accepted"`. The record keeps the finding fixed and raises that part as a new finding of the same members,
+under an id no other finding has.
 If a fix rewrites the heading or the quoted text that locates a member, or the member's passage should be narrower
 or wider, move the member with `move-member`, then list the move in the answer as
 `"moved_members": [{"from": OLD_ID, "to": NEW_ID}]`, or `[{"from": ID, "to": ID}]` when the move kept its id, and

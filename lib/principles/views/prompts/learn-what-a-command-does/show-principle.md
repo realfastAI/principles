@@ -2,17 +2,18 @@ Shows each member of principle ID, where its text is now and whether it changed 
 member is changed, unassessed, locator_lost or unavailable. A member that is locator_lost or unavailable carries
 `repair_with`: a `move-member` with its `NEW_PATH`, `HEADING` or `QUERY` to fill in, for a section or passage a
 second `move-member` for text moved into another file, and a `remove-member`. Run the one that fits;
-`next_action` names those members.
+`next_action` names those members. A member from an installed plugin carries `source`, with `read_only: true`;
+one no installed plugin gives is `plugin_unresolved`, with its `reason` and no `repair_with`. `--member MEMBER_ID`
+prints that member alone, its `last_assessment` and any `last_acknowledgement` since; an unknown id is `unknown_member`.
 
-Each member's `loads` says, for each host this tool derives, when that host loads the member's file into the agent's
-context. Only `claude_code` is derived; Codex is not yet. The derivation follows Claude Code's documented loading
-from the file's path alone, for a session started at the project root, not what loaded in any session:
+`--loads` adds each member's `loads` and the rest below. Each member's `loads` says, for each host this tool derives,
+when that host loads the member's file into the agent's context. Only `claude_code` is derived; Codex is not yet.
+It follows Claude Code's documented loading by path, for a session at the project root, not what loaded in one:
 
 - `session_start`: the project's `CLAUDE.md`, `.claude/CLAUDE.md` or `CLAUDE.local.md`, in every session.
 - `on_files` with `files`: one of those files in a folder below the root, once a file in that folder is read,
   written or edited.
-- `session_start` too: a rule in `.claude/rules/`, or a folder within it, without a `paths` field in its
-  frontmatter.
+- `session_start` too: a rule in `.claude/rules/`, or a folder within it, with no `paths` field in its frontmatter.
 - `on_files` with `paths_field`: a rule with a `paths` field, once a file it matches is read, written or edited.
   `paths_field` is the field's lines as written; this tool does not read the globs, so read them yourself.
 - `on_invocation`: a skill's `SKILL.md` in `.claude/skills/NAME/`, whose body loads when the skill is invoked.
@@ -32,7 +33,7 @@ from the file's path alone, for a session started at the project root, not what 
   a note kept beside the agents, is `not_determined`.
 - `not_determined`: This tool knows the file is a rule, a skill or an agent but not when it loads.
   `frontmatter_refused` names the code this tool refused its frontmatter with, so read the frontmatter; `not_derived`
-  names a kind it does not derive yet, such as a rules folder below the project root.
+  names a kind it does not derive yet, such as a rules folder below the project root or a plugin's file.
 - `no_known_carrier`: This tool knows no Claude Code facility that loads this path by itself. An `@` import from
   another instruction file, or a user-level file, may still load it; read the importing file to check.
 
@@ -56,13 +57,12 @@ an unreadable file is not taken for one without hooks.
 divided by four, rounded up, not a tokenizer count. These are source measurements, not injected context sizes:
 host processing and imports can change what reaches context. A skill's body waits for invocation; an agent's
 body goes to its subagent. A `loads` without `context` refers to the main session.
-`member_bytes` and `member_tokens` measure the member's own lines, equalling the file values for a whole-file
-member, omitted when this tool cannot find the member. Moving source lines need not save that much context.
-Those lines may be other members' too: `overlaps` names this principle's members sharing a line with it, `same_lines_as`
-those spanning exactly its lines, and `mapped_elsewhere` other principles' members, each with its role, `first_line`,
-`last_line`, and `same_lines` when spanning exactly the same lines, `spans_these_lines` when its lines include all of
-this member's, or `within_these_lines` when they all lie within this member's. Each is left out when none shares a line.
-Before narrowing a section to save its `member_bytes`, check whose lines they are.
+`member_bytes` and `member_tokens` measure the member's own lines, equalling the file values for a whole-file member,
+omitted when this tool cannot find the member. Before narrowing a section to save them, check whose lines they are:
+`overlaps` names this principle's members sharing a line with it, `same_lines_as` those spanning exactly its lines,
+and `mapped_elsewhere` other principles' members, each with its role, `first_line`, `last_line`, and `same_lines` when
+spanning exactly the same lines, `spans_these_lines` when its lines include all of this member's, or
+`within_these_lines` when they all lie within this member's. Each is left out when none shares a line.
 
 Adding members' sizes counts a shared file once per member. `loading_basis` qualifies the aggregates below:
 `host: claude_code`, `kind: documented_prediction`, `session_start_assumption: project_root`; not observed delivery

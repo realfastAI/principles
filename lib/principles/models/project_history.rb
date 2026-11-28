@@ -49,13 +49,17 @@ module Principles
       #: (String) -> bool
       def tracks?(path) = !@repository.inside? || @repository.untracked_including_ignored(through_links([path])).empty?
 
-      # The project's tmp/ folder, by its full path, when it is there and git ignores it, so an answer saved in it is
-      # never committed; nil otherwise, outside git too. Asked once for the command.
-      #: () -> String?
-      def ignored_tmp_folder
+      # The project's tmp/ folder, by its full path, when it is there and git ignores a file named answer_name in it,
+      # so an answer saved there is never committed; nil otherwise, outside git too. Git is asked about the file, not
+      # the folder: a project that ignores tmp/'s contents but tracks a file there, as "/tmp/*" does, has git ignore
+      # the file but not tmp/. Asked once for the command, and kept for any later answer_name, since an ignore rule
+      # for tmp/ does not turn on one answer file's name.
+      #: (String) -> String?
+      def ignored_tmp_folder(answer_name)
         return @ignored_tmp_folder if defined?(@ignored_tmp_folder)
 
-        @ignored_tmp_folder = ("#{@files.root}/tmp" if @files.folder?("tmp") && @repository.ignores?("tmp/")) #: String?
+        ignored = @files.folder?("tmp") && @repository.ignores?("tmp/#{answer_name}")
+        @ignored_tmp_folder = ("#{@files.root}/tmp" if ignored) #: String?
       end
 
       # Whether the project is in git, so it has a history at all.
@@ -112,6 +116,11 @@ module Principles
       #: (String) -> ProjectAtCommit
       def at(commit) = ProjectAtCommit.new(@repository, @files, commit)
 
+      # Each of paths that a local branch's commits not on HEAD bring in, with the branches that do: where a member's
+      # file may be waiting to merge. None outside git.
+      #: (Array[String]) -> Hash[String, Array[String]]
+      def branches_bringing_in(paths) = @repository.inside? ? @repository.branches_bringing_in(paths) : {}
+
       # The rename git detects for path, a file absent from the working tree, as {"to", "similarity",
       # "deleted_in"}: the last commit that touched path, or nil while the move is not yet committed. It is
       # git's similarity match, which can pair a deleted file with an unrelated similar one, so the agent checks
@@ -159,6 +168,11 @@ module Principles
       def commits_touching(paths, since: nil)
         @repository.commits_touching(through_links(paths), since: since, up_to: head || "HEAD")
       end
+
+      # The newest commit on at's first-parent line that changed any of paths, a link on the way to one or the file they
+      # lead to; nil when none did.
+      #: (Array[String], at: String) -> String?
+      def last_change(paths, at:) = @repository.last_change(through_links(paths), at: at)
 
       # Reads the commits on head's first-parent line touching each of path_sets, and the links and files they lead
       # through, in one git log, so commits_touching asks git no more for any of them. Nothing outside git.

@@ -50,9 +50,8 @@ module Principles
       # name, which the budget cuts by.
       #: (Array[Hash[String, untyped]]) -> Hash[String, CandidateOutline]
       def outlines(test_data_hints)
-        test_data = hints(test_data_hints).map { |hint| hint.fetch("path") }
-        paths = listed.map { |file| file.fetch("path") }.grep(MARKDOWN)
-        (paths - test_data).to_h { |path| [path, CandidateOutline.new(@text_of.call(path))] }
+        outlined_paths(test_data_hints).to_h { |path| [path, outline_of(path)] }
+                                       .select { |path, outline| path.match?(MARKDOWN) || outline.sections.any? }
       end
 
       # Each Markdown or settings file, with its size, and a skill's entry file spelt otherwise than SKILL.md with its
@@ -75,6 +74,27 @@ module Principles
       end
 
       private
+
+      # The listed files the survey outlines: every one but those the test-data hints name.
+      #: (Array[Hash[String, untyped]]) -> Array[String]
+      def outlined_paths(test_data_hints)
+        test_data = hints(test_data_hints).map { |hint| hint.fetch("path") }
+        listed.map { |file| file.fetch("path") } - test_data
+      end
+
+      # The outline of one listed file, from its text: a Markdown file's by its headings and items, any other's by its
+      # comments.
+      #: (String) -> CandidateOutline
+      def outline_of(path) = CandidateOutline.new(@text_of.call(path), as: reader_for(path))
+
+      # What reads a file's outline: Markdown by its headings and items, a CI workflow by its jobs and steps, and any
+      # other text by its comments.
+      #: (String) -> (singleton(MarkdownText) | singleton(ScriptComments) | singleton(WorkflowJobs))
+      def reader_for(path)
+        return MarkdownText if path.match?(MARKDOWN)
+
+        path.match?(WorkflowJobs::PATH) ? WorkflowJobs : ScriptComments
+      end
 
       # files with those changed names first, each marked changed_in_range, and the rest after, each in its order.
       #: (Array[Hash[String, untyped]], Array[String]) -> Array[Hash[String, untyped]]

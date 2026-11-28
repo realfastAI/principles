@@ -14,12 +14,13 @@
       "properties": {
         "fixed": {
           "type": "object",
-          "required": ["action", "reason", "changed_members", "removed_members", "evidence", "reassessment", "recorded_at"],
+          "required": ["action", "reason", "changed_members", "changed_map_entries", "removed_members", "evidence", "reassessment", "recorded_at"],
           "additionalProperties": false,
           "properties": {
             "action": { "const": "fixed" },
             "reason": { "type": "string", "minLength": 1 },
             "changed_members": { "type": "array", "items": { "type": "string" } },
+            "changed_map_entries": { "type": "array", "items": { "type": "string" } },
             "removed_members": { "type": "array", "items": { "type": "string" } },
             "evidence": { "type": "array", "items": { "type": "object" } },
             "reassessment": { "type": "string", "minLength": 1 },

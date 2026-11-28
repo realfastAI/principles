@@ -4,9 +4,11 @@
 require_relative "command"
 require_relative "members_a_commit_changed"
 require_relative "../models/member_problems"
+require_relative "../models/members_in_logged_requests"
 require_relative "../models/problem_report"
 require_relative "../views/record_waiting_on_an_upgrade"
 require_relative "../views/problem_result"
+require_relative "../views/members_too_short_to_scan"
 require_relative "../views/problem_lines"
 require_relative "../views/first_audit_line"
 
@@ -77,9 +79,9 @@ module Principles
         lines = view.short(report, nothing_changed: Views::ProblemResult::NOTHING_CHANGED,
                                    assessed_change: problems.assessed_change?,
                                    never_assessed: problems.never_assessed, names_a_command:)
-        return lines unless session_start
+        return view.at_session_start(lines, changed: problems.assessed_changes) if session_start
 
-        view.at_session_start(lines, changed: problems.assessed_changes)
+        view.saying_nothing_changed(lines, members: report.fetch("counts").values.sum)
       end
 
       # list-member-problems' JSON result for map id, or every map, without the files it wrote.
@@ -121,10 +123,28 @@ module Principles
         facts = Views::ProblemFacts.new(not_read: @project.unread_older_files,
                                         no_baseline_files: problems.files_to_commit(@principles),
                                         audit_files: problems.audit_files_to_commit(@principles),
-                                        acknowledgeable: problems.acknowledgeable_together(
-                                          except: waiting.map(&:principle)
-                                        ), waiting:)
-        Views::ProblemResult.new(printing).checked_naming_commands(report, facts)
+                                        acknowledgeable: offered(problems, waiting), waiting:)
+        result, names_a_command = Views::ProblemResult.new(printing).checked_naming_commands(report, facts)
+        nothing_changed = Views::ProblemResult::NOTHING_CHANGED
+        Views::MembersTooShortToScan.new(printing, too_short).added_to(result, names_a_command, nothing_changed:)
+      end
+
+      # While requests are logged here, each member of the project's own files too short to find in one, by its
+      # principle, id and the move-member options that widen it; none otherwise, since only the scan needs them.
+      #: () -> Array[Hash[String, String]]
+      def too_short
+        return [] unless @project.request_logging.in_use?
+
+        Models::MembersInLoggedRequests.too_short_in(@project).map do |member|
+          { "principle" => member.principle, "id" => member.id, "move" => member.move_placeholders }
+        end
+      end
+
+      # The one-member audits problems offers, but for the principles waiting on an upgrade, whose audits wait.
+      #: (Models::ProblemReport, Array[Views::RecordWaitingOnAnUpgrade]) -> Views::AcknowledgementsOffered
+      def offered(problems, waiting)
+        offer = problems.acknowledgements(except: waiting.map(&:principle))
+        Views::AcknowledgementsOffered.new(offer.together, last: offer.last)
       end
     end
   end

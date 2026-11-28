@@ -3,6 +3,7 @@
 
 require_relative "audit_commit"
 require_relative "landed_since_base"
+require_relative "members_changed_during_audit"
 require_relative "principle_with_changed_members"
 require_relative "shell_word"
 
@@ -11,15 +12,16 @@ module Principles
   module Views
     # What a completed audit changed in the project, as its result prints it: the files to commit, in git what
     # landed since the base commit, as LandedSinceBase prints it, each other principle whose members its fixes changed,
-    # each file the record cites that no longer exists, and each member added to the map during the
-    # audit, which no assessment read, so the next full audit assesses it (T69).
+    # each file the record cites that no longer exists, and the audited principle's members that changed during the
+    # audit, as MembersChangedDuringAudit prints them.
     class AuditChanges
       #: (files_to_commit: Array[String], ?landed: LandedSinceBase?,
       #|  ?other_changed: Array[PrincipleWithChangedMembers], ?cited_files_missing: Array[String],
-      #|  ?added: Array[String]) -> void
-      def initialize(files_to_commit:, landed: nil, other_changed: [], cited_files_missing: [], added: [])
+      #|  ?members_changed: MembersChangedDuringAudit) -> void
+      def initialize(files_to_commit:, landed: nil, other_changed: [], cited_files_missing: [],
+                     members_changed: MembersChangedDuringAudit.new)
         @files_to_commit = files_to_commit
-        @added = added
+        @members_changed = members_changed
         @landed = landed
         @other_changed = other_changed
         @cited_files_missing = cited_files_missing
@@ -33,12 +35,16 @@ module Principles
       #: Array[PrincipleWithChangedMembers]
       attr_reader :other_changed
 
-      # The fields as printed; the members added and the cited files missing, what landed since the base only in
-      # git, where it is given, and the other principles, each only when there are some.
+      # The audited principle's members that changed during the audit, which the next step asks to audit again.
+      #: MembersChangedDuringAudit
+      attr_reader :members_changed
+
+      # The fields as printed; the members changed during the audit and the cited files missing, what landed since
+      # the base only in git, where it is given, and the other principles, each only when there are some.
       #: () -> Hash[String, untyped]
       def to_h
         printed = { "files_to_commit" => @files_to_commit } #: Hash[String, untyped]
-        printed = printed.merge("members_added_awaiting_assessment" => @added) unless @added.empty?
+        printed = printed.merge(@members_changed.to_h)
         printed = printed.merge("cited_files_missing" => @cited_files_missing) unless @cited_files_missing.empty?
         printed = printed.merge(@landed.to_h) if @landed
         others = @other_changed.map(&:to_h)

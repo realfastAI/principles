@@ -45,6 +45,18 @@ module Principles
                                     before: ACTION_PLACEHOLDER) #: NamedPlaceholder
       # Every placeholder a slot of a correction's template prints, for any finding, or printed before.
       NAMED = [*TEXT_FIELDS.values.map(&:placeholder), ACTION, EARLIER_ACTION].freeze #: Array[NamedPlaceholder]
+      # What the correction's question prints in an unfixed part's problem and reason, as its example
+      # `"problem": ..., ... "reason": ...` in dispose-of-each-finding/fix-or-record-each-finding.md, since no
+      # template prints an unfixed part.
+      QUESTION_EXAMPLE = NamedPlaceholder.new("...", before: "...") #: NamedPlaceholder
+      # The text fields an unfixed part gives, which the agent writes: the problem it raises as a finding of its own,
+      # and why it is left, which its outcome checks too against the template's reason.
+      UNFIXED_TEXT_FIELDS = {
+        "problem" => DispositionTextField.new(placeholder: QUESTION_EXAMPLE,
+                                              repair: "Write the problem the fix leaves unfixed."),
+        "reason" => DispositionTextField.new(placeholder: QUESTION_EXAMPLE,
+                                             repair: TEXT_FIELDS.fetch("reason").repair)
+      }.freeze #: Hash[String, DispositionTextField]
       # Every placeholder a correction's template prints, each text field's and the action's, each with its slot.
       TEMPLATE_PLACEHOLDERS = PLACEHOLDERS.merge("action" => ACTION.slotted).freeze #: Hash[String, String]
 

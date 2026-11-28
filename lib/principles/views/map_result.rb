@@ -77,15 +77,26 @@ module Principles
       # shared says which members share a line with the new one; added lists them only when there are some, as it
       # carries a check only when one is named. joined is what the result says of the map the member joined.
       #: (PrintedPrinciple, added: Hash[String, untyped], ?shared: LinesSharedWithMember, ?joined: MapAddedTo,
-      #|  ?consecutive: ConsecutiveSectionsElsewhere)
+      #|  ?other_maps: Array[ConsecutiveSectionsElsewhere | WholeFileElsewhere | MemberSetsOverlap])
       #|  -> Hash[String, untyped]
       def member_added(principle, added:, shared: LinesSharedWithMember.new, joined: MapAddedTo.new,
-                       consecutive: ConsecutiveSectionsElsewhere.new)
-        member = AddedMember.new(added, shared: shared, consecutive: consecutive)
+                       other_maps: [])
+        member = AddedMember.new(added, shared: shared, other_maps: other_maps)
         after = joined.after_member(principle, member: member.id, invocation: @invocation, in_git: @in_git)
         question(principle, "#{member.opening}#{after}".rstrip,
                  add_member_command(principle.id), shown: { "member_count" => principle.members.length })
           .merge("added" => member.to_h.merge(joined.added_facts))
+      end
+
+      # add-member --plugin: the member read from an installed plugin, with where it comes from, and that it is
+      # read-only and how a finding on it is handled.
+      #: (PrintedPrinciple, added: Hash[String, untyped]) -> Hash[String, untyped]
+      def plugin_member_added(principle, added:)
+        question(principle, "Added #{added.fetch("id")}, read-only: principles never edits a plugin's files, which " \
+                            "the plugin's next update replaces, so a finding on it is fixed in the project's own " \
+                            "files, deferred upstream or accepted. Add the next member the same way.",
+                 add_member_command(principle.id), shown: { "member_count" => principle.members.length })
+          .merge("added" => added)
       end
 
       # add-member's report of the map it started, with the description and activation it wrote, which the agent
@@ -95,14 +106,15 @@ module Principles
         { "map_created" => { "description" => principle.description, "activation" => principle.activation } }
       end
 
-      # move-member: the member's old id, and its new id with the lines it now spans.
+      # move-member: the member's old id, and its new id, place and the lines it now spans, not its role or the map,
+      # which cost 7.6 KB on a 17-member principle for one member moved.
       #: (PrintedPrinciple, from: String, moved: Hash[String, untyped]) -> Hash[String, untyped]
       def member_moved(principle, from:, moved:)
         id = moved.fetch("id")
         question(principle, "#{id} now spans lines #{moved.fetch("first_line")} to #{moved.fetch("last_line")}" \
                             "#{" (moved from #{from})" unless from == id}; if that is not the passage you meant, " \
-                            "move it again. Check the other members, then start the audit.", start_audit(principle.id))
-          .merge("moved" => moved)
+                            "move it again. Check the other members, then start the audit.", start_audit(principle.id),
+                 shown: { "member" => moved })
       end
 
       # change-member-check: the stored command is the member's check in the map printed beside this, so the
@@ -113,31 +125,41 @@ module Principles
         done = "#{member} is now enforced by the check named in its map entry. The next audit marks it new or " \
                "changed and asks for a review before it runs; nothing runs it automatically: " \
                "you run it when an audit asks for its result."
-        return member_replaced(principle, member: member, done: done) if hidden.empty?
+        return member_replaced(principle, done: done) if hidden.empty?
 
-        member_replaced(principle, member: member,
-                                   done: "#{done} The check holds characters that print escaped or not at all, " \
+        member_replaced(principle, done: "#{done} The check holds characters that print escaped or not at all, " \
                                          "which check_hidden_characters names; make sure each is meant.")
           .merge("check_hidden_characters" => hidden)
       end
 
       # change-member-role, change-member-check and remove-member-check: done says what changed. This tool cannot
       # tell in git whether a full audit's correction is open, so the next step names both cases, and
-      # the other case by what the agent holds: a correction request (one user on 8e5b3f9).
-      #: (PrintedPrinciple, member: String, done: String) -> Hash[String, untyped]
-      def member_replaced(principle, member:, done:)
+      # the other case by what the agent holds: a correction request (one user on 8e5b3f9), which already
+      # prints its submit-answer command with its request id, so this does not repeat it.
+      # shown is what it prints of the map, as question takes it.
+      #: (PrintedPrinciple, done: String, ?shown: Hash[String, untyped]) -> Hash[String, untyped]
+      def member_replaced(principle, done:, shown: { "map" => principle.map })
         question(principle, "#{done} Check the other members, then start the audit.\nIf you hold a correction " \
-                            "request from submit-answer (phase correction), list #{member} in the " \
-                            "changed_map_entries of the fixed disposition this change fixes, and submit it instead: " \
-                            "#{@invocation.submit_answer("REQUEST_ID")}",
-                 start_audit(principle.id))
+                            "request instead, list this member in the changed_map_entries of the fixed disposition " \
+                            "this change fixes, and submit that request's answer.",
+                 start_audit(principle.id), shown: shown)
       end
 
+      # change-member-role: the member's id and its new role, the one part that changed, never the whole map, which
+      # cost 7.9 KB on a 17-member principle.
+      #: (PrintedPrinciple, member: String, role: String) -> Hash[String, untyped]
+      def role_changed(principle, member:, role:)
+        member_replaced(principle, done: "Changed its role.", shown: { "member" => { "id" => member, "role" => role } })
+      end
+
+      # remove-member: the id removed and how many members are left, never the whole map left, which cost 7.9 KB on
+      # a 17-member principle; show-principle lists them.
       #: (PrintedPrinciple, removed: String) -> Hash[String, untyped]
       def member_removed(principle, removed:)
+        left = principle.map.fetch("members").size
         question(principle, "Removed #{removed}. Add or remove members until the map is right.\n" \
                             "#{FirstAudit.new(@invocation, in_git: @in_git).after_mapping(principle.id)}",
-                 add_member_command(principle.id))
+                 add_member_command(principle.id), shown: { "member_removed" => removed, "members_left" => left })
       end
 
       private

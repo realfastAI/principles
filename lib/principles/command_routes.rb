@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require_relative "controllers/inventory"
+require_relative "controllers/principle_listing"
 require_relative "controllers/survey"
 require_relative "controllers/guidance_search_paths"
 require_relative "controllers/member_problems_report"
@@ -15,6 +16,9 @@ require_relative "controllers/first_audit_brief"
 require_relative "controllers/session_start_report"
 require_relative "controllers/after_commit_report"
 require_relative "controllers/hook_setup"
+require_relative "controllers/request_logging"
+require_relative "controllers/members_in_logged_requests"
+require_relative "controllers/carrier_practices"
 
 module Principles
   # Every command this tool runs, each with its route: the positional words it takes, which CommandLine parses, and
@@ -46,7 +50,7 @@ module Principles
       "show-candidate-outlines" => Route.new(Controllers::Survey, ["path..."]),
       "add-guidance-search-path" => Route.new(Controllers::GuidanceSearchPaths, %w[glob]),
       "remove-guidance-search-path" => Route.new(Controllers::GuidanceSearchPaths, %w[glob]),
-      "list-principles" => Route.new(Controllers::Inventory, []),
+      "list-principles" => Route.new(Controllers::PrincipleListing, []),
       "list-member-problems" => Route.new(Controllers::MemberProblemsReport, %w[id?]),
       "show-principle" => Route.new(Controllers::Inventory, %w[id]),
       "show-audit" => Route.new(Controllers::Audit, %w[id]),
@@ -68,6 +72,12 @@ module Principles
       "show-open-correction" => Route.new(Controllers::OpenCorrection, %w[id]),
       "show-first-audit-brief" => Route.new(Controllers::FirstAuditBrief, %w[id?]),
       "show-hook-setup" => Route.new(Controllers::HookSetup, []),
+      "turn-on-request-logging" => Route.new(Controllers::RequestLogging, []),
+      "show-members-in-logged-requests" => Route.new(Controllers::MembersInLoggedRequests, []),
+      "turn-off-request-logging" => Route.new(Controllers::RequestLogging, []),
+      "show-logged-requests" => Route.new(Controllers::RequestLogging, []),
+      "remove-logged-requests" => Route.new(Controllers::RequestLogging, []),
+      "show-carrier-practices" => Route.new(Controllers::CarrierPractices, %w[kind]),
       "report-at-session-start" => Route.new(Controllers::SessionStartReport, [], reads_hook_input: true),
       "report-after-commit" => Route.new(Controllers::AfterCommitReport, [], reads_hook_input: true)
     }.freeze #: Hash[String, Route]

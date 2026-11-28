@@ -11,19 +11,23 @@ module Principles
     # request shows of each, the template entry each starts with, and what they carry that the request explains.
     class AssessedMembers
       # What the request shows of each member.
-      SHOWN = %w[id role first_line last_line check check_since_last_audit check_hidden_characters
+      SHOWN = %w[id role first_line last_line source check check_since_last_audit check_hidden_characters
                  acknowledged_since_last_audit carried_forward open_finding_ids judge_because moved_from read_the_change
-                 mapped_elsewhere].freeze #: Array[String]
+                 changed_lines mapped_elsewhere].freeze #: Array[String]
 
       # reviewed_check_placeholders is the text a checked member's template prints in each field it may leave as
       # printed to give none, for a check reviewed before it runs; unchanged_check_placeholders, for one the
       # last audit ran.
       # assessment_placeholder is the text a fresh member's assessment prints, which an answer may not send back, its
       # %<id>s filled with the member's id, so each slot's is its own and one edit fills one slot.
+      # carrier_checks is the check for each carrier kind the members are in, as CarrierChecks prints them.
       #: (Array[Hash[String, untyped]], reviewed_check_placeholders: Hash[String, String],
-      #|  unchanged_check_placeholders: Hash[String, String], assessment_placeholder: String) -> void
-      def initialize(members, reviewed_check_placeholders:, unchanged_check_placeholders:, assessment_placeholder:)
+      #|  unchanged_check_placeholders: Hash[String, String], assessment_placeholder: String,
+      #|  ?carrier_checks: Hash[String, untyped]) -> void
+      def initialize(members, reviewed_check_placeholders:, unchanged_check_placeholders:, assessment_placeholder:,
+                     carrier_checks: {})
         @assessment_placeholder = assessment_placeholder
+        @carrier_checks = carrier_checks
         @members = members
         @reviewed_check_placeholders = reviewed_check_placeholders
         @unchanged_check_placeholders = unchanged_check_placeholders
@@ -32,7 +36,8 @@ module Principles
 
       # What the request shows of a carried member no flag fires on: what names it and its check, whose result
       # the template still asks for, and of its carried assessment only its dates and flags.
-      COMPACT = %w[id role check check_since_last_audit check_hidden_characters carried_forward].freeze #: Array[String]
+      COMPACT = %w[id role source check check_since_last_audit check_hidden_characters
+                   carried_forward].freeze #: Array[String]
       # What a compact member shows of its carried assessment.
       CARRIED_COMPACTLY = %w[assessed_at observed_at observed_at_from_assessed_at evidence_changed
                              file_changed_outside_member].freeze #: Array[String]
@@ -48,6 +53,11 @@ module Principles
                                         "carried_forward" => member.fetch("carried_forward").slice(*CARRIED_COMPACTLY))
         end
       end
+
+      # The check for each carrier kind the members are in, under carrier_checks, which the request prints beside
+      # them, outside the question a record digests; nothing when there are none.
+      #: () -> Hash[String, Hash[String, untyped]]
+      def carrier_checks = @carrier_checks.empty? ? {} : { "carrier_checks" => @carrier_checks }
 
       # What the template printed alone says of the checks before its members, since it has no context to show it in:
       # the carried members whose template entry in templates still asks for a check_result, under
@@ -70,7 +80,7 @@ module Principles
 
       # How to run and report the checks of each standing, once, with the ids of the members it is for, under
       # shared_check_instructions, whose own lines check_instructions adds; nothing when none has a check.
-      #: () -> Hash[String, Array[Hash[String, untyped]]]
+      #: () -> Hash[String, Hash[String, untyped]]
       def shared_check_instructions
         checks = @members.filter_map { |member| check_template(member)&.then { [member.fetch("id"), it] } }
         return {} if checks.empty?
@@ -150,10 +160,11 @@ module Principles
       #: (Hash[String, untyped]) -> Hash[String, untyped]
       def carried(member) = { "member_id" => member.fetch("id"), "carried_forward" => true }
 
+      # A fresh member's slot, naming why it is judged afresh, so the template printed alone says so too.
       #: (Hash[String, untyped]) -> Hash[String, untyped]
       def fresh(member)
         id = member.fetch("id")
-        { "member_id" => id, "assessment" => format(@assessment_placeholder, id:),
+        { "member_id" => id, **member.slice("judge_because"), "assessment" => format(@assessment_placeholder, id:),
           "delivery" => "not_observed", "evidence" => member.fetch("evidence") }
       end
     end

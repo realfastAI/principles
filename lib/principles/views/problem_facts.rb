@@ -1,6 +1,7 @@
 # typed: strict
 # frozen_string_literal: true
 
+require_relative "acknowledgements_offered"
 require_relative "record_waiting_on_an_upgrade"
 
 module Principles
@@ -20,16 +21,17 @@ module Principles
       #: Hash[String, Array[String]]
       attr_reader :audit_files
 
-      #: Hash[Array[String], Array[String]]
+      #: AcknowledgementsOffered
       attr_reader :acknowledgeable
 
       #: Array[RecordWaitingOnAnUpgrade]
       attr_reader :waiting
 
       #: (?not_read: Array[String], ?no_baseline_files: Hash[String, Array[String]],
-      #|  ?audit_files: Hash[String, Array[String]], ?acknowledgeable: Hash[Array[String], Array[String]],
+      #|  ?audit_files: Hash[String, Array[String]], ?acknowledgeable: AcknowledgementsOffered,
       #|  ?waiting: Array[RecordWaitingOnAnUpgrade]) -> void
-      def initialize(not_read: [], no_baseline_files: {}, audit_files: {}, acknowledgeable: {}, waiting: [])
+      def initialize(not_read: [], no_baseline_files: {}, audit_files: {}, acknowledgeable: AcknowledgementsOffered::NONE,
+                     waiting: [])
         @not_read = not_read
         @no_baseline_files = no_baseline_files
         @audit_files = audit_files

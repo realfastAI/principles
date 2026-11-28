@@ -37,7 +37,7 @@ module Principles
       #: (untyped) -> Hash[String, untyped]?
       def result(answer)
         check = @member.check
-        refuse("it has no check, so its answer reports no check_result") if !check && answer.key?("check_result")
+        stray if !check && answer.key?("check_result")
         return unless check
 
         sent = answer["check_result"] or missing
@@ -96,6 +96,16 @@ module Principles
         raise CHECK_RESULT.refusal(
           Error.new("invalid_check_result", "the member has a check, so its acknowledgement needs a check_result",
                     CheckResultGuide::ACKNOWLEDGEMENT.missing)
+        )
+      end
+
+      # Refuses an answer for a member with no check that reports a check_result, which its acknowledgement is
+      # accepted without, rather than dropping it unread.
+      #: () -> bot
+      def stray
+        raise CHECK_RESULT.refusal(
+          Error.new("invalid_check_result", "the member has no check, so its acknowledgement takes no check_result",
+                    "Remove check_result from this acknowledgement.")
         )
       end
 

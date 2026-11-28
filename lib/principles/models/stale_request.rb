@@ -26,6 +26,15 @@ module Principles
         freeze
       end
 
+      # The refusal of an answer whose audit began before the installed plugin changed the text of members, its
+      # plugin members: no fix can claim a plugin's change, so the audit starts again on the new text.
+      #: (String, Array[String]) -> Error
+      def self.plugin_updated(principle_id, members)
+        Error.new("stale_request", "This request no longer matches #{principle_id}: the installed plugin changed " \
+                                   "#{ProseList.new(members)} since the audit began",
+                  "Start the audit again and answer the new request: #{Error::EXECUTABLE} start-audit #{principle_id}")
+      end
+
       #: () -> Error
       def refusal
         Error.new("stale_request", "This request no longer matches #{@principle_id}: #{cause}", repair)

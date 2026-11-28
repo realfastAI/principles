@@ -19,6 +19,10 @@ module Principles
       #: NamedPlaceholder
       attr_reader :placeholder
 
+      # What to write instead.
+      #: String
+      attr_reader :repair
+
       #: (placeholder: NamedPlaceholder, repair: String) -> void
       def initialize(placeholder:, repair:)
         @placeholder = placeholder

@@ -9,6 +9,8 @@ require_relative "principle_history"
 require_relative "principle_mapping_history"
 require_relative "member_state"
 require_relative "locate_refusal"
+require_relative "mapped_baseline"
+require_relative "member_entry"
 
 module Principles
   # The domain logic, and the mediation of persistence. models/CLAUDE.md owns the boundary.
@@ -22,20 +24,23 @@ module Principles
       # from, and each member's hash and commit at the commit that mapped it where it is.
       class Baselines
         # The last audit's hashes for members' map, and each member's hash and commit at the commit that mapped it
-        # where it is, read with the map as that commit held it; none outside git.
+        # where it is, read with the map as that commit held it, none outside git, or for a plugin member, which no
+        # commit holds, its version and hash as the map pinned them.
         #: (Project, PrincipleMembers, ?mapping: PrincipleMappingHistory?) -> Baselines
         def self.of(project, members, mapping: nil)
           records = project.audit_records
-          mapped = mapped_where_it_is(project, members, mapping: mapping)
-          new(audit: records.readable(members.principle_id), mapped: mapped, in_git: project.history.inside_git?,
-              hashes: records.hashes_to_compare(members.principle_id), mapping: mapping)
+          new(audit: records.readable(members.principle_id), mapped: mapped(project, members, mapping: mapping),
+              in_git: project.history.inside_git?, hashes: records.hashes_to_compare(members.principle_id),
+              mapping: mapping)
         end
 
-        # Each member's hash and commit at the commit that mapped it where it is, read with the map as that commit
-        # held it.
-        #: (Project, PrincipleMembers, ?mapping: PrincipleMappingHistory?) -> Hash[String, Hash[String, String]]
-        def self.mapped_where_it_is(project, members, mapping: nil)
+        # What this tool knew of each member's text when it was mapped: its hash at the commit that mapped it where it
+        # is, read with the map as that commit held it, or a plugin member's pin.
+        #: (Project, PrincipleMembers, ?mapping: PrincipleMappingHistory?) -> Hash[String, MappedBaseline]
+        def self.mapped(project, members, mapping: nil)
           project.principle_history(members.principle_id, mapping: mapping).mapped_baselines(members.keys)
+                 .transform_values { MappedBaseline.at_commit(it.fetch("sha256"), it.fetch("commit")) }
+                 .merge(members.pinned.transform_values { MappedBaseline.pinned(it) })
         end
 
         # Whether the project is in git, so a member with no baseline is one no commit holds yet.
@@ -49,7 +54,8 @@ module Principles
         # audit is the principle's audit record, if any: its hashes, the commit it began from and whether it is
         # completed, so a one-member audit is offered only where one would be accepted. hashes is the member
         # hashes the record holds, which a later copy may have written, so its members are compared read-only.
-        #: (audit: AuditRecord?, mapped: Hash[String, Hash[String, String]], in_git: bool,
+        # mapped holds what this tool knew of each member's text when it was mapped, by key.
+        #: (audit: AuditRecord?, mapped: Hash[String, MappedBaseline], in_git: bool,
         #|  ?hashes: RecordedHashes, ?mapping: PrincipleMappingHistory?) -> void
         def initialize(audit:, mapped:, in_git:, hashes: audit&.members&.hashes || RecordedHashes::NONE, mapping: nil)
           @hashes = hashes
@@ -66,19 +72,18 @@ module Principles
         def mapping_for(key)
           return if @hashes.hash_for(key)
 
-          @mapping if @mapped.key?(key)
+          @mapping if @mapped[key]&.walks_history?
         end
 
         # The hash this tool last knew for the member known by key, and what it was: the last audit's, or else its
-        # hash at the commit that mapped it, with why no audit gave one; neither when it has no baseline.
+        # hash when it was mapped, with why no audit gave one; neither when it has no baseline.
         #: (String) -> [String?, Hash[String, untyped]?]
         def of(key)
           if (audited = @hashes.hash_for(key))
             [audited, { "baseline" => "audit", "commit" => @audit_base }]
-          elsif @mapped.key?(key)
-            mapped = @mapped.fetch(key)
-            [mapped.fetch("sha256"), { "baseline" => "mapping_commit", "commit" => mapped.fetch("commit"),
-                                       "no_audit_because" => @hashes.empty? ? "no_audit_record" : "not_in_last_audit" }]
+          elsif (mapped = @mapped[key])
+            because = @hashes.empty? ? "no_audit_record" : "not_in_last_audit"
+            [mapped.sha256, { **mapped.since, "no_audit_because" => because }]
           else
             [nil, nil]
           end
@@ -113,8 +118,9 @@ module Principles
         map = project.principles.find(id)
         members = map.members
         mapping = PrincipleMappingHistory.load_if_linked(current: map, project: project)
-        new(members: members, now: project.current_by_key(members),
-            baselines: Baselines.of(project, members, mapping: mapping))
+        now = project.current_by_key(members)
+        new(members: members, now: now, baselines: Baselines.of(project, members, mapping: mapping),
+            sources: plugin_sources(project, members, now))
       rescue Error => e
         raise unless listing_all
 
@@ -122,15 +128,31 @@ module Principles
         new(members: none, now: {}, baselines: Baselines.of(project, none), unreadable: e.payload)
       end
 
+      # Where each plugin member found now comes from, by key, at the version installed now.
+      #: (Project, PrincipleMembers, Hash[String, untyped]) -> Hash[String, Hash[String, untyped]]
+      def self.plugin_sources(project, members, now)
+        sources = {} #: Hash[String, Hash[String, untyped]]
+        members.each do |member|
+          reference = member.plugin_reference
+          next unless reference && now[member.key].is_a?(String)
+
+          sources[member.key] = project.installed_plugins.source(reference)
+        end
+        sources
+      end
+      private_class_method :plugin_sources
+
       # now holds, for each member by key, its hash now or the refusal that says why it cannot be found.
       # unreadable is the refusal for a map this tool could not read, which is listed as one broken entry.
-      #: (members: PrincipleMembers, now: Hash[String, untyped],
-      #|  baselines: Baselines, ?unreadable: Hash[String, untyped]?) -> void
-      def initialize(members:, now:, baselines:, unreadable: nil)
+      # sources holds where each plugin member found now comes from, by key.
+      #: (members: PrincipleMembers, now: Hash[String, untyped], baselines: Baselines,
+      #|  ?unreadable: Hash[String, untyped]?, ?sources: Hash[String, Hash[String, untyped]]) -> void
+      def initialize(members:, now:, baselines:, unreadable: nil, sources: {})
         @members = members
         @now = now
         @baselines = baselines
         @unreadable = unreadable
+        @sources = sources
         freeze
       end
 
@@ -162,7 +184,7 @@ module Principles
       # How many members no audit has assessed, compared only with the commit that mapped them, edited or not, which
       # --short counts on stdout; none while the principle's audits wait on an upgrade.
       #: () -> Integer
-      def never_assessed = @baselines.waiting? ? 0 : compared_with.fetch("mapping_commit", 0)
+      def never_assessed = @baselines.waiting? ? 0 : MappedBaseline::KINDS.sum { compared_with.fetch(it, 0) }
 
       # The entries whose own text changed since this tool last knew it, those an audit assessed first. Given a
       # block, each gains "history", what the block makes of its member, the hash it was compared with, and its
@@ -172,7 +194,7 @@ module Principles
       def changed(&history)
         assessed, unassessed = changed_members.partition { |member| assessed?(member) }
         (assessed + unassessed).map do |member|
-          history ? history_entry(member, history) : entry(member)
+          history && !member.plugin_reference ? history_entry(member, history) : entry(member)
         end
       end
 
@@ -281,26 +303,7 @@ module Principles
 
       #: (Member) -> Hash[String, untyped]
       def entry(member)
-        listed = { "principle" => principle_id, "id" => member.id }
-        now = @now[member.key]
-        return compared(listed, member.key, now.to_s) unless now.is_a?(Hash)
-
-        listed.merge("state" => LocateRefusal.new(now).member_state).merge(now.except("status"))
-      end
-
-      # listed, compared with the last audit's hash for key, or else with its hash at the commit that mapped it.
-      # An unchanged member compared only with the commit that mapped it has never been assessed, so it is
-      # counted apart from one an audit assessed: counts is read first, and "unchanged" alone reads as audited.
-      #: (Hash[String, untyped], String, String) -> Hash[String, untyped]
-      def compared(listed, key, sha)
-        then_sha, since = baseline(key)
-        return listed.merge("state" => "no_baseline") unless since
-        unless then_sha == sha
-          return listed.merge("state" => "changed", "since" => since,
-                              **(@baselines.waiting? ? { "waiting_on_an_upgrade" => true } : {}))
-        end
-
-        listed.merge("state" => since["baseline"] == "mapping_commit" ? "unchanged_since_mapping" : "unchanged")
+        MemberEntry.new(principle_id, member, @now[member.key], @baselines, source: @sources[member.key]).to_h
       end
 
       #: (String) -> [String?, Hash[String, untyped]?]

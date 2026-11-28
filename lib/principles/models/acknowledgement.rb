@@ -109,6 +109,11 @@ module Principles
         { "deferred_findings" => findings_on_member("deferred"), "accepted_findings" => findings_on_member("accepted") }
       end
 
+      # The ids of the findings the last audit left open on this member, deferred then accepted, which accepting
+      # the acknowledgement leaves open, since only a full audit decides a finding.
+      #: () -> Array[String]
+      def open_finding_ids = open_findings.values.flatten
+
       # Whether the last audit deferred a finding on this member, which acknowledging it leaves open for a full audit.
       #: () -> bool
       def keeps_deferred_findings? = findings_on_member("deferred").any?

@@ -155,9 +155,10 @@ module Principles
         [file(record.principle_id), *record.cited_files(@history).committed_with(changed, reported)]
       end
 
-      # Each file record cites that no longer exists, which files_to_commit leaves out.
-      #: (AuditRecord) -> Array[String]
-      def cited_files_missing(record) = record.cited_files(@history).missing
+      # Each file record cites that no longer exists, which files_to_commit leaves out, a plugin's file asked of
+      # plugins.
+      #: (AuditRecord, InstalledPlugins) -> Array[String]
+      def cited_files_missing(record, plugins) = record.cited_files(@history).missing(plugins)
 
       # Writes record's file and names it, relative to the project.
       #: (AuditRecord) -> String

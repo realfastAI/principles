@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require_relative "command"
-require_relative "inventory"
+require_relative "principle_listing"
 require_relative "../models/entry_files"
 require_relative "../models/meta_principle"
 require_relative "../models/text_size"
@@ -49,7 +49,7 @@ module Principles
 
       # The project's other principles, as list-principles lists them, which this principle's first audit keeps held.
       #: () -> Array[Hash[String, untyped]]
-      def existing_principles = handed(Inventory).rows(@principles.ids - [Models::MetaPrinciple::ID])
+      def existing_principles = handed(PrincipleListing).rows(@principles.ids - [Models::MetaPrinciple::ID])
 
       # Where the passage can go: how this run was started and whether the hook runs in this session, the project's
       # entry files, and the passage.

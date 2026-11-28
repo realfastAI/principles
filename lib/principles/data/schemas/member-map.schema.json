@@ -31,7 +31,16 @@
           "ending_at": { "type": "string", "minLength": 1 },
           "role": { "type": "string", "minLength": 1 },
           "key": { "type": "string", "minLength": 1, "description": "What the member is known by across moves, which its audit record files its hash under. Absent, it is the member's id. move-member stores the old id here on a member's first move, and add-member gives a member a key of its own when its id is the key of a member that moved away." },
-          "check": { "type": "string", "minLength": 1, "description": "The command that enforces this member, which an audit asks the agent to run and report. This tool never runs it." }
+          "check": { "type": "string", "minLength": 1, "description": "The command that enforces this member, which an audit asks the agent to run and report. This tool never runs it." },
+          "pinned": {
+            "type": "object",
+            "description": "For a member read from an installed plugin: the version the host had installed when it was mapped, and the SHA-256 of the member's text then. Only the hash says whether the text changed; the version is shown for information.",
+            "required": ["version", "sha256"],
+            "properties": {
+              "version": { "type": "string", "minLength": 1 },
+              "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+            }
+          }
         }
       }
     }

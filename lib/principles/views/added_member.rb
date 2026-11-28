@@ -3,16 +3,28 @@
 
 require_relative "lines_shared_with_member"
 require_relative "consecutive_sections_elsewhere"
+require_relative "whole_file_elsewhere"
+require_relative "member_sets_overlap"
 
 module Principles
   module Views
-    # The member just added: its id, current lines and check, beside its shared/consecutive location facts.
+    # The member just added: its id, current lines and check, beside its shared-line facts and the facts of other
+    # maps it asks the agent to judge, each printed only when it has some.
     class AddedMember
-      #: (Hash[String, untyped], shared: LinesSharedWithMember, consecutive: ConsecutiveSectionsElsewhere) -> void
-      def initialize(added, shared:, consecutive:)
-        @added = added.merge(shared.to_h).merge(consecutive.to_h) #: Hash[String, untyped]
+      # What the agent decides when other principles hold the new member's file whole or a nearly matching member set,
+      # asked once however many of those cues fire.
+      SCOPE_OR_JOIN = "Should each hold only the passages that carry it (move-member with " \
+                      "--section or --starting-at), or are they one principle (join the maps: add one map's " \
+                      "members to the other, then remove-principle)? " #: String
+
+      #: (Hash[String, untyped], shared: LinesSharedWithMember,
+      #|  other_maps: Array[ConsecutiveSectionsElsewhere | WholeFileElsewhere | MemberSetsOverlap])
+      #|  -> void
+      def initialize(added, shared:, other_maps:)
+        facts = other_maps.reduce(added.merge(shared.to_h)) { |merged, each| merged.merge(each.to_h) }
+        @added = facts #: Hash[String, untyped]
         @shared = shared
-        @consecutive = consecutive
+        @other_maps = other_maps
         freeze
       end
 
@@ -25,10 +37,14 @@ module Principles
       # The same location/remapping opening precedes the map's own after-add guidance.
       #: () -> String
       def opening
-        "#{span}#{@shared.note}#{@consecutive.note}Add the next member the same way. "
+        "#{span}#{@shared.note}#{@other_maps.map(&:note).join}#{SCOPE_OR_JOIN if scope_or_join?}" \
+          "Add the next member the same way. "
       end
 
       private
+
+      #: () -> bool
+      def scope_or_join? = @other_maps.any?(&:asks_scope_or_join?)
 
       # The lines a member spans, said so that a passage cut short shows; it ends with a space.
       #: () -> String

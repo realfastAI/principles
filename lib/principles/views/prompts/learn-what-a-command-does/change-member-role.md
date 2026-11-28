@@ -1,4 +1,5 @@
-Replaces the role of MEMBER of principle ID with ROLE. MEMBER is the id `show-principle` lists.
+Replaces the role of MEMBER of principle ID with ROLE. MEMBER is the id `show-principle` lists. The result prints
+under `member` its id and new role, not the whole map: `show-principle` shows the rest.
 
 Run during a full audit, between an accepted assessment and its correction, to fix a finding in the map: list MEMBER
 in the `changed_map_entries` of the fixed disposition it fixes, and submit the correction. This tool prints both

@@ -46,6 +46,21 @@ module Principles
       #: () -> Array[String]
       def keys = @list.map(&:key)
 
+      # The members in the project's own files, which git holds, leaving out those a plugin gives.
+      #: () -> PrincipleMembers
+      def in_project = PrincipleMembers.new(@principle_id, @list.reject(&:plugin_reference))
+
+      # What the map pinned of each plugin member, by key: the version and the hash of its text when it was mapped.
+      #: () -> Hash[String, Hash[String, String]]
+      def pinned
+        pins = {} #: Hash[String, Hash[String, String]]
+        @list.each do |member|
+          pin = member.pinned
+          pins[member.key] = pin if pin
+        end
+        pins
+      end
+
       # Each member by its id.
       #: () -> Hash[String, Member]
       def by_id = @list.to_h { |member| [member.id, member] }

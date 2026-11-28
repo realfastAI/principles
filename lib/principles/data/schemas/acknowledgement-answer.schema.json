@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "acknowledgement-answer.schema.json",
   "title": "Acknowledgement answer",
-  "description": "What an agent answers a one-member audit with: the request id and basis, and under members one entry keyed by the member id, as an answer for several members holds it, saying whether the change keeps the member's meaning, a one-line reason, and a line quoted from the member's text before the change and one from after it, or \"\" for a side with no line the other lacks; a quote left out, as is the basis's base_commit, which the request id already pins, is read as the request's first_changed_lines printed it. Fields this tool does not read are refused. Models::Acknowledgement checks the quotes and the reason.",
+  "description": "What an agent answers a one-member audit with: the request id and basis, and under members one entry keyed by the member id, as an answer for several members holds it, saying whether the change keeps the member's meaning, a one-line reason, and a line quoted from the member's text before the change and one from after it, or \"\" for a side with no line the other lacks; a quote left out, as is the basis's base_commit, which the request id already pins, is read as the request's first_changed_lines printed it. Fields this tool does not read are refused, but for answer_with and each entry's role, which the template printed alone carries for the agent to read and which are read as nothing. Models::Acknowledgement checks the quotes and the reason.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -13,6 +13,10 @@
   "properties": {
     "request_id": {
       "type": "string"
+    },
+    "answer_with": {
+      "type": "string",
+      "description": "The command that submits this answer from the file it is saved in, as the template printed alone carries it. Sent back, it is read as nothing."
     },
     "basis": {
       "type": "object",
@@ -49,6 +53,17 @@
           "reason"
         ],
         "properties": {
+          "roles": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "The member's role by each principle that maps it, which the template printed alone across principles carries beside meaning_kept for the agent judging it. Sent back, it is read as nothing."
+          },
+          "role": {
+            "type": "string",
+            "description": "The member's role as its map names it, which the template printed alone carries beside meaning_kept for the agent judging it. Sent back, it is read as nothing."
+          },
           "meaning_kept": {
             "type": "boolean"
           },
